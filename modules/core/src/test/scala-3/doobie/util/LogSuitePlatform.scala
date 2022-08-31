@@ -8,6 +8,7 @@ import doobie.util.log.ProcessingFailure
 import doobie.util.log.Success
 
 trait LogSuitePlatform { self: LogSuite =>
+  import doobie.generic.auto.*
 
   test("[Query] n-arg success") {
     val Sql = "select 1 where ? = ?"

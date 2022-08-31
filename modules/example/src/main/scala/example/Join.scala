@@ -5,6 +5,7 @@
 package example
 
 import cats.syntax.all.*
+import doobie.generic.auto.*
 import doobie.syntax.all.*
 import doobie.util.query.Query0
 

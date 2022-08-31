@@ -4,6 +4,7 @@
 
 package example
 
+import doobie.generic.auto.*
 import doobie.syntax.all.*
 import doobie.util.Read
 import doobie.util.Write

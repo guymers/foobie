@@ -4,6 +4,7 @@
 
 package example
 
+import doobie.generic.auto.*
 import doobie.postgres.implicits.*
 import doobie.syntax.all.*
 import doobie.util.meta.Meta

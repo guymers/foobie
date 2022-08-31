@@ -13,6 +13,7 @@ import doobie.util.transactor.Transactor
 
 class FragmentsSuite extends munit.FunSuite {
   import cats.effect.unsafe.implicits.global
+  import doobie.generic.auto.*
   import doobie.util.fragments.*
 
   val xa = Transactor.fromDriverManager[IO](

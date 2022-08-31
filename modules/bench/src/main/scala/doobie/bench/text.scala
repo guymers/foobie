@@ -4,11 +4,14 @@
 
 package doobie.bench
 
-import cats.syntax.all.*
+import cats.syntax.apply.*
+import cats.syntax.foldable.*
+import cats.syntax.functor.*
 import doobie.FPS
 import doobie.HC
 import doobie.HPS
 import doobie.free.connection.ConnectionIO
+import doobie.generic.auto.*
 import doobie.postgres.implicits.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
@@ -39,7 +42,7 @@ class text {
         people(n).foreach { p =>
           ps.setString(1, p.name)
           ps.setInt(2, p.age)
-          ps.addBatch
+          ps.addBatch()
         }
         ps.executeBatch.sum
       },

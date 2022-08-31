@@ -5,6 +5,7 @@
 package doobie.bench
 
 import cats.effect.IO
+import doobie.generic.auto.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 import doobie.util.transactor.Transactor

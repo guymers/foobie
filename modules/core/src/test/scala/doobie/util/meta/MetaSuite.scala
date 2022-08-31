@@ -34,7 +34,6 @@ class MetaSuite extends munit.FunSuite {
 }
 
 class MetaDBSuite extends munit.FunSuite {
-
   import cats.effect.unsafe.implicits.global
 
   lazy val xa = Transactor.fromDriverManager[IO](

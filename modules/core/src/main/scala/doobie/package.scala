@@ -100,6 +100,15 @@ package object doobie {
 
   val ExecutionContexts = doobie.util.ExecutionContexts
 
-  object implicits extends syntax.AllSyntax
+  object implicits
+    extends syntax.AllSyntax
+    with generic.AutoDerivation {
+
+    // re-export these instances so `Meta` takes priority, must be in the object
+    implicit def metaProjectionGet[A](implicit m: Meta[A]): Get[A] = Get.metaProjection
+    implicit def metaProjectionPut[A](implicit m: Meta[A]): Put[A] = Put.metaProjectionWrite
+    implicit def fromGetRead[A](implicit G: Get[A]): Read[A] = Read.fromGet
+    implicit def fromPutWrite[A](implicit P: Put[A]): Write[A] = Write.fromPut
+  }
 
 }

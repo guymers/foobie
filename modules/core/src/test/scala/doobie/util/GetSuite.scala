@@ -6,9 +6,7 @@ package doobie.util
 
 import cats.effect.IO
 import doobie.Transactor
-import doobie.enumerated.JdbcType.{Array as _, *}
-import doobie.syntax.connectionio.*
-import doobie.syntax.string.*
+import doobie.enumerated.JdbcType
 
 class GetSuite extends munit.FunSuite with GetSuitePlatform {
 
@@ -23,9 +21,21 @@ class GetSuite extends munit.FunSuite with GetSuitePlatform {
     Get[String]: Unit
   }
 
-  test("Get should be derived for unary products") {
+  test("Get should be auto derived for unary products") {
+    import doobie.generic.auto.*
+
     Get[X]: Unit
     Get[Q]: Unit
+  }
+
+  test("Get is not auto derived without an import") {
+    val _ = compileErrors("Get[X]")
+    val _ = compileErrors("Get[Q]")
+  }
+
+  test("Get can be manually derived for unary products") {
+    Get.derived[X]: Unit
+    Get.derived[Q]: Unit
   }
 
   test("Get should not be derived for non-unary products") {
@@ -40,8 +50,8 @@ final case class Foo(s: String)
 final case class Bar(n: Int)
 
 class GetDBSuite extends munit.FunSuite {
-
   import cats.effect.unsafe.implicits.global
+  import doobie.syntax.all.*
 
   lazy val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
@@ -67,7 +77,7 @@ class GetDBSuite extends munit.FunSuite {
 
   test("Get should error when reading a NULL into an unlifted Scala type (AnyRef)") {
     def x = sql"select null".query[Foo].unique.transact(xa).attempt.unsafeRunSync()
-    assertEquals(x, Left(doobie.util.invariant.NonNullableColumnRead(1, Char)))
+    assertEquals(x, Left(doobie.util.invariant.NonNullableColumnRead(1, JdbcType.Char)))
   }
 
   test("Get should not allow map to observe null on the read side (AnyVal)") {
@@ -82,7 +92,7 @@ class GetDBSuite extends munit.FunSuite {
 
   test("Get should error when reading a NULL into an unlifted Scala type (AnyVal)") {
     def x = sql"select null".query[Bar].unique.transact(xa).attempt.unsafeRunSync()
-    assertEquals(x, Left(doobie.util.invariant.NonNullableColumnRead(1, Integer)))
+    assertEquals(x, Left(doobie.util.invariant.NonNullableColumnRead(1, JdbcType.Integer)))
   }
 
   test("Get should error when reading an incorrect value") {

@@ -10,6 +10,7 @@ import cats.effect.IO
 import cats.effect.IOApp
 import cats.syntax.all.*
 import doobie.free.connection.ConnectionIO
+import doobie.generic.auto.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 import doobie.util.Read

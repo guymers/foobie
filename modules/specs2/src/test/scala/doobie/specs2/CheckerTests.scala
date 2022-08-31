@@ -23,6 +23,8 @@ trait CheckerChecks[M[_]] extends Specification with Checker[M] {
 
   // Abstract type parameters should be handled correctly
   {
+    import doobie.generic.auto.*
+
     final case class Foo[F[_]](x: Int)
     check(sql"select 1".query[Foo[Id]]): Unit
   }

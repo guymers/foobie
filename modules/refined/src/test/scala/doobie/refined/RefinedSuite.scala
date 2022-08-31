@@ -7,6 +7,7 @@ package doobie.refined
 import cats.Show
 import cats.effect.IO
 import cats.syntax.all.*
+import doobie.generic.auto.*
 import doobie.refined.implicits.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*

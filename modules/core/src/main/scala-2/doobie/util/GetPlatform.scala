@@ -10,15 +10,15 @@ import shapeless.ops.hlist.IsHCons
 trait GetPlatform {
 
   /** @group Instances */
-  implicit def unaryProductGet[A, L <: HList, H, T <: HList](
-    implicit
+  implicit def unaryProductGet[A, L <: HList, H, T <: HList](implicit
     G: Generic.Aux[A, L],
     C: IsHCons.Aux[L, H, T],
-    H: Lazy[Get[H]],
+    H: => Get[H],
     E: (H :: HNil) =:= L,
-  ): Get[A] = {
+  ): MkGet[A] = {
     void(C) // C drives inference but is not used directly
-    H.value.tmap[A](h => G.from(h :: HNil))
+    val get = H.tmap[A](h => G.from(h :: HNil))
+    MkGet.lift(get)
   }
 
 }

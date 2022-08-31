@@ -7,6 +7,7 @@ package example
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.syntax.all.*
+import doobie.generic.auto.*
 import doobie.syntax.all.*
 import doobie.util.transactor.Transactor
 import fs2.io.file.Files

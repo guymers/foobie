@@ -32,12 +32,26 @@ class PutSuite extends munit.FunSuite with PutSuitePlatform {
     Put[String]: Unit
   }
 
-  test("Put should be derived for unary products") {
+  test("Put should be auto derived for unary products") {
+    import doobie.generic.auto.*
+
     Put[X]: Unit
     Put[Q]: Unit
   }
 
+  test("Put is not auto derived without an import") {
+    val _ = compileErrors("Put[X]")
+    val _ = compileErrors("Put[Q]")
+  }
+
+  test("Put can be manually derived for unary products") {
+    Put.derived[X]: Unit
+    Put.derived[Q]: Unit
+  }
+
   test("Put should not be derived for non-unary products") {
+    import doobie.generic.auto.*
+
     val _ = compileErrors("Put[Z]")
     val _ = compileErrors("Put[(Int, Int)]")
     val _ = compileErrors("Put[S.type]")
