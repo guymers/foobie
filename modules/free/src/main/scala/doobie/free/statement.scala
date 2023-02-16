@@ -7,7 +7,7 @@ package doobie.free
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
-import cats.free.{Free => FF} // alias because some algebras have an op called Free
+import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
 import doobie.util.log.LogEvent
@@ -104,7 +104,7 @@ object statement { module =>
       def isCloseOnCompletion: F[Boolean]
       def isClosed: F[Boolean]
       def isPoolable: F[Boolean]
-      def isWrapperFor(a: Class[_]): F[Boolean]
+      def isWrapperFor(a: Class[?]): F[Boolean]
       def setCursorName(a: String): F[Unit]
       def setEscapeProcessing(a: Boolean): F[Unit]
       def setFetchDirection(a: Int): F[Unit]
@@ -286,7 +286,7 @@ object statement { module =>
     case object IsPoolable extends StatementOp[Boolean] {
       def visit[F[_]](v: Visitor[F]) = v.isPoolable
     }
-    final case class IsWrapperFor(a: Class[_]) extends StatementOp[Boolean] {
+    final case class IsWrapperFor(a: Class[?]) extends StatementOp[Boolean] {
       def visit[F[_]](v: Visitor[F]) = v.isWrapperFor(a)
     }
     final case class SetCursorName(a: String) extends StatementOp[Unit] {
@@ -321,7 +321,7 @@ object statement { module =>
     }
 
   }
-  import StatementOp._
+  import StatementOp.*
 
   // Smart constructors for operations common to all algebras.
   val unit: StatementIO[Unit] = FF.pure[StatementOp, Unit](())
@@ -388,7 +388,7 @@ object statement { module =>
   val isCloseOnCompletion: StatementIO[Boolean] = FF.liftF(IsCloseOnCompletion)
   val isClosed: StatementIO[Boolean] = FF.liftF(IsClosed)
   val isPoolable: StatementIO[Boolean] = FF.liftF(IsPoolable)
-  def isWrapperFor(a: Class[_]): StatementIO[Boolean] = FF.liftF(IsWrapperFor(a))
+  def isWrapperFor(a: Class[?]): StatementIO[Boolean] = FF.liftF(IsWrapperFor(a))
   def setCursorName(a: String): StatementIO[Unit] = FF.liftF(SetCursorName(a))
   def setEscapeProcessing(a: Boolean): StatementIO[Unit] = FF.liftF(SetEscapeProcessing(a))
   def setFetchDirection(a: Int): StatementIO[Unit] = FF.liftF(SetFetchDirection(a))

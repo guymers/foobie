@@ -7,10 +7,14 @@ package doobie.postgres.hi
 import cats.data.Kleisli
 import cats.free.Free
 import cats.~>
-import doobie._
-import doobie.implicits._
+import doobie.FC
+import doobie.HC
+import doobie.HPS
+import doobie.free.connection.ConnectionIO
+import doobie.implicits.*
 import doobie.postgres.free.Embeddable
 import doobie.postgres.free.KleisliInterpreter
+import doobie.util.log.LogHandlerM
 import org.postgresql.PGConnection
 import org.postgresql.PGNotification
 

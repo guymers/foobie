@@ -5,8 +5,12 @@
 package doobie.issue
 
 import cats.effect.IO
-import doobie._
-import doobie.implicits._
+import doobie.HC
+import doobie.HPS
+import doobie.free.KleisliInterpreter
+import doobie.implicits.*
+import doobie.util.log.LogHandlerM
+import doobie.util.transactor.Transactor
 
 class `262` extends munit.FunSuite {
 

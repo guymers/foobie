@@ -4,7 +4,7 @@
 
 package doobie.issue
 
-import doobie._
+import doobie.util.Write
 
 import scala.annotation.nowarn
 

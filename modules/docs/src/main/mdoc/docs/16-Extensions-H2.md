@@ -54,11 +54,11 @@ See the previous chapter on **SQL Arrays** for usage examples.
 **doobie** provides a `Transactor` that wraps the connection pool provided by H2. Because the transactor has internal state, constructing one is a side-effect that must be captured (here by `IO`).
 
 ```scala mdoc:silent:reset
-import cats.effect._
-import cats.implicits._
-import doobie._
-import doobie.implicits._
-import doobie.h2._
+import cats.effect.*
+import cats.implicits.*
+import doobie.*
+import doobie.implicits.*
+import doobie.h2.*
 
 object H2App extends IOApp {
 

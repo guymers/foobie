@@ -6,8 +6,8 @@ package doobie.scalatest
 
 import cats.effect.Async
 import cats.effect.IO
-import doobie.syntax.connectionio._
-import doobie.util.testing._
+import doobie.syntax.connectionio.*
+import doobie.util.testing.*
 import org.scalatest.matchers.LazyArg
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher

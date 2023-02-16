@@ -4,21 +4,20 @@
 
 package doobie.h2
 
-import cats.data.NonEmptyList.{of => NonEmptyListOf}
+import cats.data.NonEmptyList
 import doobie.enumerated.JdbcType
-import doobie.util.invariant._
+import doobie.util.invariant.*
 import doobie.util.meta.Meta
 
 import java.util.UUID
-import scala.Predef._
 import scala.reflect.ClassTag
 
 trait Instances {
 
   implicit val UuidType: Meta[UUID] =
     Meta.Advanced.many[UUID](
-      NonEmptyListOf(JdbcType.Binary),
-      NonEmptyListOf("uuid", "UUID"),
+      NonEmptyList.of(JdbcType.Binary),
+      NonEmptyList.of("uuid", "UUID"),
       _.getObject(_) match {
         case null => null
         case uuidObj =>

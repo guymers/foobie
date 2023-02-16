@@ -5,10 +5,10 @@
 package doobie
 package refined
 
-import doobie.util.invariant._
+import doobie.util.invariant.*
 import eu.timepit.refined.api.RefType
 import eu.timepit.refined.api.Validate
-import org.tpolecat.typename._
+import org.tpolecat.typename.*
 
 trait Instances {
 

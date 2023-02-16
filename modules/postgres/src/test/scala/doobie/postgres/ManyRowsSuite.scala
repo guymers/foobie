@@ -4,7 +4,7 @@
 
 package doobie.postgres
 
-import doobie.implicits._
+import doobie.implicits.*
 
 class ManyRowsSuite extends munit.FunSuite {
   import PostgresTestTransactor.xa

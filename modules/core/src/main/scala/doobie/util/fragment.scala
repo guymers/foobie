@@ -4,18 +4,23 @@
 
 package doobie.util
 
-import cats._
+import cats.Monoid
 import cats.data.Chain
-import cats.syntax.all._
-import doobie._
-import doobie.enumerated.Nullability._
-import doobie.implicits._
+import cats.syntax.apply.*
+import doobie.HC
+import doobie.enumerated.Nullability.*
+import doobie.free.connection.ConnectionIO
+import doobie.free.preparedstatement.PreparedStatementIO
+import doobie.free.preparedstatement.WeakAsyncPreparedStatementIO
+import doobie.util.log.LogHandler
 import doobie.util.pos.Pos
+import doobie.util.query.Query
+import doobie.util.query.Query0
+import doobie.util.update.Update
+import doobie.util.update.Update0
 
 import java.sql.PreparedStatement
 import java.sql.ResultSet
-import scala.Predef.augmentString
-import scala.Predef.implicitly
 
 /** Module defining the `Fragment` data type. */
 object fragment {
@@ -36,9 +41,9 @@ object fragment {
     // Unfortunately we need to produce a Write for our list of elems, which is a bit of a grunt
     // but straightforward nonetheless. And it's stacksafe!
     private implicit lazy val write: Write[elems.type] = {
-      import Elem._
+      import Elem.*
 
-      val puts: List[(Put[_], NullabilityKnown)] =
+      val puts: List[(Put[?], NullabilityKnown)] =
         elems.map {
           case Arg(_, p) => (p, NoNulls)
           case Opt(_, p) => (p, Nullable)

@@ -4,11 +4,14 @@
 
 package example
 
-import cats.data._
-import cats.effect._
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
+import cats.data.*
+import cats.effect.*
+import cats.syntax.all.*
+import doobie.FC
+import doobie.HC
+import doobie.free.connection.ConnectionIO
+import doobie.implicits.*
+import doobie.util.transactor.Transactor
 import fs2.Stream
 
 import java.sql.Connection

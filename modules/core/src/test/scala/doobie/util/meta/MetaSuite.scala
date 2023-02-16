@@ -5,10 +5,11 @@
 package doobie.util.meta
 
 import cats.effect.IO
-import doobie._
-import doobie.implicits._
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.Get
 import doobie.util.Put
+import doobie.util.transactor.Transactor
 
 import scala.annotation.nowarn
 

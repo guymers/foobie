@@ -5,10 +5,10 @@
 package doobie.util
 
 import cats.effect.IO
-import doobie._
-import doobie.implicits._
-
-import scala.Predef._
+import doobie.implicits.*
+import doobie.util.query.Query
+import doobie.util.query.Query0
+import doobie.util.transactor.Transactor
 
 class QuerySuite extends munit.FunSuite {
 

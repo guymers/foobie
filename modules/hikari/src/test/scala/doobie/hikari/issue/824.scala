@@ -4,14 +4,15 @@
 
 package doobie.hikari.issue
 
-import cats.effect._
-import cats.syntax.all._
+import cats.effect.*
+import cats.syntax.all.*
 import com.zaxxer.hikari.HikariDataSource
-import doobie._
-import doobie.hikari._
-import doobie.implicits._
+import doobie.free.connection.ConnectionIO
+import doobie.hikari.*
+import doobie.implicits.*
+import doobie.util.ExecutionContexts
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.Random
 
 class `824` extends munit.FunSuite {
@@ -33,7 +34,7 @@ class `824` extends munit.FunSuite {
   // Show the state of the pool
   def report(ds: HikariDataSource): IO[Unit] =
     IO {
-      val mx = ds.getHikariPoolMXBean; import mx._
+      val mx = ds.getHikariPoolMXBean; import mx.*
       println(s"Idle: $getIdleConnections, Active: $getActiveConnections, Total: $getTotalConnections, Waiting: $getThreadsAwaitingConnection")
     }
 

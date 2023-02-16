@@ -4,8 +4,8 @@
 
 package doobie.postgres.hi
 
-import cats.syntax.all._
-import doobie.postgres.implicits._
+import cats.syntax.all.*
+import doobie.postgres.implicits.*
 
 import java.io.File
 import java.io.InputStream

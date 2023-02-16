@@ -7,13 +7,13 @@ package doobie.postgres.free
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
-import cats.free.{Free => FF} // alias because some algebras have an op called Free
+import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
 import doobie.util.log.LogEvent
 import org.postgresql.PGConnection
 import org.postgresql.PGNotification
-import org.postgresql.copy.{CopyManager => PGCopyManager}
+import org.postgresql.copy.CopyManager as PGCopyManager
 import org.postgresql.jdbc.AutoSave
 import org.postgresql.jdbc.PreferQueryMode
 import org.postgresql.largeobject.LargeObjectManager
@@ -21,7 +21,7 @@ import org.postgresql.replication.PGReplicationConnection
 
 import java.lang.Class
 import java.lang.String
-import java.sql.{Array => SqlArray}
+import java.sql.Array as SqlArray
 import java.util.Map
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -207,7 +207,7 @@ object pgconnection { module =>
     }
 
   }
-  import PGConnectionOp._
+  import PGConnectionOp.*
 
   // Smart constructors for operations common to all algebras.
   val unit: PGConnectionIO[Unit] = FF.pure[PGConnectionOp, Unit](())

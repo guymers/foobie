@@ -6,7 +6,7 @@ package doobie.util
 
 import doobie.util.log.ProcessingFailure
 import doobie.util.log.Success
-import shapeless._
+import shapeless.*
 
 trait LogSuitePlatform { self: LogSuite =>
 

@@ -7,13 +7,13 @@ In this chapter we will write some some programs to read from the database, mapp
 First let's get our imports out of the way and set up a `Transactor` as we did before. You can skip this step if you still have your REPL running from last chapter.
 
 ```scala mdoc:silent
-import doobie._
-import doobie.implicits._
+import doobie.*
+import doobie.implicits.*
 import doobie.util.ExecutionContexts
-import cats._
-import cats.data._
-import cats.effect._
-import cats.implicits._
+import cats.*
+import cats.data.*
+import cats.effect.*
+import cats.implicits.*
 import fs2.Stream
 
 // This is just for testing. Consider using cats.effect.IOApp instead of calling
@@ -97,7 +97,7 @@ The API we have seen so far is ok, but it's tiresome to keep saying `transact(xa
 
 ```scala mdoc:silent
 val y = xa.yolo // a stable reference is required
-import y._
+import y.*
 ```
 
 We can now run our previous query in an abbreviated form.
@@ -131,7 +131,7 @@ sql"select code, name, population, gnp from country"
 **doobie** supports row mappings for atomic column types, as well as options, tuples, `HList`s, shapeless records, and case classes thereof. So let's try the same query with an `HList`:
 
 ```scala mdoc
-import shapeless._
+import shapeless.*
 
 sql"select code, name, population, gnp from country"
   .query[String :: String :: Int :: Option[Double] :: HNil]

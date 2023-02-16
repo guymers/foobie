@@ -6,9 +6,11 @@ package example
 
 import cats.effect.IO
 import cats.effect.IOApp
-import doobie._
-import doobie.implicits._
-import doobie.postgres.implicits._
+import doobie.implicits.*
+import doobie.postgres.implicits.*
+import doobie.util.Write
+import doobie.util.meta.Meta
+import doobie.util.transactor.Transactor
 import org.postgresql.geometric.PGpoint
 
 object PostgresPoint extends IOApp.Simple {

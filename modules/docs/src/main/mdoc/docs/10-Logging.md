@@ -7,13 +7,13 @@ In this chapter we discuss how to log statement execution and timing.
 Once again we will set up our REPL with a transactor.
 
 ```scala mdoc:silent
-import doobie._
-import doobie.implicits._
+import doobie.*
+import doobie.implicits.*
 import doobie.util.ExecutionContexts
-import cats._
-import cats.data._
-import cats.effect._
-import cats.implicits._
+import cats.*
+import cats.data.*
+import cats.effect.*
+import cats.implicits.*
 
 // This is just for testing. Consider using cats.effect.IOApp instead of calling
 // unsafe methods directly.

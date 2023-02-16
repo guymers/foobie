@@ -7,8 +7,8 @@
  * modules from doobie-free and doobie-core. A typical starting set of imports
  * would be something like this.
  * {{{
- * import cats.implicits._
- * import doobie._, doobie.implicits._
+ * import cats.implicits.*
+ * import doobie._, doobie.implicits.*
  * }}}
  * @see
  *   The [[http://tpolecat.github.io/doobie/ doobie microsite]] for much more

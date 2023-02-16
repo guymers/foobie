@@ -4,15 +4,14 @@
 
 package doobie.hi
 
-import cats.effect.kernel.syntax.monadCancel._
+import cats.effect.kernel.syntax.monadCancel.*
 import doobie.enumerated.FetchDirection
 import doobie.enumerated.Holdability
 import doobie.enumerated.ResultSetConcurrency
 import doobie.enumerated.ResultSetType
-import doobie.implicits._
+import doobie.implicits.*
 
 import java.sql.SQLWarning
-import scala.Predef.intArrayOps
 
 /**
  * Module of high-level constructors for `StatementIO` actions.

@@ -3,12 +3,12 @@
 In this chapter we discuss several ways to manage connections in applications that use **doobie**, including managed/pooled connections and re-use of existing connections. For this chapter we have a few imports and no other setup.
 
 ```scala mdoc:silent
-import cats._
-import cats.data._
-import cats.effect._
-import cats.implicits._
-import doobie._
-import doobie.implicits._
+import cats.*
+import cats.data.*
+import cats.effect.*
+import cats.implicits.*
+import doobie.*
+import doobie.implicits.*
 ```
 
 ### About Transactors
@@ -78,11 +78,11 @@ implicit val mdocColors: doobie.util.Colors = doobie.util.Colors.None
 The `doobie-hikari` add-on provides a `Transactor` implementation backed by a [HikariCP](https://github.com/brettwooldridge/HikariCP) connection pool. The connection pool is a lifetime-managed object that must be shut down cleanly, so it is managed as a `Resource`. A program that uses `HikariTransactor` will typically use `IOApp`.
 
 ```scala mdoc:silent:reset
-import cats.effect._
-import cats.implicits._
-import doobie._
-import doobie.implicits._
-import doobie.hikari._
+import cats.effect.*
+import cats.implicits.*
+import doobie.*
+import doobie.implicits.*
+import doobie.hikari.*
 
 object HikariApp extends IOApp {
 

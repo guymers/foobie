@@ -7,7 +7,7 @@ package doobie.free
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
-import cats.free.{Free => FF} // alias because some algebras have an op called Free
+import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
 import doobie.util.log.LogEvent
@@ -18,6 +18,7 @@ import java.lang.Class
 import java.lang.String
 import java.math.BigDecimal
 import java.net.URL
+import java.sql.Array as SqlArray
 import java.sql.Blob
 import java.sql.Clob
 import java.sql.Connection
@@ -34,7 +35,6 @@ import java.sql.SQLWarning
 import java.sql.SQLXML
 import java.sql.Time
 import java.sql.Timestamp
-import java.sql.{Array => SqlArray}
 import java.util.Calendar
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -130,7 +130,7 @@ object preparedstatement { module =>
       def isCloseOnCompletion: F[Boolean]
       def isClosed: F[Boolean]
       def isPoolable: F[Boolean]
-      def isWrapperFor(a: Class[_]): F[Boolean]
+      def isWrapperFor(a: Class[?]): F[Boolean]
       def setArray(a: Int, b: SqlArray): F[Unit]
       def setAsciiStream(a: Int, b: InputStream): F[Unit]
       def setAsciiStream(a: Int, b: InputStream, c: Int): F[Unit]
@@ -386,7 +386,7 @@ object preparedstatement { module =>
     case object IsPoolable extends PreparedStatementOp[Boolean] {
       def visit[F[_]](v: Visitor[F]) = v.isPoolable
     }
-    final case class IsWrapperFor(a: Class[_]) extends PreparedStatementOp[Boolean] {
+    final case class IsWrapperFor(a: Class[?]) extends PreparedStatementOp[Boolean] {
       def visit[F[_]](v: Visitor[F]) = v.isWrapperFor(a)
     }
     final case class SetArray(a: Int, b: SqlArray) extends PreparedStatementOp[Unit] {
@@ -568,7 +568,7 @@ object preparedstatement { module =>
     }
 
   }
-  import PreparedStatementOp._
+  import PreparedStatementOp.*
 
   // Smart constructors for operations common to all algebras.
   val unit: PreparedStatementIO[Unit] = FF.pure[PreparedStatementOp, Unit](())
@@ -646,7 +646,7 @@ object preparedstatement { module =>
   val isCloseOnCompletion: PreparedStatementIO[Boolean] = FF.liftF(IsCloseOnCompletion)
   val isClosed: PreparedStatementIO[Boolean] = FF.liftF(IsClosed)
   val isPoolable: PreparedStatementIO[Boolean] = FF.liftF(IsPoolable)
-  def isWrapperFor(a: Class[_]): PreparedStatementIO[Boolean] = FF.liftF(IsWrapperFor(a))
+  def isWrapperFor(a: Class[?]): PreparedStatementIO[Boolean] = FF.liftF(IsWrapperFor(a))
   def setArray(a: Int, b: SqlArray): PreparedStatementIO[Unit] = FF.liftF(SetArray(a, b))
   def setAsciiStream(a: Int, b: InputStream): PreparedStatementIO[Unit] = FF.liftF(SetAsciiStream(a, b))
   def setAsciiStream(a: Int, b: InputStream, c: Int): PreparedStatementIO[Unit] = FF.liftF(SetAsciiStream1(a, b, c))

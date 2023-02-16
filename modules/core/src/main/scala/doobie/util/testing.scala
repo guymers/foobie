@@ -6,21 +6,21 @@ package doobie.util
 
 import cats.data.NonEmptyList
 import cats.effect.kernel.Async
-import cats.instances.int._
-import cats.instances.list._
-import cats.instances.string._
-import cats.syntax.applicativeError._
-import cats.syntax.foldable._
-import cats.syntax.list._
-import cats.syntax.show._
-import doobie._
-import doobie.implicits._
-import doobie.util.analysis._
+import cats.syntax.applicativeError.*
+import cats.syntax.foldable.*
+import cats.syntax.list.*
+import cats.syntax.show.*
+import doobie.free.connection.ConnectionIO
+import doobie.implicits.*
+import doobie.util.analysis.*
 import doobie.util.pos.Pos
-import doobie.util.pretty._
-import org.tpolecat.typename._
-
-import scala.Predef.augmentString
+import doobie.util.pretty.*
+import doobie.util.query.Query
+import doobie.util.query.Query0
+import doobie.util.transactor.Transactor
+import doobie.util.update.Update
+import doobie.util.update.Update0
+import org.tpolecat.typename.*
 
 package testing {
 

@@ -4,7 +4,7 @@
 
 package doobie.util
 
-import shapeless._
+import shapeless.*
 import shapeless.ops.hlist.IsHCons
 
 trait PutPlatform {

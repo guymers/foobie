@@ -13,7 +13,7 @@ import doobie.util.invariant.InvalidObjectMapping
 import doobie.util.invariant.InvalidValue
 import doobie.util.invariant.NonNullableColumnRead
 import doobie.util.meta.Meta
-import org.tpolecat.typename._
+import org.tpolecat.typename.*
 
 import java.sql.ResultSet
 import scala.reflect.ClassTag

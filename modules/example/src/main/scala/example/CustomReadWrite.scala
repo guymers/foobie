@@ -4,9 +4,12 @@
 
 package example
 
-import doobie._
-import doobie.implicits._
-import doobie.implicits.javasql._
+import doobie.implicits.*
+import doobie.implicits.javasql.*
+import doobie.util.Read
+import doobie.util.Write
+import doobie.util.meta.Meta
+import doobie.util.query.Query0
 
 import java.sql.Date
 

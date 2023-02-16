@@ -4,8 +4,8 @@
 
 package doobie.postgres
 
-import doobie._
-import doobie.implicits._
+import doobie.free.connection.ConnectionIO
+import doobie.implicits.*
 import fs2.Chunk
 import fs2.Pure
 import fs2.Stream

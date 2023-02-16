@@ -5,9 +5,10 @@
 package doobie.bench
 
 import cats.effect.IO
-import doobie._
-import doobie.implicits._
-import org.openjdk.jmh.annotations._
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
+import doobie.util.transactor.Transactor
+import org.openjdk.jmh.annotations.*
 
 import java.sql.DriverManager
 
@@ -19,7 +20,7 @@ object shared {
 
 class bench {
   import cats.effect.unsafe.implicits.global
-  import shared._
+  import shared.*
 
   // Baseline hand-written JDBC code
   @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements", "org.wartremover.warts.While"))

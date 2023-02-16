@@ -5,9 +5,11 @@
 package doobie.util
 
 import cats.effect.IO
-import cats.syntax.apply._
-import doobie._
-import doobie.implicits._
+import cats.syntax.apply.*
+import doobie.free.KleisliInterpreter
+import doobie.implicits.*
+import doobie.util.log.LogHandlerM
+import doobie.util.transactor.Transactor
 
 class StrategySuite extends munit.FunSuite {
 

@@ -5,7 +5,7 @@
 package doobie
 package hikari
 
-import cats.effect.implicits._
+import cats.effect.implicits.*
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync

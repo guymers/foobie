@@ -7,10 +7,11 @@ package example
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.effect.IOApp
-import doobie._
 import doobie.enumerated.JdbcType
-import doobie.implicits._
-import org.postgresql.util._
+import doobie.implicits.*
+import doobie.util.meta.Meta
+import doobie.util.transactor.Transactor
+import org.postgresql.util.*
 
 /**
  * The normal string mapping doesn't work for enums defined in another schema.
@@ -61,7 +62,7 @@ object OtherSchema extends IOApp.Simple {
       "password",
     )
     val y = xa.yolo
-    import y._
+    import y.*
 
     // Check as column value only
     val q1 = sql"SELECT 'INITIAL'::returns_data.return_status".query[ReturnStatus.Value]

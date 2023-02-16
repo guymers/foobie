@@ -4,23 +4,28 @@
 
 package doobie.postgres
 
-import doobie._
-import doobie.implicits._
-import doobie.implicits.javasql._
-import doobie.postgres.enums._
-import doobie.postgres.implicits._
-import doobie.postgres.pgisimplicits._
-import doobie.postgres.util.arbitraries.SQLArbitraries._
-import doobie.postgres.util.arbitraries.TimeArbitraries._
-import doobie.util.arbitraries.StringArbitraries._
-import org.postgis._
-import org.postgresql.geometric._
-import org.postgresql.util._
+import doobie.free.connection.ConnectionIO
+import doobie.implicits.*
+import doobie.implicits.javasql.*
+import doobie.postgres.enums.*
+import doobie.postgres.implicits.*
+import doobie.postgres.pgisimplicits.*
+import doobie.postgres.util.arbitraries.SQLArbitraries.*
+import doobie.postgres.util.arbitraries.TimeArbitraries.*
+import doobie.util.Get
+import doobie.util.Put
+import doobie.util.arbitraries.StringArbitraries.*
+import doobie.util.meta.Meta
+import doobie.util.update.Update
+import doobie.util.update.Update0
+import org.postgis.*
+import org.postgresql.geometric.*
+import org.postgresql.util.*
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
 
-import java.math.{BigDecimal => JBigDecimal}
+import java.math.BigDecimal as JBigDecimal
 import java.net.InetAddress
 import java.time.ZoneOffset
 import java.util.UUID
@@ -163,7 +168,7 @@ class TypesSuite extends munit.ScalaCheckSuite {
       p
     }
 
-    import doobie.postgres.pgisgeographyimplicits._
+    import doobie.postgres.pgisgeographyimplicits.*
     val point1 = createPoint(1, 2)
     val point2 = createPoint(1, 3)
     val lineString = new LineString(Array[Point](point1, point2))

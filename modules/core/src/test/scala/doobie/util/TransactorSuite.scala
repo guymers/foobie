@@ -6,8 +6,9 @@ package doobie.util
 
 import cats.effect.Async
 import cats.effect.IO
-import doobie._
-import doobie.implicits._
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
+import doobie.util.transactor.Transactor
 
 class TransactorSuite extends munit.FunSuite {
 

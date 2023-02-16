@@ -6,7 +6,7 @@ package doobie.util.arbitraries
 
 import org.scalacheck.Gen
 
-import scala.math.Ordering.Implicits._
+import scala.math.Ordering.Implicits.*
 
 object GenHelpers {
 

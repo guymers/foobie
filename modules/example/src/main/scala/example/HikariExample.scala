@@ -4,10 +4,12 @@
 
 package example
 
-import cats.effect._
-import doobie._
-import doobie.hikari._
-import doobie.implicits._
+import cats.effect.IO
+import cats.effect.IOApp
+import cats.effect.Resource
+import doobie.hikari.*
+import doobie.syntax.connectionio.*
+import doobie.util.ExecutionContexts
 
 object HikariExample extends IOApp.Simple {
 

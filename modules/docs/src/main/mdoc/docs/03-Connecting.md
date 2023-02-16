@@ -7,16 +7,16 @@ In this chapter we start from the beginning. First we write a program that conne
 Before we can use **doobie** we need to import some symbols. We will use package imports here as a convenience; this will give us the most commonly-used symbols when working with the high-level API.
 
 ```scala mdoc:silent
-import doobie._
-import doobie.implicits._
+import doobie.*
+import doobie.implicits.*
 ```
 
 Let's also bring in Cats.
 
 ```scala mdoc:silent
-import cats._
-import cats.effect._
-import cats.implicits._
+import cats.*
+import cats.effect.*
+import cats.implicits.*
 ```
 
 In the **doobie** high level API the most common types we will deal with have the form `ConnectionIO[A]`, specifying computations that take place in a context where a `java.sql.Connection` is available, ultimately producing a value of type `A`.

@@ -7,12 +7,12 @@ The YOLO-mode query checking feature demonstated in an earlier chapter is also a
 As with earlier chapters we set up a `Transactor` and YOLO mode. We will also use the `doobie-specs2` and `doobie-scalatest` add-ons.
 
 ```scala mdoc:silent
-import doobie._
-import doobie.implicits._
-import cats._
-import cats.data._
-import cats.effect._
-import cats.implicits._
+import doobie.*
+import doobie.implicits.*
+import cats.*
+import cats.data.*
+import cats.effect.*
+import cats.implicits.*
 
 // This is just for testing. Consider using cats.effect.IOApp instead of calling
 // unsafe methods directly.
@@ -106,7 +106,7 @@ runTest(new AnalysisTestSpec)(Arguments(report = Report(_color = Some(false))))
 The `doobie-scalatest` add-on provides a mix-in trait that we can add to any `Assertions` implementation (like `AnyFunSuite`) much like the Specs2 package above.
 
 ```scala mdoc:silent
-import org.scalatest._
+import org.scalatest.*
 
 class AnalysisTestScalaCheck extends funsuite.AnyFunSuite with matchers.must.Matchers with doobie.scalatest.IOChecker {
 
@@ -135,7 +135,7 @@ Details are shown for failing tests.
 The `doobie-munit` add-on provides a mix-in trait that we can add to any `Assertions` implementation (like `FunSuite`) much like the ScalaTest package above.
 
 ```scala mdoc:silent
-import _root_.munit._
+import _root_.munit.*
 
 class AnalysisTestSuite extends FunSuite with doobie.munit.IOChecker {
 
@@ -159,8 +159,8 @@ The `check` function takes an implicit `Transactor[F]` parameter. Since Weaver h
 to manage shared resources, it is convenient to use that to allocate the transcator. 
 
 ```scala mdoc:silent
-import _root_.weaver._
-import doobie.weaver._
+import _root_.weaver.*
+import doobie.weaver.*
 
 object AnalysisTestSuite extends IOSuite with IOChecker {
 

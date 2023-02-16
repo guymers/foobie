@@ -6,10 +6,20 @@ package example
 
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.effect.syntax.monadCancel._
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
+import cats.effect.syntax.monadCancel.*
+import cats.syntax.applicative.*
+import cats.syntax.apply.*
+import cats.syntax.flatMap.*
+import cats.syntax.functor.*
+import cats.syntax.traverse.*
+import doobie.FC
+import doobie.FPS
+import doobie.FRS
+import doobie.free.connection.ConnectionIO
+import doobie.free.preparedstatement.PreparedStatementIO
+import doobie.free.resultset.ResultSetIO
+import doobie.implicits.*
+import doobie.util.transactor.Transactor
 
 import java.io.File
 

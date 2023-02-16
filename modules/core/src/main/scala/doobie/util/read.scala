@@ -4,8 +4,8 @@
 
 package doobie.util
 
-import cats._
-import doobie.enumerated.Nullability._
+import cats.Applicative
+import doobie.enumerated.Nullability.*
 import doobie.free.FRS
 import doobie.free.ResultSetIO
 
@@ -41,7 +41,7 @@ And find the missing instance and construct it as needed. Refer to Chapter 12
 of the book of doobie for more information.
 """)
 final class Read[A](
-  val gets: List[(Get[_], NullabilityKnown)],
+  val gets: List[(Get[?], NullabilityKnown)],
   val unsafeGet: (ResultSet, Int) => A,
 ) {
 

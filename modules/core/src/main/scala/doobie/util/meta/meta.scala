@@ -10,7 +10,7 @@ import cats.data.NonEmptyList
 import doobie.enumerated.JdbcType
 import doobie.util.Get
 import doobie.util.Put
-import org.tpolecat.typename._
+import org.tpolecat.typename.TypeName
 
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -147,7 +147,7 @@ trait MetaConstructors {
 }
 
 trait MetaInstances { this: MetaConstructors =>
-  import doobie.enumerated.JdbcType.{Boolean => JdbcBoolean, _}
+  import doobie.enumerated.JdbcType.{Boolean as JdbcBoolean, _}
 
   /** @group Instances */
   implicit val GetPutInvariant: Invariant[Meta] =

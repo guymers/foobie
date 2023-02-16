@@ -6,14 +6,14 @@ package doobie.h2.circe
 
 import cats.Show
 import cats.data.NonEmptyList
-import cats.syntax.either._
-import cats.syntax.show._
+import cats.syntax.either.*
+import cats.syntax.show.*
 import doobie.Get
 import doobie.Put
 import doobie.enumerated.JdbcType
-import io.circe._
-import io.circe.jawn._
-import io.circe.syntax._
+import io.circe.*
+import io.circe.jawn.*
+import io.circe.syntax.*
 
 import java.nio.charset.StandardCharsets.UTF_8
 

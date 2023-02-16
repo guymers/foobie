@@ -5,7 +5,7 @@
 package doobie.hikari
 
 import cats.effect.Sync
-import cats.syntax.show._
+import cats.syntax.show.*
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.metrics.MetricsTrackerFactory
 import doobie.enumerated.TransactionIsolation

@@ -10,13 +10,14 @@ import cats.Semigroup
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
-import cats.free.{Free => FF} // alias because some algebras have an op called Free
+import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
 import doobie.util.log.LogEvent
 
 import java.lang.Class
 import java.lang.String
+import java.sql.Array as SqlArray
 import java.sql.Blob
 import java.sql.CallableStatement
 import java.sql.Clob
@@ -29,7 +30,6 @@ import java.sql.SQLXML
 import java.sql.Savepoint
 import java.sql.Statement
 import java.sql.Struct
-import java.sql.{Array => SqlArray}
 import java.util.Map
 import java.util.Properties
 import java.util.concurrent.Executor
@@ -100,12 +100,12 @@ object connection { module =>
       def getNetworkTimeout: F[Int]
       def getSchema: F[String]
       def getTransactionIsolation: F[Int]
-      def getTypeMap: F[Map[String, Class[_]]]
+      def getTypeMap: F[Map[String, Class[?]]]
       def getWarnings: F[SQLWarning]
       def isClosed: F[Boolean]
       def isReadOnly: F[Boolean]
       def isValid(a: Int): F[Boolean]
-      def isWrapperFor(a: Class[_]): F[Boolean]
+      def isWrapperFor(a: Class[?]): F[Boolean]
       def nativeSQL(a: String): F[String]
       def prepareCall(a: String): F[CallableStatement]
       def prepareCall(a: String, b: Int, c: Int): F[CallableStatement]
@@ -130,7 +130,7 @@ object connection { module =>
       def setSavepoint(a: String): F[Savepoint]
       def setSchema(a: String): F[Unit]
       def setTransactionIsolation(a: Int): F[Unit]
-      def setTypeMap(a: Map[String, Class[_]]): F[Unit]
+      def setTypeMap(a: Map[String, Class[?]]): F[Unit]
       def unwrap[T](a: Class[T]): F[T]
 
     }
@@ -246,7 +246,7 @@ object connection { module =>
     case object GetTransactionIsolation extends ConnectionOp[Int] {
       def visit[F[_]](v: Visitor[F]) = v.getTransactionIsolation
     }
-    case object GetTypeMap extends ConnectionOp[Map[String, Class[_]]] {
+    case object GetTypeMap extends ConnectionOp[Map[String, Class[?]]] {
       def visit[F[_]](v: Visitor[F]) = v.getTypeMap
     }
     case object GetWarnings extends ConnectionOp[SQLWarning] {
@@ -261,7 +261,7 @@ object connection { module =>
     final case class IsValid(a: Int) extends ConnectionOp[Boolean] {
       def visit[F[_]](v: Visitor[F]) = v.isValid(a)
     }
-    final case class IsWrapperFor(a: Class[_]) extends ConnectionOp[Boolean] {
+    final case class IsWrapperFor(a: Class[?]) extends ConnectionOp[Boolean] {
       def visit[F[_]](v: Visitor[F]) = v.isWrapperFor(a)
     }
     final case class NativeSQL(a: String) extends ConnectionOp[String] {
@@ -336,7 +336,7 @@ object connection { module =>
     final case class SetTransactionIsolation(a: Int) extends ConnectionOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.setTransactionIsolation(a)
     }
-    final case class SetTypeMap(a: Map[String, Class[_]]) extends ConnectionOp[Unit] {
+    final case class SetTypeMap(a: Map[String, Class[?]]) extends ConnectionOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.setTypeMap(a)
     }
     final case class Unwrap[T](a: Class[T]) extends ConnectionOp[T] {
@@ -344,7 +344,7 @@ object connection { module =>
     }
 
   }
-  import ConnectionOp._
+  import ConnectionOp.*
 
   // Smart constructors for operations common to all algebras.
   val unit: ConnectionIO[Unit] = FF.pure[ConnectionOp, Unit](())
@@ -392,12 +392,12 @@ object connection { module =>
   val getNetworkTimeout: ConnectionIO[Int] = FF.liftF(GetNetworkTimeout)
   val getSchema: ConnectionIO[String] = FF.liftF(GetSchema)
   val getTransactionIsolation: ConnectionIO[Int] = FF.liftF(GetTransactionIsolation)
-  val getTypeMap: ConnectionIO[Map[String, Class[_]]] = FF.liftF(GetTypeMap)
+  val getTypeMap: ConnectionIO[Map[String, Class[?]]] = FF.liftF(GetTypeMap)
   val getWarnings: ConnectionIO[SQLWarning] = FF.liftF(GetWarnings)
   val isClosed: ConnectionIO[Boolean] = FF.liftF(IsClosed)
   val isReadOnly: ConnectionIO[Boolean] = FF.liftF(IsReadOnly)
   def isValid(a: Int): ConnectionIO[Boolean] = FF.liftF(IsValid(a))
-  def isWrapperFor(a: Class[_]): ConnectionIO[Boolean] = FF.liftF(IsWrapperFor(a))
+  def isWrapperFor(a: Class[?]): ConnectionIO[Boolean] = FF.liftF(IsWrapperFor(a))
   def nativeSQL(a: String): ConnectionIO[String] = FF.liftF(NativeSQL(a))
   def prepareCall(a: String): ConnectionIO[CallableStatement] = FF.liftF(PrepareCall(a))
   def prepareCall(a: String, b: Int, c: Int): ConnectionIO[CallableStatement] = FF.liftF(PrepareCall1(a, b, c))
@@ -424,7 +424,7 @@ object connection { module =>
   def setSavepoint(a: String): ConnectionIO[Savepoint] = FF.liftF(SetSavepoint1(a))
   def setSchema(a: String): ConnectionIO[Unit] = FF.liftF(SetSchema(a))
   def setTransactionIsolation(a: Int): ConnectionIO[Unit] = FF.liftF(SetTransactionIsolation(a))
-  def setTypeMap(a: Map[String, Class[_]]): ConnectionIO[Unit] = FF.liftF(SetTypeMap(a))
+  def setTypeMap(a: Map[String, Class[?]]): ConnectionIO[Unit] = FF.liftF(SetTypeMap(a))
   def unwrap[T](a: Class[T]): ConnectionIO[T] = FF.liftF(Unwrap(a))
 
   // Typeclass instances for ConnectionIO

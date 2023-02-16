@@ -48,6 +48,7 @@ import java.io.InputStream
 import java.io.Reader
 import java.math.BigDecimal
 import java.net.URL
+import java.sql.Array as SqlArray
 import java.sql.Blob
 import java.sql.CallableStatement
 import java.sql.Clob
@@ -70,7 +71,6 @@ import java.sql.Statement
 import java.sql.Struct
 import java.sql.Time
 import java.sql.Timestamp
-import java.sql.{Array => SqlArray}
 import java.util.Calendar
 import java.util.Map
 import java.util.Properties
@@ -85,7 +85,7 @@ object KleisliInterpreter {
 
 // Family of interpreters into Kleisli arrows for some monad M.
 class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: WeakAsync[M]) { outer =>
-  import WeakAsync._
+  import WeakAsync.*
 
   // The 14 interpreters, with definitions below. These can be overridden to customize behavior.
   lazy val NClobInterpreter: NClobOp ~> Kleisli[M, NClob, *] = new NClobInterpreter {}
@@ -407,7 +407,7 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def insertsAreDetected(a: Int) = primitive(_.insertsAreDetected(a))
     override def isCatalogAtStart = primitive(_.isCatalogAtStart)
     override def isReadOnly = primitive(_.isReadOnly)
-    override def isWrapperFor(a: Class[_]) = primitive(_.isWrapperFor(a))
+    override def isWrapperFor(a: Class[?]) = primitive(_.isWrapperFor(a))
     override def locatorsUpdateCopy = primitive(_.locatorsUpdateCopy)
     override def nullPlusNonNullIsNull = primitive(_.nullPlusNonNullIsNull)
     override def nullsAreSortedAtEnd = primitive(_.nullsAreSortedAtEnd)
@@ -562,7 +562,7 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     // domain-specific operations are implemented in terms of `primitive`
     override def getBaseTypeName = primitive(_.getBaseTypeName)
     override def getObject = primitive(_.getObject)
-    override def getObject(a: Map[String, Class[_]]) = primitive(_.getObject(a))
+    override def getObject(a: Map[String, Class[?]]) = primitive(_.getObject(a))
     override def setObject(a: AnyRef) = primitive(_.setObject(a))
 
   }
@@ -761,7 +761,7 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def isClosed = primitive(_.isClosed)
     override def isReadOnly = primitive(_.isReadOnly)
     override def isValid(a: Int) = primitive(_.isValid(a))
-    override def isWrapperFor(a: Class[_]) = primitive(_.isWrapperFor(a))
+    override def isWrapperFor(a: Class[?]) = primitive(_.isWrapperFor(a))
     override def nativeSQL(a: String) = primitive(_.nativeSQL(a))
     override def prepareCall(a: String) = primitive(_.prepareCall(a))
     override def prepareCall(a: String, b: Int, c: Int) = primitive(_.prepareCall(a, b, c))
@@ -786,7 +786,7 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def setSavepoint(a: String) = primitive(_.setSavepoint(a))
     override def setSchema(a: String) = primitive(_.setSchema(a))
     override def setTransactionIsolation(a: Int) = primitive(_.setTransactionIsolation(a))
-    override def setTypeMap(a: Map[String, Class[_]]) = primitive(_.setTypeMap(a))
+    override def setTypeMap(a: Map[String, Class[?]]) = primitive(_.setTypeMap(a))
     override def unwrap[T](a: Class[T]) = primitive(_.unwrap(a))
 
   }
@@ -857,7 +857,7 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def isCloseOnCompletion = primitive(_.isCloseOnCompletion)
     override def isClosed = primitive(_.isClosed)
     override def isPoolable = primitive(_.isPoolable)
-    override def isWrapperFor(a: Class[_]) = primitive(_.isWrapperFor(a))
+    override def isWrapperFor(a: Class[?]) = primitive(_.isWrapperFor(a))
     override def setCursorName(a: String) = primitive(_.setCursorName(a))
     override def setEscapeProcessing(a: Boolean) = primitive(_.setEscapeProcessing(a))
     override def setFetchDirection(a: Int) = primitive(_.setFetchDirection(a))
@@ -945,7 +945,7 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def isCloseOnCompletion = primitive(_.isCloseOnCompletion)
     override def isClosed = primitive(_.isClosed)
     override def isPoolable = primitive(_.isPoolable)
-    override def isWrapperFor(a: Class[_]) = primitive(_.isWrapperFor(a))
+    override def isWrapperFor(a: Class[?]) = primitive(_.isWrapperFor(a))
     override def setArray(a: Int, b: SqlArray) = primitive(_.setArray(a, b))
     override def setAsciiStream(a: Int, b: InputStream) = primitive(_.setAsciiStream(a, b))
     override def setAsciiStream(a: Int, b: InputStream, c: Int) = primitive(_.setAsciiStream(a, b, c))
@@ -1107,10 +1107,10 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def getNString(a: String) = primitive(_.getNString(a))
     override def getObject(a: Int) = primitive(_.getObject(a))
     override def getObject[T](a: Int, b: Class[T]) = primitive(_.getObject(a, b))
-    override def getObject(a: Int, b: Map[String, Class[_]]) = primitive(_.getObject(a, b))
+    override def getObject(a: Int, b: Map[String, Class[?]]) = primitive(_.getObject(a, b))
     override def getObject(a: String) = primitive(_.getObject(a))
     override def getObject[T](a: String, b: Class[T]) = primitive(_.getObject(a, b))
-    override def getObject(a: String, b: Map[String, Class[_]]) = primitive(_.getObject(a, b))
+    override def getObject(a: String, b: Map[String, Class[?]]) = primitive(_.getObject(a, b))
     override def getParameterMetaData = primitive(_.getParameterMetaData)
     override def getQueryTimeout = primitive(_.getQueryTimeout)
     override def getRef(a: Int) = primitive(_.getRef(a))
@@ -1142,7 +1142,7 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def isCloseOnCompletion = primitive(_.isCloseOnCompletion)
     override def isClosed = primitive(_.isClosed)
     override def isPoolable = primitive(_.isPoolable)
-    override def isWrapperFor(a: Class[_]) = primitive(_.isWrapperFor(a))
+    override def isWrapperFor(a: Class[?]) = primitive(_.isWrapperFor(a))
     override def registerOutParameter(a: Int, b: Int) = primitive(_.registerOutParameter(a, b))
     override def registerOutParameter(a: Int, b: Int, c: Int) = primitive(_.registerOutParameter(a, b, c))
     override def registerOutParameter(a: Int, b: Int, c: String) = primitive(_.registerOutParameter(a, b, c))
@@ -1345,10 +1345,10 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def getNString(a: String) = primitive(_.getNString(a))
     override def getObject(a: Int) = primitive(_.getObject(a))
     override def getObject[T](a: Int, b: Class[T]) = primitive(_.getObject(a, b))
-    override def getObject(a: Int, b: Map[String, Class[_]]) = primitive(_.getObject(a, b))
+    override def getObject(a: Int, b: Map[String, Class[?]]) = primitive(_.getObject(a, b))
     override def getObject(a: String) = primitive(_.getObject(a))
     override def getObject[T](a: String, b: Class[T]) = primitive(_.getObject(a, b))
-    override def getObject(a: String, b: Map[String, Class[_]]) = primitive(_.getObject(a, b))
+    override def getObject(a: String, b: Map[String, Class[?]]) = primitive(_.getObject(a, b))
     override def getRef(a: Int) = primitive(_.getRef(a))
     override def getRef(a: String) = primitive(_.getRef(a))
     override def getRow = primitive(_.getRow)
@@ -1379,7 +1379,7 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def isClosed = primitive(_.isClosed)
     override def isFirst = primitive(_.isFirst)
     override def isLast = primitive(_.isLast)
-    override def isWrapperFor(a: Class[_]) = primitive(_.isWrapperFor(a))
+    override def isWrapperFor(a: Class[?]) = primitive(_.isWrapperFor(a))
     override def last = primitive(_.last)
     override def moveToCurrentRow = primitive(_.moveToCurrentRow)
     override def moveToInsertRow = primitive(_.moveToInsertRow)

@@ -4,9 +4,10 @@
 
 package doobie.postgres
 
-import doobie._
-import doobie.implicits._
-import doobie.postgres.implicits._
+import doobie.FC
+import doobie.free.connection.ConnectionIO
+import doobie.implicits.*
+import doobie.postgres.implicits.*
 
 class SyntaxSuite extends munit.FunSuite {
 

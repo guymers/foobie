@@ -60,7 +60,7 @@ class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
   }
 
   test(".product should product the correct ordering of gets") {
-    import cats.syntax.all._
+    import cats.syntax.all.*
 
     val readInt = util.Read[Int]
     val readString = util.Read[String]
@@ -71,8 +71,8 @@ class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
   }
 
   test("Read should select correct columns when combined with `ap`") {
-    import cats.syntax.all._
-    import doobie.implicits._
+    import cats.syntax.all.*
+    import doobie.implicits.*
 
     val r = util.Read[Int]
 
@@ -86,8 +86,8 @@ class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
   }
 
   test("Read should select correct columns when combined with `product`") {
-    import cats.syntax.all._
-    import doobie.implicits._
+    import cats.syntax.all.*
+    import doobie.implicits.*
     val r = util.Read[Int].product(util.Read[Int].product(util.Read[Int]))
 
     val q = sql"SELECT 1, 2, 3".query(r).to[List]

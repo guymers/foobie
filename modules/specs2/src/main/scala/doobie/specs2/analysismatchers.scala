@@ -6,10 +6,9 @@ package doobie.specs2
 
 import cats.effect.Async
 import cats.effect.IO
-import cats.instances.list._
-import cats.syntax.foldable._
-import doobie.syntax.connectionio._
-import doobie.util.pretty._
+import cats.syntax.foldable.*
+import doobie.syntax.connectionio.*
+import doobie.util.pretty.*
 import doobie.util.testing.AnalysisReport
 import doobie.util.testing.Analyzable
 import doobie.util.testing.CheckerBase

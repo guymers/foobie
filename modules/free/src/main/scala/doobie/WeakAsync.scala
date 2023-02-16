@@ -4,13 +4,13 @@
 
 package doobie
 
-import cats.effect.implicits._
+import cats.effect.implicits.*
 import cats.effect.kernel.Async
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
-import cats.implicits._
+import cats.syntax.flatMap.*
 import cats.~>
 
 import scala.concurrent.Future

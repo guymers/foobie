@@ -6,13 +6,22 @@ package example
 
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
+import cats.syntax.monad.*
+import cats.syntax.traverse.*
+import doobie.FRS
+import doobie.HPS
+import doobie.HRS
+import doobie.free.connection.ConnectionIO
+import doobie.free.preparedstatement.PreparedStatementIO
+import doobie.free.resultset.ResultSetIO
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
+import doobie.util.transactor.Transactor
 
 // Sketch of a program to run a query and get the output without knowing how many columns will
 // come back, or their types. This can be useful for building query tools, etc.
 object Dynamic extends IOApp.Simple {
+  import doobie.free.resultset.WeakAsyncResultSetIO
 
   type Headers = List[String]
   type Data = List[List[Object]]

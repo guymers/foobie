@@ -8,16 +8,20 @@ import cats.effect.Async
 import cats.effect.IO
 import doobie.Update
 import doobie.Update0
-import doobie.syntax.connectionio._
+import doobie.syntax.connectionio.*
 import doobie.util.query.Query
 import doobie.util.query.Query0
-import doobie.util.testing._
+import doobie.util.testing.AnalysisArgs
+import doobie.util.testing.Analyzable
+import doobie.util.testing.CheckerBase
+import doobie.util.testing.UnsafeRun
+import doobie.util.testing.analyze
 import org.specs2.mutable.Specification
 import org.specs2.specification.core.Fragment
 import org.specs2.specification.core.Fragments
-import org.specs2.specification.create.{FormattingFragments => Format}
-import org.specs2.specification.dsl.Online._
-import org.tpolecat.typename._
+import org.specs2.specification.create.FormattingFragments as Format
+import org.specs2.specification.dsl.Online.*
+import org.tpolecat.typename.*
 
 /**
  * Module with a mix-in trait for specifications that enables checking of doobie

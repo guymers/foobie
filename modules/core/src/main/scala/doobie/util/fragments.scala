@@ -6,8 +6,10 @@ package doobie
 package util
 
 import cats.Reducible
-import cats.syntax.all._
-import doobie.implicits._
+import cats.syntax.alternative.*
+import cats.syntax.foldable.*
+import doobie.syntax.foldable.*
+import doobie.syntax.string.*
 
 /** Module of `Fragment` constructors. */
 object fragments {

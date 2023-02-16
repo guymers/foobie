@@ -7,13 +7,13 @@ In this chapter we discuss how to construct SQL statements at runtime.
 Same as last chapter, so if you're still set up you can skip this section. Otherwise let's set up a `Transactor` and YOLO mode.
 
 ```scala mdoc:silent
-import doobie._
-import doobie.implicits._
+import doobie.*
+import doobie.implicits.*
 import doobie.util.ExecutionContexts
-import cats._
-import cats.data._
-import cats.effect._
-import cats.implicits._
+import cats.*
+import cats.data.*
+import cats.effect.*
+import cats.implicits.*
 
 // This is just for testing. Consider using cats.effect.IOApp instead of calling
 // unsafe methods directly.
@@ -29,7 +29,7 @@ val xa = Transactor.fromDriverManager[IO](
 )
 
 val y = xa.yolo
-import y._
+import y.*
 ```
 
 ```scala mdoc:invisible

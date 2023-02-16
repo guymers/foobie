@@ -54,12 +54,12 @@ lazy val commonSettings = Seq(
       "-explaintypes",
       "-language:existentials",
       "-language:higherKinds",
-      //"-Xsource:3",
+      "-Xsource:3",
     )
     case Some((3, _)) => Seq(
       "-explain-types",
       //"-no-indent",
-      //"-source:future",
+//      "-source:future",
       "-Ykind-projector",
     )
     case _ => Seq.empty
@@ -177,7 +177,6 @@ lazy val core = module("core")
       "org.tpolecat" %% "typename" % "1.0.0",
       "com.h2database" % "h2" % h2Version % "test",
     ),
-    scalacOptions += "-Yno-predef",
     Compile / unmanagedSourceDirectories += {
       val sourceDir = (Compile / sourceDirectory).value
       CrossVersion.partialVersion(scalaVersion.value) match {

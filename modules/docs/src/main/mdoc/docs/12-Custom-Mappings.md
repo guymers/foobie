@@ -9,9 +9,9 @@ The most common kind of custom mapping operates on single column values, so we w
 In this chapter we're importing the essentials from Cats and **doobie**, as well as some other odds and ends we'll discuss below.
 
 ```scala mdoc:silent
-import cats._, cats.data._, cats.implicits._
-import doobie._, doobie.implicits._
-import io.circe._, io.circe.jawn._, io.circe.syntax._
+import cats._, cats.data._, cats.implicits.*
+import doobie._, doobie.implicits.*
+import io.circe._, io.circe.jawn._, io.circe.syntax.*
 import java.awt.Point
 import org.postgresql.util.PGobject
 ```
@@ -87,7 +87,7 @@ object NatModule {
   }
 
 }
-import NatModule._
+import NatModule.*
 ```
 
 There is no direct schema mapping for `Nat`, but there *is* a schema mapping for `Int` that we get out of the box, and we can use it to define our mapping for `Nat`.

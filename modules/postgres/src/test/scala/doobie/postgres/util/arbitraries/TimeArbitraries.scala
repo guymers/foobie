@@ -8,7 +8,7 @@ import doobie.util.arbitraries.GenHelpers
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 
-import java.time._
+import java.time.*
 
 // https://www.postgresql.org/docs/10/datatype-datetime.html
 object TimeArbitraries {

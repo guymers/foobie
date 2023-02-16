@@ -6,13 +6,13 @@ package doobie.util
 
 import cats.data.NonEmptyList
 import cats.effect.IO
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
+import cats.syntax.all.*
+import doobie.implicits.*
+import doobie.util.transactor.Transactor
 
 class FragmentsSuite extends munit.FunSuite {
-  import Fragments._
   import cats.effect.unsafe.implicits.global
+  import doobie.util.fragments.*
 
   val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
@@ -146,13 +146,13 @@ class FragmentsSuite extends munit.FunSuite {
 
   test("values (1)") {
     val c = Contact(Person("Bob", 42), Some("addr"))
-    val f = fr"select" ++ Fragments.values(c)
+    val f = fr"select" ++ doobie.util.fragments.values(c)
     assertEquals(f.query[Contact].unique.transact(xa).unsafeRunSync(), c)
   }
 
   test("values (2)") {
     val c = Contact(Person("Bob", 42), None)
-    val f = fr"select" ++ Fragments.values(c)
+    val f = fr"select" ++ doobie.util.fragments.values(c)
     assertEquals(f.query[Contact].unique.transact(xa).unsafeRunSync(), c)
   }
 

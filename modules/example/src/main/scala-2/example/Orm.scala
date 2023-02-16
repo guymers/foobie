@@ -8,13 +8,19 @@ import cats.Show
 import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
+import cats.syntax.all.*
+import doobie.free.connection.ConnectionIO
+import doobie.implicits.*
+import doobie.util.Read
+import doobie.util.Write
+import doobie.util.query.Query
+import doobie.util.query.Query0
+import doobie.util.transactor.Transactor
+import doobie.util.update.Update
 import fs2.Stream
-import shapeless._
-import shapeless.ops.hlist._
-import shapeless.ops.record._
+import shapeless.*
+import shapeless.ops.hlist.*
+import shapeless.ops.record.*
 
 /**
  * A super-simple ORM for super-simple data types. We assume auto-generated
@@ -119,7 +125,7 @@ object Orm extends IOApp {
 
   val prog: ConnectionIO[String] = {
     val dn = Dao[Neighbor]
-    import dn._
+    import dn.*
     for {
       _ <- ddl
       ka <- insert(Neighbor("Alice", 42))

@@ -5,14 +5,18 @@
 package doobie.h2
 
 import cats.effect.IO
-import doobie._
-import doobie.h2.implicits._
-import doobie.implicits._
-import doobie.implicits.javasql._
-import doobie.implicits.javatimedrivernative.{JavaTimeInstantMeta => NewJavaTimeInstantMeta, _}
-import doobie.implicits.legacy.instant.{JavaTimeInstantMeta => LegacyJavaTimeInstantMeta}
-import doobie.util.arbitraries.SQLArbitraries._
-import doobie.util.arbitraries.StringArbitraries._
+import doobie.Update0
+import doobie.free.connection.ConnectionIO
+import doobie.h2.implicits.*
+import doobie.implicits.*
+import doobie.implicits.javasql.*
+import doobie.implicits.javatimedrivernative.{JavaTimeInstantMeta as NewJavaTimeInstantMeta, *}
+import doobie.implicits.legacy.instant.JavaTimeInstantMeta as LegacyJavaTimeInstantMeta
+import doobie.util.Get
+import doobie.util.Put
+import doobie.util.arbitraries.SQLArbitraries.*
+import doobie.util.arbitraries.StringArbitraries.*
+import doobie.util.transactor.Transactor
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll

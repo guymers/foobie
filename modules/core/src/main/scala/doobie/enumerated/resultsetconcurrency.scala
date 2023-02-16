@@ -6,10 +6,10 @@ package doobie.enumerated
 
 import cats.ApplicativeError
 import cats.kernel.Eq
-import cats.kernel.instances.int._
-import doobie.util.invariant._
+import cats.kernel.instances.int.*
+import doobie.util.invariant.*
 
-import java.sql.ResultSet._
+import java.sql.ResultSet.*
 
 /** @group Types */
 sealed abstract class ResultSetConcurrency(val toInt: Int) extends Product with Serializable

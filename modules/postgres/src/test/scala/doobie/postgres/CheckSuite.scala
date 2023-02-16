@@ -4,13 +4,15 @@
 
 package doobie.postgres
 
-import doobie._
-import doobie.implicits._
-import doobie.postgres.enums._
-import doobie.postgres.implicits._
+import doobie.implicits.*
+import doobie.postgres.enums.*
+import doobie.postgres.implicits.*
+import doobie.util.Put
+import doobie.util.Read
 import doobie.util.analysis.ColumnTypeError
 import doobie.util.analysis.ColumnTypeWarning
 import doobie.util.analysis.ParameterTypeError
+import doobie.util.fragment.Fragment
 
 import java.time.Instant
 import java.time.LocalDate

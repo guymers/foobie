@@ -5,23 +5,23 @@
 package doobie.util
 
 import cats.effect.kernel.Async
-import cats.instances.int._
-import cats.instances.string._
-import cats.syntax.show._
+import cats.syntax.show.*
 import doobie.free.connection.ConnectionIO
 import doobie.free.connection.delay
-import doobie.implicits._
-import doobie.util.query._
-import doobie.util.testing._
-import doobie.util.transactor._
-import doobie.util.update._
+import doobie.implicits.*
+import doobie.util.query.Query
+import doobie.util.query.Query0
+import doobie.util.testing.AnalysisArgs
+import doobie.util.testing.Analyzable
+import doobie.util.testing.analyze
+import doobie.util.testing.formatReport
+import doobie.util.transactor.Transactor
+import doobie.util.update.Update
+import doobie.util.update.Update0
 import fs2.Stream
-import org.tpolecat.typename._
-
-import scala.Predef._
+import org.tpolecat.typename.*
 
 /** Module for implicit syntax useful in REPL session. */
-
 object yolo {
 
   class Yolo[M[_]](xa: Transactor[M])(implicit ev: Async[M]) {

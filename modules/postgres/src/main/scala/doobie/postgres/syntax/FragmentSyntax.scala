@@ -7,12 +7,13 @@ package doobie.postgres.syntax
 import cats.Foldable
 import cats.effect.Ref
 import cats.effect.kernel.Resource
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
-import doobie.postgres._
-import doobie.postgres.implicits._
-import fs2._
+import cats.syntax.all.*
+import doobie.free.connection.ConnectionIO
+import doobie.implicits.*
+import doobie.postgres.*
+import doobie.postgres.implicits.*
+import doobie.util.fragment.Fragment
+import fs2.*
 import fs2.text.utf8.encode
 
 import java.io.StringReader

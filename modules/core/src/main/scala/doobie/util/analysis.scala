@@ -5,14 +5,14 @@
 package doobie.util
 
 import cats.data.Ior
-import cats.implicits._
+import cats.syntax.eq.*
+import cats.syntax.show.*
+import cats.syntax.unorderedFoldable.*
 import doobie.enumerated.JdbcType
 import doobie.enumerated.Nullability
-import doobie.enumerated.Nullability._
+import doobie.enumerated.Nullability.*
 import doobie.enumerated.ParameterMode
-import doobie.util.pretty._
-
-import scala.Predef._ // TODO: minimize
+import doobie.util.pretty.*
 
 /**
  * Module defining a type for analyzing the type alignment of prepared
@@ -231,7 +231,7 @@ object analysis {
 
     /** Description of each parameter, paird with its errors. */
     lazy val columnDescriptions: List[(String, List[AlignmentError])] = {
-      import pretty._
+      import pretty.*
       val cols: Block =
         columnAlignment.zipWithIndex.map {
           case (Ior.Both((j1, n1), ColumnMeta(j2, s2, n2, m)), i) => List(

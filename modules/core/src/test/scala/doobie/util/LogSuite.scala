@@ -6,12 +6,15 @@ package doobie.util
 
 import cats.effect.IO
 import cats.effect.IOLocal
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
+import cats.syntax.all.*
+import doobie.Transactor
+import doobie.free.connection.ConnectionIO
+import doobie.implicits.*
 import doobie.util.log.LogEvent
 import doobie.util.log.ProcessingFailure
 import doobie.util.log.Success
+import doobie.util.query.Query
+import doobie.util.update.Update
 
 class LogSuite extends munit.FunSuite {
 

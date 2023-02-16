@@ -4,11 +4,19 @@
 
 package doobie.util
 
-import cats.effect.kernel.syntax.monadCancel._
-import cats.syntax.all._
+import cats.effect.implicits.monadCancelOps_
+import cats.effect.syntax.monadCancel.*
+import cats.syntax.applicative.*
+import cats.syntax.flatMap.*
+import cats.syntax.functor.*
+import cats.syntax.monad.*
 import doobie.WeakAsync
 
-import java.io.{Console => _, _}
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 
 /**
  * Module for a constructor of modules of IO operations for effectful monads.

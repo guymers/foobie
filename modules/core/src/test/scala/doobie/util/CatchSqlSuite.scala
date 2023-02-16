@@ -5,8 +5,8 @@
 package doobie.util
 
 import cats.effect.IO
-import doobie._
-import doobie.implicits._
+import doobie.enumerated.SqlState
+import doobie.implicits.*
 
 import java.sql.SQLException
 

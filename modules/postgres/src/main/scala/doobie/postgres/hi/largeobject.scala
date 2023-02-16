@@ -4,7 +4,7 @@
 
 package doobie.postgres.hi
 
-import cats.syntax.all._
+import cats.syntax.all.*
 import doobie.util.io.IOActions
 
 import java.io.File
@@ -12,7 +12,7 @@ import java.io.InputStream
 import java.io.OutputStream
 
 object largeobject {
-  import implicits._
+  import implicits.*
 
   lazy val io = new IOActions[LargeObjectIO]
 

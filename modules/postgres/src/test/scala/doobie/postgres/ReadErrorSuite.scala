@@ -4,11 +4,11 @@
 
 package doobie.postgres
 
-import doobie._
-import doobie.implicits._
-import doobie.postgres.enums._
-import doobie.postgres.implicits._
-import doobie.util.invariant._
+import doobie.implicits.*
+import doobie.postgres.enums.*
+import doobie.postgres.implicits.*
+import doobie.util.invariant.*
+import doobie.util.meta.Meta
 
 class ReadErrorSuite extends munit.FunSuite {
   import PostgresTestTransactor.xa

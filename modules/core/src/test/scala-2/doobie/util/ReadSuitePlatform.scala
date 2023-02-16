@@ -5,8 +5,8 @@
 package doobie
 package util
 
-import shapeless._
-import shapeless.record._
+import shapeless.*
+import shapeless.record.*
 
 import scala.annotation.nowarn
 

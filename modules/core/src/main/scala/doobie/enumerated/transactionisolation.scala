@@ -7,10 +7,10 @@ package doobie.enumerated
 import cats.ApplicativeError
 import cats.Show
 import cats.kernel.Eq
-import cats.kernel.instances.int._
-import doobie.util.invariant._
+import cats.kernel.instances.int.*
+import doobie.util.invariant.*
 
-import java.sql.Connection._
+import java.sql.Connection.*
 
 /** @group Types */
 sealed abstract class TransactionIsolation(val toInt: Int) extends Product with Serializable

@@ -5,9 +5,10 @@
 package doobie.util
 
 import cats.effect.IO
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
+import cats.syntax.all.*
+import doobie.implicits.*
+import doobie.util.fragment.Fragment
+import doobie.util.transactor.Transactor
 
 class FragmentSuite extends munit.FunSuite {
 

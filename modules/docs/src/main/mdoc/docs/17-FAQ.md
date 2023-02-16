@@ -3,17 +3,17 @@
 In this chapter we address some frequently-asked questions, in no particular order. First a bit of set-up.
 
 ```scala mdoc:silent
-import cats._
-import cats.data._
-import cats.effect._
-import cats.effect.implicits._
-import cats.implicits._
-import doobie._
-import doobie.implicits._
+import cats.*
+import cats.data.*
+import cats.effect.*
+import cats.effect.implicits.*
+import cats.implicits.*
+import doobie.*
+import doobie.implicits.*
 import doobie.util.ExecutionContexts
 import java.awt.geom.Point2D
 import java.util.UUID
-import shapeless._
+import shapeless.*
 
 // This is just for testing. Consider using cats.effect.IOApp instead of calling
 // unsafe methods directly.
@@ -44,7 +44,7 @@ Interpolated parameters are replaced with `?` placeholders, so if you need to as
 ```scala mdoc
 {
   val y = xa.yolo
-  import y._
+  import y.*
   val s = "foo"
   sql"select $s".query[String].check.unsafeRunSync()
   sql"select $s :: char".query[String].check.unsafeRunSync()
@@ -96,7 +96,7 @@ We can check the resulting `Query0` as expected.
 ```scala mdoc
 {
   val y = xa.yolo
-  import y._
+  import y.*
   cities(Code("USA"), true).check.unsafeRunSync()
 }
 ```
@@ -106,7 +106,7 @@ And it works!
 ```scala mdoc
 {
   val y = xa.yolo
-  import y._
+  import y.*
   cities(Code("USA"), true).stream.take(5).quick.unsafeRunSync()
   cities(Code("USA"), false).stream.take(5).quick.unsafeRunSync()
 }
@@ -135,7 +135,7 @@ Some examples, filtered for size.
 ```scala mdoc
 {
   val y = xa.yolo
-  import y._
+  import y.*
   join.stream.filter(_._1.name.startsWith("United")).quick.unsafeRunSync()
 }
 ```
@@ -179,7 +179,7 @@ Domains with check constraints will type check as DISTINCT. For Doobie later tha
 
 ```scala mdoc:silent
 import cats.data.NonEmptyList
-import doobie._
+import doobie.*
 import doobie.enum.JdbcType
 
 object distinct {

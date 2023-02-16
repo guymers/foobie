@@ -86,8 +86,8 @@ If you are not using PostgreSQL you can omit `doobie-postgres` and will need to 
 Each page begins with some imports, like this.
 
 ```scala mdoc:silent
-import cats._, cats.data._, cats.implicits._
-import doobie._
+import cats._, cats.data._, cats.implicits.*
+import doobie.*
 ```
 
 After that there is text interspersed with code examples. Sometimes definitions will stand alone.

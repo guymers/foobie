@@ -8,8 +8,7 @@ import cats.Applicative
 import cats.effect.Sync
 
 import java.util.logging.Logger
-import scala.Predef.augmentString
-import scala.concurrent.duration.{FiniteDuration => FD}
+import scala.concurrent.duration.FiniteDuration as FD
 
 /** A module of types and instances for logged statements. */
 object log {

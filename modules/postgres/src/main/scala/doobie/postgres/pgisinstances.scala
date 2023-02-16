@@ -4,10 +4,10 @@
 
 package doobie.postgres
 
-import doobie._
-import doobie.util.invariant._
-import org.postgis._
-import org.tpolecat.typename._
+import doobie.util.invariant.*
+import doobie.util.meta.Meta
+import org.postgis.*
+import org.tpolecat.typename.*
 
 import scala.reflect.ClassTag
 

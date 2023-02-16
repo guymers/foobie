@@ -6,10 +6,11 @@ package doobie.util
 
 import cats.Applicative
 import cats.effect.IO
-import cats.implicits._
 import cats.kernel.Monoid
-import doobie._
-import doobie.implicits._
+import cats.syntax.semigroup.*
+import doobie.free.connection.ConnectionIO
+import doobie.implicits.*
+import doobie.util.transactor.Transactor
 
 class ConnectionIOSuite extends munit.FunSuite {
 

@@ -9,10 +9,10 @@ package doobie.munit
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 import cats.effect.IO
-import doobie.syntax.string._
+import doobie.syntax.string.*
 import doobie.util.Read
 import doobie.util.transactor.Transactor
-import munit._
+import munit.*
 
 trait CheckerChecks[M[_]] extends FunSuite with Checker[M] {
 
@@ -29,8 +29,8 @@ trait CheckerChecks[M[_]] extends FunSuite with Checker[M] {
   test("trivial case-class") { check(sql"select 1".query[CheckerChecks.Foo[cats.Id]]) }
 
   test("Read should select correct columns when combined with `product`") {
-    import cats.syntax.all._
-    import doobie.implicits._
+    import cats.syntax.all.*
+    import doobie.implicits.*
 
     val ri = Read[Int]
     val rs = Read[String]

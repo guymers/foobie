@@ -4,9 +4,9 @@
 
 package doobie.postgres.hi
 
-import cats.syntax.functor._
+import cats.syntax.functor.*
 import doobie.ConnectionIO
-import doobie.implicits._
+import doobie.implicits.*
 import fs2.Stream
 import org.postgresql.largeobject.LargeObject
 

@@ -6,13 +6,13 @@ package doobie.postgres.circe
 
 import cats.Show
 import cats.data.NonEmptyList
-import cats.syntax.either._
-import cats.syntax.show._
+import cats.syntax.either.*
+import cats.syntax.show.*
 import doobie.Get
 import doobie.Put
-import io.circe._
-import io.circe.jawn._
-import io.circe.syntax._
+import io.circe.*
+import io.circe.jawn.*
+import io.circe.syntax.*
 import org.postgresql.util.PGobject
 
 object Instances {

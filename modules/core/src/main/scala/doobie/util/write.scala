@@ -5,7 +5,7 @@
 package doobie.util
 
 import cats.ContravariantSemigroupal
-import doobie.enumerated.Nullability._
+import doobie.enumerated.Nullability.*
 import doobie.free.FPS
 import doobie.free.FRS
 import doobie.free.PreparedStatementIO
@@ -17,7 +17,7 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 
 final class Write[A](
-  val puts: List[(Put[_], NullabilityKnown)],
+  val puts: List[(Put[?], NullabilityKnown)],
   val toList: A => List[Any],
   val unsafeSet: (PreparedStatement, Int, A) => Unit,
   val unsafeUpdate: (ResultSet, Int, A) => Unit,

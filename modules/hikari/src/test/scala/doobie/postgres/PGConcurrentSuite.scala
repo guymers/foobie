@@ -6,12 +6,12 @@ package doobie.postgres
 
 import cats.effect.IO
 import com.zaxxer.hikari.HikariDataSource
-import doobie._
-import doobie.implicits._
+import doobie.implicits.*
+import doobie.util.transactor.Transactor
 
 import java.util.concurrent.Executors
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 class PGConcurrentSuite extends munit.FunSuite {
 

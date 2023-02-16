@@ -6,8 +6,8 @@ package doobie.hi
 
 import cats.Foldable
 import cats.data.Ior
-import cats.effect.kernel.syntax.monadCancel._
-import cats.syntax.all._
+import cats.effect.kernel.syntax.monadCancel.*
+import cats.syntax.all.*
 import doobie.enumerated.ColumnNullable
 import doobie.enumerated.FetchDirection
 import doobie.enumerated.Holdability
@@ -17,12 +17,12 @@ import doobie.enumerated.ParameterMode
 import doobie.enumerated.ParameterNullable
 import doobie.enumerated.ResultSetConcurrency
 import doobie.enumerated.ResultSetType
-import doobie.syntax.align._
+import doobie.syntax.align.*
 import doobie.util.Get
 import doobie.util.Put
 import doobie.util.Read
 import doobie.util.Write
-import doobie.util.analysis._
+import doobie.util.analysis.*
 import doobie.util.stream.repeatEvalChunks
 import fs2.Stream
 import fs2.Stream.bracket
@@ -30,8 +30,6 @@ import fs2.Stream.bracket
 import java.sql.ParameterMetaData
 import java.sql.ResultSetMetaData
 import java.sql.SQLWarning
-import scala.Predef.intArrayOps
-import scala.Predef.intWrapper
 
 /**
  * Module of high-level constructors for `PreparedStatementIO` actions. Batching
@@ -41,7 +39,7 @@ import scala.Predef.intWrapper
  */
 
 object preparedstatement {
-  import implicits._
+  import implicits.*
 
   // fs2 handler, not public
   private def unrolled[A: Read](rs: java.sql.ResultSet, chunkSize: Int): Stream[PreparedStatementIO, A] =
@@ -126,7 +124,7 @@ object preparedstatement {
    * `JdbcMeta` with the `JdbcMeta` provided by a `Write` instance.
    * @group Metadata
    */
-  def getColumnMappings[A](implicit A: Read[A]): PreparedStatementIO[List[(Get[_], NullabilityKnown) Ior ColumnMeta]] =
+  def getColumnMappings[A](implicit A: Read[A]): PreparedStatementIO[List[(Get[?], NullabilityKnown) Ior ColumnMeta]] =
     getColumnJdbcMeta.map(m => A.gets align m)
 
   /** @group Properties */
@@ -170,7 +168,7 @@ object preparedstatement {
    */
   def getParameterMappings[A](implicit
     A: Write[A],
-  ): PreparedStatementIO[List[(Put[_], NullabilityKnown) Ior ParameterMeta]] =
+  ): PreparedStatementIO[List[(Put[?], NullabilityKnown) Ior ParameterMeta]] =
     getParameterJdbcMeta.map(m => A.puts align m)
 
   /** @group Properties */

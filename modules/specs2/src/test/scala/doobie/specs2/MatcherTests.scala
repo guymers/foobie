@@ -5,7 +5,7 @@
 package doobie.specs2
 
 import cats.effect.IO
-import doobie.syntax.string._
+import doobie.syntax.string.*
 import doobie.util.transactor.Transactor
 import org.specs2.mutable.Specification
 

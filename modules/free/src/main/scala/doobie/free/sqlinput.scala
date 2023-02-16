@@ -7,7 +7,7 @@ package doobie.free
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
-import cats.free.{Free => FF} // alias because some algebras have an op called Free
+import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
 import doobie.util.log.LogEvent
@@ -18,6 +18,7 @@ import java.lang.Class
 import java.lang.String
 import java.math.BigDecimal
 import java.net.URL
+import java.sql.Array as SqlArray
 import java.sql.Blob
 import java.sql.Clob
 import java.sql.Date
@@ -28,7 +29,6 @@ import java.sql.SQLInput
 import java.sql.SQLXML
 import java.sql.Time
 import java.sql.Timestamp
-import java.sql.{Array => SqlArray}
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
@@ -236,7 +236,7 @@ object sqlinput { module =>
     }
 
   }
-  import SQLInputOp._
+  import SQLInputOp.*
 
   // Smart constructors for operations common to all algebras.
   val unit: SQLInputIO[Unit] = FF.pure[SQLInputOp, Unit](())

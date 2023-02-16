@@ -41,12 +41,12 @@ import doobie.postgres.circe.jsonb.implicits
 The following examples require a few imports.
 
 ```scala mdoc:silent
-import cats._
-import cats.data._
-import cats.effect._
-import cats.implicits._
-import doobie._
-import doobie.implicits._
+import cats.*
+import cats.data.*
+import cats.effect.*
+import cats.implicits.*
+import doobie.*
+import doobie.implicits.*
 import doobie.util.ExecutionContexts
 
 // This is just for testing. Consider using cats.effect.IOApp instead of calling
@@ -70,8 +70,8 @@ implicit val mdocColors: doobie.util.Colors = doobie.util.Colors.None
 **doobie** adds support for a large number of extended types that are not supported directly by JDBC. All mappings (except postgis) are provided in the `pgtypes` module.
 
 ```scala mdoc:silent
-import doobie.postgres._
-import doobie.postgres.implicits._
+import doobie.postgres.*
+import doobie.postgres.implicits.*
 ```
 
 ### Java 8 Time Types (JSR310)
@@ -79,7 +79,7 @@ import doobie.postgres.implicits._
 An explicit import is required to bring in mappings for `java.time.OffsetDateTime` / `java.time.Instant` / `java.time.ZonedDateTime` / `java.time.LocalDateTime` / `java.time.LocalDate` / `java.time.LocalTime`
 
 ```scala mdoc:silent
-import doobie.postgres.implicits._
+import doobie.postgres.implicits.*
 ```
 
 To ensure **doobie** performs the conversion correctly between Java 8 time types and PostgreSQL Date/Time types when handling timezones or the lack thereof.
@@ -197,7 +197,7 @@ libraryDependencies += "net.postgis" % "postgis-jdbc" % "2.3.0"
 
 ```scala mdoc:silent
 // Not provided via doobie.postgres.imports._; you must import them explicitly.
-import doobie.postgres.pgisimplicits._
+import doobie.postgres.pgisimplicits.*
 ```
 
 - `PGgeometry`
@@ -220,7 +220,7 @@ In addition to the general types above, **doobie** provides mappings for the fol
 [Geographic types](http://postgis.net/workshops/postgis-intro/geography.html) mappings are defined in a different object (`pgisgeographyimplicits`), to allow geometric types using geodetic coordinates.
 
 ```
-import doobie.postgres.pgisgeographyimplicits._
+import doobie.postgres.pgisgeographyimplicits.*
 
 // or define the implicit conversion manually
 

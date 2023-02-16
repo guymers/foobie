@@ -7,14 +7,14 @@ package doobie.postgres.free
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
-import cats.free.{Free => FF} // alias because some algebras have an op called Free
+import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
 import doobie.util.log.LogEvent
-import org.postgresql.copy.{CopyDual => PGCopyDual}
-import org.postgresql.copy.{CopyIn => PGCopyIn}
-import org.postgresql.copy.{CopyManager => PGCopyManager}
-import org.postgresql.copy.{CopyOut => PGCopyOut}
+import org.postgresql.copy.CopyDual as PGCopyDual
+import org.postgresql.copy.CopyIn as PGCopyIn
+import org.postgresql.copy.CopyManager as PGCopyManager
+import org.postgresql.copy.CopyOut as PGCopyOut
 import org.postgresql.util.ByteStreamWriter
 
 import java.io.InputStream
@@ -157,7 +157,7 @@ object copymanager { module =>
     }
 
   }
-  import CopyManagerOp._
+  import CopyManagerOp.*
 
   // Smart constructors for operations common to all algebras.
   val unit: CopyManagerIO[Unit] = FF.pure[CopyManagerOp, Unit](())

@@ -5,9 +5,9 @@
 package doobie.util
 
 import cats.effect.IO
-import doobie._
-import doobie.enumerated.JdbcType.{Array => _, _}
-import doobie.implicits._
+import doobie.Transactor
+import doobie.enumerated.JdbcType.{Array as _, *}
+import doobie.implicits.*
 
 import scala.annotation.nowarn
 

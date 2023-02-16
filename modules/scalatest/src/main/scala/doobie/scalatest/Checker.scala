@@ -8,12 +8,12 @@ import cats.effect.Async
 import cats.effect.IO
 import doobie.Update
 import doobie.Update0
-import doobie.syntax.connectionio._
+import doobie.syntax.connectionio.*
 import doobie.util.query.Query
 import doobie.util.query.Query0
-import doobie.util.testing._
+import doobie.util.testing.*
 import org.scalatest.Assertions
-import org.tpolecat.typename._
+import org.tpolecat.typename.*
 
 /**
  * Mix-in trait for specifications that enables checking of doobie `Query` and

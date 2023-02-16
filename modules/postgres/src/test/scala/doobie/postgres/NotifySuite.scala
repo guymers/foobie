@@ -6,9 +6,10 @@ package doobie.postgres
 
 import cats.effect.IO
 import cats.effect.Sync
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
+import cats.syntax.all.*
+import doobie.FC
+import doobie.free.connection.ConnectionIO
+import doobie.implicits.*
 import org.postgresql.PGNotification
 
 class NotifySuite extends munit.FunSuite {

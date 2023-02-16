@@ -6,12 +6,16 @@ package example
 
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.effect.syntax.monadCancel._
-import cats.syntax.all._
-import doobie._
+import cats.effect.syntax.monadCancel.*
+import cats.syntax.traverse.*
+import doobie.FCS
+import doobie.FRS
+import doobie.HC
+import doobie.HRS
+import doobie.HS
 import doobie.enumerated.JdbcType.Other
 import doobie.free.connection.ConnectionIO
-import doobie.implicits._
+import doobie.syntax.connectionio.*
 import doobie.util.transactor.Transactor
 
 object CallableStatementExample extends IOApp.Simple {

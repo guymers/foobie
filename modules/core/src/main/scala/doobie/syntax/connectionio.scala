@@ -8,10 +8,10 @@ import cats.data.EitherT
 import cats.data.Kleisli
 import cats.data.OptionT
 import cats.effect.kernel.MonadCancelThrow
-import cats.syntax.functor._
+import cats.syntax.functor.*
 import doobie.ConnectionIO
 import doobie.HC
-import doobie.implicits._
+import doobie.implicits.*
 import doobie.util.transactor.Transactor
 
 class ConnectionIOOps[A](ma: ConnectionIO[A]) {

@@ -4,8 +4,8 @@
 
 package doobie.util.meta
 
-import Predef._
-import doobie.enumerated.JdbcType._
+import Predef.*
+import doobie.enumerated.JdbcType.*
 
 trait TimeMeta {
 

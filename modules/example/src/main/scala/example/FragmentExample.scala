@@ -6,15 +6,16 @@ package example
 
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
+import cats.syntax.all.*
+import doobie.implicits.*
+import doobie.util.fragment.Fragment
+import doobie.util.transactor.Transactor
 
 object FragmentExample extends IOApp.Simple {
 
   // Import some convenience constructors.
-  import Fragments.in
-  import Fragments.whereAndOpt
+  import doobie.util.fragments.in
+  import doobie.util.fragments.whereAndOpt
 
   // Country Info
   final case class Info(name: String, code: String, population: Int)
@@ -55,7 +56,7 @@ object FragmentExample extends IOApp.Simple {
     select(Some("U%"), Some(100000000), List("USA", "GBR", "FRA"), 10),
   ).traverse { q =>
     val y = xa.yolo
-    import y._
+    import y.*
     q.check *> q.quick
   }
 

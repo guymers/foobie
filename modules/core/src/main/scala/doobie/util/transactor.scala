@@ -20,8 +20,7 @@ import doobie.free.connection.commit
 import doobie.free.connection.rollback
 import doobie.free.connection.setAutoCommit
 import doobie.free.connection.unit
-import doobie.implicits._
-import doobie.util.lens._
+import doobie.util.lens.*
 import doobie.util.log.LogHandlerM
 import doobie.util.yolo.Yolo
 import fs2.Pipe
@@ -33,6 +32,7 @@ import javax.sql.DataSource
 import scala.concurrent.ExecutionContext
 
 object transactor {
+  import doobie.free.connection.WeakAsyncConnectionIO
 
   /** @group Type Aliases */
   type Interpreter[M[_]] = ConnectionOp ~> Kleisli[M, Connection, *]

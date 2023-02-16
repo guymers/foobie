@@ -6,7 +6,7 @@ package doobie.postgres
 
 import cats.ContravariantSemigroupal
 import cats.Foldable
-import cats.syntax.foldable._
+import cats.syntax.foldable.*
 
 /**
  * Typeclass for types that can be written as Postgres literal text, using the

@@ -10,11 +10,13 @@ import cats.data.Kleisli
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.free.Free
-import cats.syntax.all._
+import cats.syntax.all.*
 import cats.~>
-import doobie._
+import doobie.LogHandlerM
+import doobie.free.KleisliInterpreter
 import doobie.free.connection.ConnectionOp
-import doobie.implicits._
+import doobie.implicits.*
+import doobie.util.transactor.Transactor
 
 import java.sql.Connection
 import scala.io.StdIn
@@ -75,8 +77,8 @@ object Coproduct extends IOApp.Simple {
 
   // A program
   def prog[F[_]](implicit ev1: ConsoleOps[F], ev2: ConnectionOps[F]): Free[F, Unit] = {
-    import ev1._
-    import ev2._
+    import ev1.*
+    import ev2.*
     for {
       _ <- printLn("Enter a pattern:")
       pat <- readLn

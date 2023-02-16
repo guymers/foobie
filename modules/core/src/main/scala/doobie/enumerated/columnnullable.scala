@@ -6,10 +6,9 @@ package doobie.enumerated
 
 import cats.ApplicativeError
 import cats.kernel.Eq
-import cats.kernel.instances.int._
-import doobie.util.invariant._
+import doobie.util.invariant.*
 
-import java.sql.ResultSetMetaData._
+import java.sql.ResultSetMetaData.*
 
 /** @group Types */
 sealed abstract class ColumnNullable(val toInt: Int) extends Product with Serializable {

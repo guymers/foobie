@@ -4,10 +4,10 @@
 
 package doobie.postgres
 
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
-import doobie.postgres.implicits._
+import cats.syntax.all.*
+import doobie.free.connection.ConnectionIO
+import doobie.implicits.*
+import doobie.postgres.implicits.*
 
 class UnapplySuite extends munit.FunSuite {
 

@@ -5,18 +5,19 @@
 package doobie.postgres
 
 import cats.effect.IO
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
-import doobie.postgres.implicits._
-import fs2._
+import cats.syntax.all.*
+import doobie.free.connection.ConnectionIO
+import doobie.implicits.*
+import doobie.postgres.implicits.*
+import doobie.util.fragment.Fragment
+import fs2.*
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
 
 class TextSuite extends munit.ScalaCheckSuite {
   import PostgresTestTransactor.xa
-  import TextSuite._
+  import TextSuite.*
   import cats.effect.unsafe.implicits.global
 
   implicit val byteListInstance: Text[List[Byte]] =

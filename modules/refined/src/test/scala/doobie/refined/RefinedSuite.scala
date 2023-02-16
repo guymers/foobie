@@ -6,12 +6,15 @@ package doobie.refined
 
 import cats.Show
 import cats.effect.IO
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
-import doobie.refined.implicits._
-import doobie.util.invariant._
-import eu.timepit.refined._
+import cats.syntax.all.*
+import doobie.implicits.*
+import doobie.refined.implicits.*
+import doobie.util.Write
+import doobie.util.invariant.*
+import doobie.util.meta.Meta
+import doobie.util.transactor.Transactor
+import doobie.util.update.Update0
+import eu.timepit.refined.*
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.api.Validate
 import eu.timepit.refined.numeric.Positive

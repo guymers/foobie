@@ -4,17 +4,17 @@
 
 package doobie.postgres
 
-import cats.data.NonEmptyList.{of => NonEmptyListOf}
-import doobie._
+import cats.data.NonEmptyList
 import doobie.enumerated.JdbcType
-import doobie.util.invariant._
-import org.postgresql.geometric._
-import org.postgresql.util._
-import org.tpolecat.typename._
+import doobie.util.invariant.*
+import doobie.util.meta.Meta
+import org.postgresql.geometric.*
+import org.postgresql.util.*
+import org.tpolecat.typename.*
 
 import java.net.InetAddress
+import java.util.Map as JMap
 import java.util.UUID
-import java.util.{Map => JMap}
 import scala.reflect.ClassTag
 
 trait Instances {
@@ -199,8 +199,8 @@ trait Instances {
 
   private def enumPartialMeta(name: String): Meta[String] =
     Meta.Basic.many[String](
-      NonEmptyListOf(JdbcType.Other, JdbcType.VarChar), // https://github.com/tpolecat/doobie/issues/303
-      NonEmptyListOf(JdbcType.Other, JdbcType.VarChar),
+      NonEmptyList.of(JdbcType.Other, JdbcType.VarChar), // https://github.com/tpolecat/doobie/issues/303
+      NonEmptyList.of(JdbcType.Other, JdbcType.VarChar),
       Nil,
       (rs, n) => rs.getString(n),
       (ps, n, a) => {

@@ -8,9 +8,17 @@ package example
 import cats.Show
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
+import cats.syntax.functor.*
+import cats.syntax.show.*
+import doobie.FC
+import doobie.free.connection.ConnectionIO
+import doobie.free.connection.WeakAsyncConnectionIO
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
+import doobie.util.query.Query0
+import doobie.util.transactor.Transactor
+import doobie.util.update.Update
+import doobie.util.update.Update0
 import fs2.Stream
 
 // Example lifted from slick

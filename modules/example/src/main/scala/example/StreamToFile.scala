@@ -6,9 +6,9 @@ package example
 
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
+import cats.syntax.all.*
+import doobie.implicits.*
+import doobie.util.transactor.Transactor
 import fs2.io.file.Files
 import fs2.io.file.Path
 import fs2.text.utf8

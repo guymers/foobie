@@ -6,7 +6,7 @@ package doobie.syntax
 
 import cats.ApplicativeError
 import doobie.enumerated.SqlState
-import doobie.util.{catchsql => C}
+import doobie.util.catchsql as C
 
 import java.sql.SQLException
 

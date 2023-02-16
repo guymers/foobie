@@ -7,13 +7,13 @@ package doobie.hi
 import cats.Alternative
 import cats.Monad
 import cats.data.NonEmptyList
-import cats.syntax.all._
+import cats.syntax.all.*
 import doobie.enumerated.FetchDirection
 import doobie.enumerated.Holdability
 import doobie.util.Read
 import doobie.util.Write
 import doobie.util.compat.FactoryCompat
-import doobie.util.invariant._
+import doobie.util.invariant.*
 import doobie.util.stream.repeatEvalChunks
 import fs2.Stream
 
@@ -26,7 +26,7 @@ import java.sql.SQLWarning
  */
 
 object resultset {
-  import implicits._
+  import implicits.*
 
   /**
    * Non-strict unit for capturing effects.

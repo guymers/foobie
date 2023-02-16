@@ -6,10 +6,10 @@ package doobie.enumerated
 
 import cats.ApplicativeError
 import cats.kernel.Eq
-import cats.kernel.instances.int._
-import doobie.util.invariant._
+import cats.kernel.instances.int.*
+import doobie.util.invariant.*
 
-import java.sql.ParameterMetaData._
+import java.sql.ParameterMetaData.*
 
 /** @group Types */
 sealed abstract class ParameterNullable(val toInt: Int) extends Product with Serializable {

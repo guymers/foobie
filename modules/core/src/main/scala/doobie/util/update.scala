@@ -4,18 +4,20 @@
 
 package doobie.util
 
-import cats._
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
+import cats.*
+import cats.syntax.all.*
+import doobie.FPS
+import doobie.HC
+import doobie.HPS
+import doobie.free.connection.ConnectionIO
+import doobie.free.preparedstatement.PreparedStatementIO
+import doobie.implicits.*
 import doobie.util.analysis.Analysis
-import doobie.util.log.ExecFailure
-import doobie.util.log.LogEvent
-import doobie.util.log.Success
+import doobie.util.fragment.Fragment
+import doobie.util.log.*
 import doobie.util.pos.Pos
 import fs2.Stream
 
-import scala.Predef.longWrapper
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.NANOSECONDS
 

@@ -4,14 +4,15 @@
 
 package doobie.issue
 
-import cats._
+import cats.Foldable
 import cats.effect.IO
-import cats.syntax.all._
-import doobie._
-import doobie.implicits._
+import cats.syntax.all.*
+import doobie.free.connection.ConnectionIO
+import doobie.implicits.*
+import doobie.util.Write
+import doobie.util.transactor.Transactor
+import doobie.util.update.Update
 import org.scalacheck.Prop.forAll
-
-import scala.Predef._
 
 class `706` extends munit.ScalaCheckSuite {
 
