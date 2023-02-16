@@ -1,0 +1,33 @@
+name: Release
+on:
+  push:
+    tags: [ 'v*' ]
+
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    name: Publish
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install JDK 8
+        uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: '8'
+          java-package: jdk
+
+      - name: Cache SBT
+        uses: coursier/cache-action@v6
+        with:
+          extraKey: v1
+
+      - name: Release
+        run: sbt ci-release
+        env:
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}

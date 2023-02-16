@@ -5,6 +5,7 @@
 package doobie.util
 
 import doobie.util.pos.Pos
+import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
 
 trait PosPlatform {
