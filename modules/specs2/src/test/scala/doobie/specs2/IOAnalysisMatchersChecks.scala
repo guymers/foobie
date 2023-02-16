@@ -5,16 +5,16 @@
 package doobie.specs2
 
 import cats.effect.IO
-import org.specs2.mutable.Specification
-
 import doobie.Transactor
+import org.specs2.mutable.Specification
 
 class IOAnalysisMatchersChecks extends Specification with IOAnalysisMatchers {
 
   lazy val transactor = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
     "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
   "IOAnalysisMatchers should not crash during initialization" >> ok

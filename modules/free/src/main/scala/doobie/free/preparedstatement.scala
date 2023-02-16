@@ -4,13 +4,13 @@
 
 package doobie.free
 
+import cats.effect.kernel.CancelScope
+import cats.effect.kernel.Poll
+import cats.effect.kernel.Sync
+import cats.free.{Free => FF} // alias because some algebras have an op called Free
 import cats.~>
-import cats.effect.kernel.{ CancelScope, Poll, Sync }
-import cats.free.{ Free => FF } // alias because some algebras have an op called Free
-import doobie.util.log.LogEvent
 import doobie.WeakAsync
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
+import doobie.util.log.LogEvent
 
 import java.io.InputStream
 import java.io.Reader
@@ -34,8 +34,10 @@ import java.sql.SQLWarning
 import java.sql.SQLXML
 import java.sql.Time
 import java.sql.Timestamp
-import java.sql.{ Array => SqlArray }
+import java.sql.{Array => SqlArray}
 import java.util.Calendar
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 object preparedstatement { module =>
 
@@ -201,7 +203,8 @@ object preparedstatement { module =>
     final case class RaiseError[A](e: Throwable) extends PreparedStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.raiseError(e)
     }
-    final case class HandleErrorWith[A](fa: PreparedStatementIO[A], f: Throwable => PreparedStatementIO[A]) extends PreparedStatementOp[A] {
+    final case class HandleErrorWith[A](fa: PreparedStatementIO[A], f: Throwable => PreparedStatementIO[A])
+      extends PreparedStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.handleErrorWith(fa)(f)
     }
     case object Monotonic extends PreparedStatementOp[FiniteDuration] {
@@ -571,20 +574,25 @@ object preparedstatement { module =>
   val unit: PreparedStatementIO[Unit] = FF.pure[PreparedStatementOp, Unit](())
   def pure[A](a: A): PreparedStatementIO[A] = FF.pure[PreparedStatementOp, A](a)
   def raw[A](f: PreparedStatement => A): PreparedStatementIO[A] = FF.liftF(Raw(f))
-  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[PreparedStatementOp, A] = FF.liftF(Embed(ev.embed(j, fa)))
+  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[PreparedStatementOp, A] =
+    FF.liftF(Embed(ev.embed(j, fa)))
   def raiseError[A](err: Throwable): PreparedStatementIO[A] = FF.liftF[PreparedStatementOp, A](RaiseError(err))
-  def handleErrorWith[A](fa: PreparedStatementIO[A])(f: Throwable => PreparedStatementIO[A]): PreparedStatementIO[A] = FF.liftF[PreparedStatementOp, A](HandleErrorWith(fa, f))
+  def handleErrorWith[A](fa: PreparedStatementIO[A])(f: Throwable => PreparedStatementIO[A]): PreparedStatementIO[A] =
+    FF.liftF[PreparedStatementOp, A](HandleErrorWith(fa, f))
   val monotonic = FF.liftF[PreparedStatementOp, FiniteDuration](Monotonic)
   val realtime = FF.liftF[PreparedStatementOp, FiniteDuration](Realtime)
   def delay[A](thunk: => A) = FF.liftF[PreparedStatementOp, A](Suspend(Sync.Type.Delay, () => thunk))
   def suspend[A](hint: Sync.Type)(thunk: => A) = FF.liftF[PreparedStatementOp, A](Suspend(hint, () => thunk))
-  def forceR[A, B](fa: PreparedStatementIO[A])(fb: PreparedStatementIO[B]) = FF.liftF[PreparedStatementOp, B](ForceR(fa, fb))
-  def uncancelable[A](body: Poll[PreparedStatementIO] => PreparedStatementIO[A]) = FF.liftF[PreparedStatementOp, A](Uncancelable(body))
+  def forceR[A, B](fa: PreparedStatementIO[A])(fb: PreparedStatementIO[B]) =
+    FF.liftF[PreparedStatementOp, B](ForceR(fa, fb))
+  def uncancelable[A](body: Poll[PreparedStatementIO] => PreparedStatementIO[A]) =
+    FF.liftF[PreparedStatementOp, A](Uncancelable(body))
   def capturePoll[M[_]](mpoll: Poll[M]) = new Poll[PreparedStatementIO] {
     def apply[A](fa: PreparedStatementIO[A]) = FF.liftF[PreparedStatementOp, A](Poll1(mpoll, fa))
   }
   val canceled = FF.liftF[PreparedStatementOp, Unit](Canceled)
-  def onCancel[A](fa: PreparedStatementIO[A], fin: PreparedStatementIO[Unit]) = FF.liftF[PreparedStatementOp, A](OnCancel(fa, fin))
+  def onCancel[A](fa: PreparedStatementIO[A], fin: PreparedStatementIO[Unit]) =
+    FF.liftF[PreparedStatementOp, A](OnCancel(fa, fin))
   def fromFuture[A](fut: PreparedStatementIO[Future[A]]) = FF.liftF[PreparedStatementOp, A](FromFuture(fut))
   def performLogging(event: LogEvent) = FF.liftF[PreparedStatementOp, Unit](PerformLogging(event))
 
@@ -673,7 +681,8 @@ object preparedstatement { module =>
   def setMaxFieldSize(a: Int): PreparedStatementIO[Unit] = FF.liftF(SetMaxFieldSize(a))
   def setMaxRows(a: Int): PreparedStatementIO[Unit] = FF.liftF(SetMaxRows(a))
   def setNCharacterStream(a: Int, b: Reader): PreparedStatementIO[Unit] = FF.liftF(SetNCharacterStream(a, b))
-  def setNCharacterStream(a: Int, b: Reader, c: Long): PreparedStatementIO[Unit] = FF.liftF(SetNCharacterStream1(a, b, c))
+  def setNCharacterStream(a: Int, b: Reader, c: Long): PreparedStatementIO[Unit] =
+    FF.liftF(SetNCharacterStream1(a, b, c))
   def setNClob(a: Int, b: NClob): PreparedStatementIO[Unit] = FF.liftF(SetNClob(a, b))
   def setNClob(a: Int, b: Reader): PreparedStatementIO[Unit] = FF.liftF(SetNClob1(a, b))
   def setNClob(a: Int, b: Reader, c: Long): PreparedStatementIO[Unit] = FF.liftF(SetNClob2(a, b, c))
@@ -706,18 +715,24 @@ object preparedstatement { module =>
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): PreparedStatementIO[A] = monad.pure(x)
-      override def flatMap[A, B](fa: PreparedStatementIO[A])(f: A => PreparedStatementIO[B]): PreparedStatementIO[B] = monad.flatMap(fa)(f)
-      override def tailRecM[A, B](a: A)(f: A => PreparedStatementIO[Either[A, B]]): PreparedStatementIO[B] = monad.tailRecM(a)(f)
+      override def flatMap[A, B](fa: PreparedStatementIO[A])(f: A => PreparedStatementIO[B]): PreparedStatementIO[B] =
+        monad.flatMap(fa)(f)
+      override def tailRecM[A, B](a: A)(f: A => PreparedStatementIO[Either[A, B]]): PreparedStatementIO[B] =
+        monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): PreparedStatementIO[A] = module.raiseError(e)
-      override def handleErrorWith[A](fa: PreparedStatementIO[A])(f: Throwable => PreparedStatementIO[A]): PreparedStatementIO[A] = module.handleErrorWith(fa)(f)
+      override def handleErrorWith[A](fa: PreparedStatementIO[A])(
+        f: Throwable => PreparedStatementIO[A],
+      ): PreparedStatementIO[A] = module.handleErrorWith(fa)(f)
       override def monotonic: PreparedStatementIO[FiniteDuration] = module.monotonic
       override def realTime: PreparedStatementIO[FiniteDuration] = module.realtime
       override def suspend[A](hint: Sync.Type)(thunk: => A): PreparedStatementIO[A] = module.suspend(hint)(thunk)
-      override def forceR[A, B](fa: PreparedStatementIO[A])(fb: PreparedStatementIO[B]): PreparedStatementIO[B] = module.forceR(fa)(fb)
-      override def uncancelable[A](body: Poll[PreparedStatementIO] => PreparedStatementIO[A]): PreparedStatementIO[A] = module.uncancelable(body)
+      override def forceR[A, B](fa: PreparedStatementIO[A])(fb: PreparedStatementIO[B]): PreparedStatementIO[B] =
+        module.forceR(fa)(fb)
+      override def uncancelable[A](body: Poll[PreparedStatementIO] => PreparedStatementIO[A]): PreparedStatementIO[A] =
+        module.uncancelable(body)
       override def canceled: PreparedStatementIO[Unit] = module.canceled
-      override def onCancel[A](fa: PreparedStatementIO[A], fin: PreparedStatementIO[Unit]): PreparedStatementIO[A] = module.onCancel(fa, fin)
+      override def onCancel[A](fa: PreparedStatementIO[A], fin: PreparedStatementIO[Unit]): PreparedStatementIO[A] =
+        module.onCancel(fa, fin)
       override def fromFuture[A](fut: PreparedStatementIO[Future[A]]): PreparedStatementIO[A] = module.fromFuture(fut)
     }
 }
-

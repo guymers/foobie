@@ -5,8 +5,8 @@
 package doobie.util
 
 import cats.Applicative
-import cats.implicits._
 import cats.effect.IO
+import cats.implicits._
 import cats.kernel.Monoid
 import doobie._
 import doobie.implicits._
@@ -18,12 +18,13 @@ class ConnectionIOSuite extends munit.FunSuite {
   val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
     "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
   test("Semigroup ConnectionIO") {
     val prg = Applicative[ConnectionIO].pure(List(1, 2, 3)) combine Applicative[ConnectionIO].pure(List(4, 5, 6))
-    assertEquals(prg.transact(xa).unsafeRunSync(), List(1,2,3,4,5,6))
+    assertEquals(prg.transact(xa).unsafeRunSync(), List(1, 2, 3, 4, 5, 6))
   }
 
   test("Monoid ConnectionIO") {

@@ -10,13 +10,14 @@ import doobie.util.transactor.Transactor
 import org.specs2.mutable.Specification
 
 trait MatcherChecks[M[_]] extends Specification
-    with Checker[M]
-    with AnalysisMatchers[M] {
+  with Checker[M]
+  with AnalysisMatchers[M] {
 
   lazy val transactor = Transactor.fromDriverManager[M](
     "org.h2.Driver",
     "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
   "valid query should pass" >> {

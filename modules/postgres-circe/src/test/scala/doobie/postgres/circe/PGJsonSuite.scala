@@ -7,7 +7,9 @@ package doobie.postgres.circe
 import cats.effect.IO
 import doobie._
 import doobie.implicits._
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.Decoder
+import io.circe.Encoder
+import io.circe.Json
 
 class PGJsonSuite extends munit.FunSuite {
 
@@ -16,12 +18,13 @@ class PGJsonSuite extends munit.FunSuite {
   val xa = Transactor.fromDriverManager[IO](
     "org.postgresql.Driver",
     "jdbc:postgresql:world",
-    "postgres", "password"
+    "postgres",
+    "password",
   )
 
   def inOut[A: Write: Read](col: String, a: A) =
     for {
-      _  <- Update0(s"CREATE TEMPORARY TABLE TEST (value $col)", None).run
+      _ <- Update0(s"CREATE TEMPORARY TABLE TEST (value $col)", None).run
       a0 <- Update[A](s"INSERT INTO TEST VALUES (?)", None).withUniqueGeneratedKeys[A]("value")(a)
     } yield a0
 
@@ -47,7 +50,6 @@ class PGJsonSuite extends munit.FunSuite {
     import doobie.postgres.circe.jsonb.implicits._
     testInOut("jsonb", Json.obj("something" -> Json.fromString("Yellow")), xa)
   }
-
 
   // Explicit Type Checks
 
@@ -77,12 +79,12 @@ class PGJsonSuite extends munit.FunSuite {
 
   // Encoder / Decoders
   private case class Foo(x: Json)
-  private object Foo{
+  private object Foo {
     import doobie.postgres.circe.json.implicits._
     implicit val fooEncoder: Encoder[Foo] = Encoder[Json].contramap(_.x)
     implicit val fooDecoder: Decoder[Foo] = Decoder[Json].map(Foo(_))
-    implicit val fooGet : Get[Foo] = pgDecoderGetT[Foo]
-    implicit val fooPut : Put[Foo] = pgEncoderPutT[Foo]
+    implicit val fooGet: Get[Foo] = pgDecoderGetT[Foo]
+    implicit val fooPut: Put[Foo] = pgEncoderPutT[Foo]
   }
 
   test("fooGet should check ok for read") {

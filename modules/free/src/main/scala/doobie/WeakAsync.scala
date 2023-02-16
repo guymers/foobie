@@ -4,11 +4,15 @@
 
 package doobie
 
-import cats.~>
-import cats.implicits._
-import cats.effect.kernel.{ Async, Poll, Resource, Sync }
 import cats.effect.implicits._
+import cats.effect.kernel.Async
+import cats.effect.kernel.Poll
+import cats.effect.kernel.Resource
+import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
+import cats.implicits._
+import cats.~>
+
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
@@ -20,7 +24,7 @@ object WeakAsync {
 
   def apply[F[_]](implicit ev: WeakAsync[F]): WeakAsync[F] = ev
 
-  implicit def doobieWeakAsyncForAsync[F[_]](implicit F: Async[F]): WeakAsync[F] = 
+  implicit def doobieWeakAsyncForAsync[F[_]](implicit F: Async[F]): WeakAsync[F] =
     new WeakAsync[F] {
       override val applicative = F.applicative
       override val rootCancelScope = F.rootCancelScope
@@ -39,19 +43,22 @@ object WeakAsync {
       override def fromFuture[A](fut: F[Future[A]]): F[A] = F.fromFuture(fut)
     }
 
-  /** Create a natural transformation for lifting an `Async` effect `F` into a `WeakAsync` effect `G`
-    * `cats.effect.std.Dispatcher` the trasformation is based on is stateful and requires finalization.
-    * Leaking it from it's resource scope will lead to erorrs at runtime. */
+  /**
+   * Create a natural transformation for lifting an `Async` effect `F` into a
+   * `WeakAsync` effect `G` `cats.effect.std.Dispatcher` the trasformation is
+   * based on is stateful and requires finalization. Leaking it from it's
+   * resource scope will lead to erorrs at runtime.
+   */
   def liftK[F[_], G[_]](implicit F: Async[F], G: WeakAsync[G]): Resource[F, F ~> G] =
     Dispatcher.parallel[F].map(dispatcher =>
-      new(F ~> G) {
+      new (F ~> G) {
         def apply[T](fa: F[T]) = {
-          G.delay(dispatcher.unsafeToFutureCancelable(fa)).flatMap { 
+          G.delay(dispatcher.unsafeToFutureCancelable(fa)).flatMap {
             case (running, cancel) =>
               G.fromFuture(G.pure(running)).onCancel(G.fromFuture(G.delay(cancel())))
           }
         }
-      }
+      },
     )
 
 }

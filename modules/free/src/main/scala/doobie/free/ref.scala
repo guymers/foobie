@@ -4,17 +4,19 @@
 
 package doobie.free
 
+import cats.effect.kernel.CancelScope
+import cats.effect.kernel.Poll
+import cats.effect.kernel.Sync
+import cats.free.{Free => FF} // alias because some algebras have an op called Free
 import cats.~>
-import cats.effect.kernel.{ CancelScope, Poll, Sync }
-import cats.free.{ Free => FF } // alias because some algebras have an op called Free
-import doobie.util.log.LogEvent
 import doobie.WeakAsync
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
+import doobie.util.log.LogEvent
 
 import java.lang.String
 import java.sql.Ref
 import java.util.Map
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 object ref { module =>
 
@@ -130,7 +132,8 @@ object ref { module =>
   val unit: RefIO[Unit] = FF.pure[RefOp, Unit](())
   def pure[A](a: A): RefIO[A] = FF.pure[RefOp, A](a)
   def raw[A](f: Ref => A): RefIO[A] = FF.liftF(Raw(f))
-  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[RefOp, A] = FF.liftF(Embed(ev.embed(j, fa)))
+  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[RefOp, A] =
+    FF.liftF(Embed(ev.embed(j, fa)))
   def raiseError[A](err: Throwable): RefIO[A] = FF.liftF[RefOp, A](RaiseError(err))
   def handleErrorWith[A](fa: RefIO[A])(f: Throwable => RefIO[A]): RefIO[A] = FF.liftF[RefOp, A](HandleErrorWith(fa, f))
   val monotonic = FF.liftF[RefOp, FiniteDuration](Monotonic)
@@ -174,4 +177,3 @@ object ref { module =>
       override def fromFuture[A](fut: RefIO[Future[A]]): RefIO[A] = module.fromFuture(fut)
     }
 }
-

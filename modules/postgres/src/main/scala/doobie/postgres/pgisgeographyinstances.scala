@@ -6,11 +6,10 @@ package doobie.postgres
 
 import doobie._
 import doobie.util.invariant._
-
 import org.postgis._
+import org.tpolecat.typename._
 
 import scala.reflect.ClassTag
-import org.tpolecat.typename._
 
 // Implicit conversions for postgis geography types
 trait PgisGeographyInstances {
@@ -25,14 +24,15 @@ trait PgisGeographyInstances {
       try A.runtimeClass.cast(g.getGeometry).asInstanceOf[A]
       catch {
         case _: ClassCastException => throw InvalidObjectMapping(A.runtimeClass, g.getGeometry.getClass)
-      })(new PGgeography(_))
+      },
+    )(new PGgeography(_))
 
   // PostGIS Geometry Types
-  implicit val MultiLineStringType: Meta[MultiLineString]       = geometryType[MultiLineString]
-  implicit val MultiPolygonType: Meta[MultiPolygon]             = geometryType[MultiPolygon]
-  implicit val PointComposedGeomType: Meta[PointComposedGeom]   = geometryType[PointComposedGeom]
-  implicit val LineStringType: Meta[LineString]                 = geometryType[LineString]
-  implicit val MultiPointType: Meta[MultiPoint]                 = geometryType[MultiPoint]
-  implicit val PolygonType: Meta[Polygon]                       = geometryType[Polygon]
-  implicit val PointType: Meta[Point]                           = geometryType[Point]
+  implicit val MultiLineStringType: Meta[MultiLineString] = geometryType[MultiLineString]
+  implicit val MultiPolygonType: Meta[MultiPolygon] = geometryType[MultiPolygon]
+  implicit val PointComposedGeomType: Meta[PointComposedGeom] = geometryType[PointComposedGeom]
+  implicit val LineStringType: Meta[LineString] = geometryType[LineString]
+  implicit val MultiPointType: Meta[MultiPoint] = geometryType[MultiPoint]
+  implicit val PolygonType: Meta[Polygon] = geometryType[Polygon]
+  implicit val PointType: Meta[Point] = geometryType[Point]
 }

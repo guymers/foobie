@@ -4,13 +4,12 @@
 
 package doobie.enumerated
 
-import doobie.util.invariant._
-
-import java.sql.ParameterMetaData._
-
 import cats.ApplicativeError
 import cats.kernel.Eq
 import cats.kernel.instances.int._
+import doobie.util.invariant._
+
+import java.sql.ParameterMetaData._
 
 /** @group Types */
 sealed abstract class ParameterMode(val toInt: Int) extends Product with Serializable
@@ -18,16 +17,23 @@ sealed abstract class ParameterMode(val toInt: Int) extends Product with Seriali
 /** @group Modules */
 object ParameterMode {
 
-  /** @group Values */ case object ModeIn      extends ParameterMode(parameterModeIn)
-  /** @group Values */ case object ModeOut     extends ParameterMode(parameterModeOut)
-  /** @group Values */ case object ModeInOut   extends ParameterMode(parameterModeInOut)
-  /** @group Values */ case object ModeUnknown extends ParameterMode(parameterModeUnknown)
+  /** @group Values */
+  case object ModeIn extends ParameterMode(parameterModeIn)
 
-  def fromInt(n:Int): Option[ParameterMode] =
+  /** @group Values */
+  case object ModeOut extends ParameterMode(parameterModeOut)
+
+  /** @group Values */
+  case object ModeInOut extends ParameterMode(parameterModeInOut)
+
+  /** @group Values */
+  case object ModeUnknown extends ParameterMode(parameterModeUnknown)
+
+  def fromInt(n: Int): Option[ParameterMode] =
     Some(n) collect {
-      case ModeIn.toInt      => ModeIn
-      case ModeOut.toInt     => ModeOut
-      case ModeInOut.toInt   => ModeInOut
+      case ModeIn.toInt => ModeIn
+      case ModeOut.toInt => ModeOut
+      case ModeInOut.toInt => ModeInOut
       case ModeUnknown.toInt => ModeUnknown
     }
 

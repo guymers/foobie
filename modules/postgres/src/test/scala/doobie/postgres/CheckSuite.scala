@@ -8,12 +8,20 @@ import doobie._
 import doobie.implicits._
 import doobie.postgres.enums._
 import doobie.postgres.implicits._
-import doobie.util.analysis.{ColumnTypeError, ColumnTypeWarning, ParameterTypeError}
-import java.time.{Instant, LocalDate, LocalDateTime, LocalTime, OffsetDateTime, OffsetTime}
+import doobie.util.analysis.ColumnTypeError
+import doobie.util.analysis.ColumnTypeWarning
+import doobie.util.analysis.ParameterTypeError
+
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.OffsetDateTime
+import java.time.OffsetTime
 
 class CheckSuite extends munit.FunSuite {
-  import cats.effect.unsafe.implicits.global
   import PostgresTestTransactor.xa
+  import cats.effect.unsafe.implicits.global
 
   test("pgEnumString Read and Write typechecks") {
     successRead[MyEnum](sql"select 'foo' :: myenum")

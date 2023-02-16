@@ -5,11 +5,12 @@
 package example
 
 import cats.Show
-import cats.effect.{ IO, IOApp }
+import cats.effect.IO
+import cats.effect.IOApp
 import cats.syntax.all._
-import fs2.Stream
 import doobie._
 import doobie.implicits._
+import fs2.Stream
 
 // JDBC program using the high-level API
 object HiUsage extends IOApp.Simple {
@@ -23,7 +24,10 @@ object HiUsage extends IOApp.Simple {
   // Program entry point
   def run: IO[Unit] = {
     val db = Transactor.fromDriverManager[IO](
-      "org.postgresql.Driver", "jdbc:postgresql:world", "postgres", "password"
+      "org.postgresql.Driver",
+      "jdbc:postgresql:world",
+      "postgres",
+      "password",
     )
     example.transact(db)
   }
@@ -34,7 +38,7 @@ object HiUsage extends IOApp.Simple {
 
   // Construct an action to find countries where more than `pct` of the population speaks `lang`.
   // The result is a fs2.Stream that can be further manipulated by the caller.
-  def speakerQuery(lang: String, pct: Double): Stream[ConnectionIO,CountryCode] =
+  def speakerQuery(lang: String, pct: Double): Stream[ConnectionIO, CountryCode] =
     sql"SELECT COUNTRYCODE FROM COUNTRYLANGUAGE WHERE LANGUAGE = $lang AND PERCENTAGE > $pct".query[CountryCode].stream
 
 }

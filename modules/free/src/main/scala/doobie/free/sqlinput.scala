@@ -4,13 +4,13 @@
 
 package doobie.free
 
+import cats.effect.kernel.CancelScope
+import cats.effect.kernel.Poll
+import cats.effect.kernel.Sync
+import cats.free.{Free => FF} // alias because some algebras have an op called Free
 import cats.~>
-import cats.effect.kernel.{ CancelScope, Poll, Sync }
-import cats.free.{ Free => FF } // alias because some algebras have an op called Free
-import doobie.util.log.LogEvent
 import doobie.WeakAsync
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
+import doobie.util.log.LogEvent
 
 import java.io.InputStream
 import java.io.Reader
@@ -28,7 +28,9 @@ import java.sql.SQLInput
 import java.sql.SQLXML
 import java.sql.Time
 import java.sql.Timestamp
-import java.sql.{ Array => SqlArray }
+import java.sql.{Array => SqlArray}
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 object sqlinput { module =>
 
@@ -240,9 +242,11 @@ object sqlinput { module =>
   val unit: SQLInputIO[Unit] = FF.pure[SQLInputOp, Unit](())
   def pure[A](a: A): SQLInputIO[A] = FF.pure[SQLInputOp, A](a)
   def raw[A](f: SQLInput => A): SQLInputIO[A] = FF.liftF(Raw(f))
-  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[SQLInputOp, A] = FF.liftF(Embed(ev.embed(j, fa)))
+  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[SQLInputOp, A] =
+    FF.liftF(Embed(ev.embed(j, fa)))
   def raiseError[A](err: Throwable): SQLInputIO[A] = FF.liftF[SQLInputOp, A](RaiseError(err))
-  def handleErrorWith[A](fa: SQLInputIO[A])(f: Throwable => SQLInputIO[A]): SQLInputIO[A] = FF.liftF[SQLInputOp, A](HandleErrorWith(fa, f))
+  def handleErrorWith[A](fa: SQLInputIO[A])(f: Throwable => SQLInputIO[A]): SQLInputIO[A] =
+    FF.liftF[SQLInputOp, A](HandleErrorWith(fa, f))
   val monotonic = FF.liftF[SQLInputOp, FiniteDuration](Monotonic)
   val realtime = FF.liftF[SQLInputOp, FiniteDuration](Realtime)
   def delay[A](thunk: => A) = FF.liftF[SQLInputOp, A](Suspend(Sync.Type.Delay, () => thunk))
@@ -297,7 +301,8 @@ object sqlinput { module =>
       override def flatMap[A, B](fa: SQLInputIO[A])(f: A => SQLInputIO[B]): SQLInputIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => SQLInputIO[Either[A, B]]): SQLInputIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): SQLInputIO[A] = module.raiseError(e)
-      override def handleErrorWith[A](fa: SQLInputIO[A])(f: Throwable => SQLInputIO[A]): SQLInputIO[A] = module.handleErrorWith(fa)(f)
+      override def handleErrorWith[A](fa: SQLInputIO[A])(f: Throwable => SQLInputIO[A]): SQLInputIO[A] =
+        module.handleErrorWith(fa)(f)
       override def monotonic: SQLInputIO[FiniteDuration] = module.monotonic
       override def realTime: SQLInputIO[FiniteDuration] = module.realtime
       override def suspend[A](hint: Sync.Type)(thunk: => A): SQLInputIO[A] = module.suspend(hint)(thunk)
@@ -308,4 +313,3 @@ object sqlinput { module =>
       override def fromFuture[A](fut: SQLInputIO[Future[A]]): SQLInputIO[A] = module.fromFuture(fut)
     }
 }
-

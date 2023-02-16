@@ -6,8 +6,8 @@ package example
 
 import doobie._
 import doobie.implicits._
-import org.postgresql.geometric._
 import doobie.postgres.implicits._
+import org.postgresql.geometric._
 
 // Some queries to test using the AnalysisTestSpec in src/test
 object AnalysisTest {
@@ -48,10 +48,10 @@ object AnalysisTest {
       SELECT '(1, 2)'::point test
     """.query[PGcircle]
   }
-  
+
   def update: Update[(String, String)] = {
     Update[(String, String)](
-      "UPDATE COUNTRY SET NAME = ? WHERE CODE = ?"
+      "UPDATE COUNTRY SET NAME = ? WHERE CODE = ?",
     )
   }
 

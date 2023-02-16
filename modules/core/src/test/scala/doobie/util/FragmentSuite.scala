@@ -4,9 +4,10 @@
 
 package doobie.util
 
-import cats.syntax.all._
 import cats.effect.IO
-import doobie._, doobie.implicits._
+import cats.syntax.all._
+import doobie._
+import doobie.implicits._
 
 class FragmentSuite extends munit.FunSuite {
 
@@ -15,7 +16,8 @@ class FragmentSuite extends munit.FunSuite {
   val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
     "jdbc:h2:mem:fragmentspec;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
   val a = 1
@@ -74,22 +76,31 @@ class FragmentSuite extends munit.FunSuite {
   }
 
   test("Fragment must allow margin stripping") {
-    assertEquals(fr"""select foo
+    assertEquals(
+      fr"""select foo
         |  from bar
         |  where a = $a and b = $b and c = $c
-        |""".stripMargin.query[Int].sql, "select foo\n  from bar\n  where a = ? and b = ? and c = ?\n ")
+        |""".stripMargin.query[Int].sql,
+      "select foo\n  from bar\n  where a = ? and b = ? and c = ?\n ",
+    )
   }
 
   test("Fragment must allow margin stripping with custom margin") {
-    assertEquals(fr"""select foo
+    assertEquals(
+      fr"""select foo
         !  from bar
-        !""".stripMargin('!').query[Int].sql, "select foo\n  from bar\n ")
+        !""".stripMargin('!').query[Int].sql,
+      "select foo\n  from bar\n ",
+    )
   }
 
   test("Fragment must not affect margin characters in middle outside of margin position") {
-    assertEquals(fr"""select foo || baz
+    assertEquals(
+      fr"""select foo || baz
         |  from bar
-        |""".stripMargin.query[Int].sql, "select foo || baz\n  from bar\n ")
+        |""".stripMargin.query[Int].sql,
+      "select foo || baz\n  from bar\n ",
+    )
   }
 
   // A fragment composed of this many sub-fragments would not be stacksafe without special
@@ -99,18 +110,17 @@ class FragmentSuite extends munit.FunSuite {
   test("Fragment must be stacksafe (left-associative)") {
     val frag =
       fr0"SELECT 1 WHERE 1 IN (" ++
-      List.fill(STACK_UNSAFE_SIZE)(1).foldLeft(Fragment.empty)((f, n) => f ++ fr"$n,") ++
-      fr0"1)"
+        List.fill(STACK_UNSAFE_SIZE)(1).foldLeft(Fragment.empty)((f, n) => f ++ fr"$n,") ++
+        fr0"1)"
     assertEquals(frag.query[Int].unique.transact(xa).unsafeRunSync(), 1)
   }
 
   test("Fragment must be stacksafe (right-associative)") {
     val frag =
       fr0"SELECT 1 WHERE 1 IN (" ++
-      List.fill(STACK_UNSAFE_SIZE)(1).foldRight(Fragment.empty)((n, f) => f ++ fr"$n,") ++
-      fr0"1)"
+        List.fill(STACK_UNSAFE_SIZE)(1).foldRight(Fragment.empty)((n, f) => f ++ fr"$n,") ++
+        fr0"1)"
     assertEquals(frag.query[Int].unique.transact(xa).unsafeRunSync(), 1)
   }
-
 
 }

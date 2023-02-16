@@ -4,13 +4,13 @@
 
 package doobie.free
 
+import cats.effect.kernel.CancelScope
+import cats.effect.kernel.Poll
+import cats.effect.kernel.Sync
+import cats.free.{Free => FF} // alias because some algebras have an op called Free
 import cats.~>
-import cats.effect.kernel.{ CancelScope, Poll, Sync }
-import cats.free.{ Free => FF } // alias because some algebras have an op called Free
-import doobie.util.log.LogEvent
 import doobie.WeakAsync
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
+import doobie.util.log.LogEvent
 
 import java.lang.String
 import java.sql.Connection
@@ -18,6 +18,8 @@ import java.sql.Driver
 import java.sql.DriverPropertyInfo
 import java.util.Properties
 import java.util.logging.Logger
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 object driver { module =>
 
@@ -145,9 +147,11 @@ object driver { module =>
   val unit: DriverIO[Unit] = FF.pure[DriverOp, Unit](())
   def pure[A](a: A): DriverIO[A] = FF.pure[DriverOp, A](a)
   def raw[A](f: Driver => A): DriverIO[A] = FF.liftF(Raw(f))
-  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[DriverOp, A] = FF.liftF(Embed(ev.embed(j, fa)))
+  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[DriverOp, A] =
+    FF.liftF(Embed(ev.embed(j, fa)))
   def raiseError[A](err: Throwable): DriverIO[A] = FF.liftF[DriverOp, A](RaiseError(err))
-  def handleErrorWith[A](fa: DriverIO[A])(f: Throwable => DriverIO[A]): DriverIO[A] = FF.liftF[DriverOp, A](HandleErrorWith(fa, f))
+  def handleErrorWith[A](fa: DriverIO[A])(f: Throwable => DriverIO[A]): DriverIO[A] =
+    FF.liftF[DriverOp, A](HandleErrorWith(fa, f))
   val monotonic = FF.liftF[DriverOp, FiniteDuration](Monotonic)
   val realtime = FF.liftF[DriverOp, FiniteDuration](Realtime)
   def delay[A](thunk: => A) = FF.liftF[DriverOp, A](Suspend(Sync.Type.Delay, () => thunk))
@@ -181,7 +185,8 @@ object driver { module =>
       override def flatMap[A, B](fa: DriverIO[A])(f: A => DriverIO[B]): DriverIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => DriverIO[Either[A, B]]): DriverIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): DriverIO[A] = module.raiseError(e)
-      override def handleErrorWith[A](fa: DriverIO[A])(f: Throwable => DriverIO[A]): DriverIO[A] = module.handleErrorWith(fa)(f)
+      override def handleErrorWith[A](fa: DriverIO[A])(f: Throwable => DriverIO[A]): DriverIO[A] =
+        module.handleErrorWith(fa)(f)
       override def monotonic: DriverIO[FiniteDuration] = module.monotonic
       override def realTime: DriverIO[FiniteDuration] = module.realtime
       override def suspend[A](hint: Sync.Type)(thunk: => A): DriverIO[A] = module.suspend(hint)(thunk)
@@ -192,4 +197,3 @@ object driver { module =>
       override def fromFuture[A](fut: DriverIO[Future[A]]): DriverIO[A] = module.fromFuture(fut)
     }
 }
-

@@ -5,20 +5,21 @@
 package doobie.util
 
 import cats.Contravariant
-import cats.free.ContravariantCoyoneda
 import cats.data.NonEmptyList
+import cats.free.ContravariantCoyoneda
 import doobie.enumerated.JdbcType
-import java.sql.{PreparedStatement, ResultSet}
-import org.tpolecat.typename._
 import doobie.util.meta.Meta
+import org.tpolecat.typename._
 
+import java.sql.PreparedStatement
+import java.sql.ResultSet
 import scala.reflect.ClassTag
 
 sealed abstract class Put[A](
   val typeStack: NonEmptyList[Option[String]],
   val jdbcTargets: NonEmptyList[JdbcType],
   val put: ContravariantCoyoneda[(PreparedStatement, Int, *) => Unit, A],
-  val update: ContravariantCoyoneda[(ResultSet, Int, *) => Unit, A]
+  val update: ContravariantCoyoneda[(ResultSet, Int, *) => Unit, A],
 ) {
 
   protected def contramapImpl[B](f: B => A, typ: Option[String]): Put[B]
@@ -39,7 +40,7 @@ sealed abstract class Put[A](
   def unsafeSetNullable(ps: PreparedStatement, n: Int, oa: Option[A]): Unit =
     oa match {
       case Some(a) => unsafeSetNonNullable(ps, n, a)
-      case None    => unsafeSetNull(ps, n)
+      case None => unsafeSetNull(ps, n)
     }
 
   @SuppressWarnings(Array("org.wartremover.warts.Equals"))
@@ -50,7 +51,7 @@ sealed abstract class Put[A](
   def unsafeUpdateNullable(rs: ResultSet, n: Int, oa: Option[A]): Unit =
     oa match {
       case Some(a) => unsafeUpdateNonNullable(rs, n, a)
-      case None    => rs.updateNull(n)
+      case None => rs.updateNull(n)
     }
 
 }
@@ -62,8 +63,8 @@ object Put extends PutInstances {
   final case class Basic[A](
     override val typeStack: NonEmptyList[Option[String]],
     override val jdbcTargets: NonEmptyList[JdbcType],
-    override val put:  ContravariantCoyoneda[(PreparedStatement, Int, *) => Unit, A],
-    override val update: ContravariantCoyoneda[(ResultSet, Int, *) => Unit, A]
+    override val put: ContravariantCoyoneda[(PreparedStatement, Int, *) => Unit, A],
+    override val update: ContravariantCoyoneda[(ResultSet, Int, *) => Unit, A],
   ) extends Put[A](typeStack, jdbcTargets, put, update) {
 
     protected def contramapImpl[B](f: B => A, typ: Option[String]): Put[B] =
@@ -78,20 +79,20 @@ object Put extends PutInstances {
 
     def many[A](
       jdbcTargets: NonEmptyList[JdbcType],
-      put:  (PreparedStatement, Int, A) => Unit,
-      update: (ResultSet, Int, A) => Unit
+      put: (PreparedStatement, Int, A) => Unit,
+      update: (ResultSet, Int, A) => Unit,
     )(implicit ev: TypeName[A]): Basic[A] =
       Basic(
         NonEmptyList.of(Some(ev.value)),
         jdbcTargets,
         ContravariantCoyoneda.lift[(PreparedStatement, Int, *) => Unit, A](put),
-        ContravariantCoyoneda.lift[(ResultSet, Int, *) => Unit, A](update)
+        ContravariantCoyoneda.lift[(ResultSet, Int, *) => Unit, A](update),
       )
 
     def one[A](
       jdbcTarget: JdbcType,
-      put:  (PreparedStatement, Int, A) => Unit,
-      update: (ResultSet, Int, A) => Unit
+      put: (PreparedStatement, Int, A) => Unit,
+      update: (ResultSet, Int, A) => Unit,
     )(implicit ev: TypeName[A]): Basic[A] =
       many(NonEmptyList.of(jdbcTarget), put, update)
 
@@ -100,9 +101,9 @@ object Put extends PutInstances {
   final case class Advanced[A](
     override val typeStack: NonEmptyList[Option[String]],
     override val jdbcTargets: NonEmptyList[JdbcType],
-             val schemaTypes: NonEmptyList[String],
-    override val put:  ContravariantCoyoneda[(PreparedStatement, Int, *) => Unit, A],
-    override val update: ContravariantCoyoneda[(ResultSet, Int, *) => Unit, A]
+    val schemaTypes: NonEmptyList[String],
+    override val put: ContravariantCoyoneda[(PreparedStatement, Int, *) => Unit, A],
+    override val update: ContravariantCoyoneda[(ResultSet, Int, *) => Unit, A],
   ) extends Put[A](typeStack, jdbcTargets, put, update) {
 
     protected def contramapImpl[B](f: B => A, typ: Option[String]): Put[B] =
@@ -117,44 +118,44 @@ object Put extends PutInstances {
     def many[A](
       jdbcTargets: NonEmptyList[JdbcType],
       schemaTypes: NonEmptyList[String],
-      put:  (PreparedStatement, Int, A) => Unit,
-      update: (ResultSet, Int, A) => Unit
+      put: (PreparedStatement, Int, A) => Unit,
+      update: (ResultSet, Int, A) => Unit,
     )(implicit ev: TypeName[A]): Advanced[A] =
       Advanced(
         NonEmptyList.of(Some(ev.value)),
         jdbcTargets,
         schemaTypes,
         ContravariantCoyoneda.lift[(PreparedStatement, Int, *) => Unit, A](put),
-        ContravariantCoyoneda.lift[(ResultSet, Int, *) => Unit, A](update)
+        ContravariantCoyoneda.lift[(ResultSet, Int, *) => Unit, A](update),
       )
 
     def one[A: TypeName](
       jdbcTarget: JdbcType,
       schemaTypes: NonEmptyList[String],
-      put:  (PreparedStatement, Int, A) => Unit,
-      update: (ResultSet, Int, A) => Unit
+      put: (PreparedStatement, Int, A) => Unit,
+      update: (ResultSet, Int, A) => Unit,
     ): Advanced[A] =
       many(NonEmptyList.of(jdbcTarget), schemaTypes, put, update)
 
     @SuppressWarnings(Array("org.wartremover.warts.Equals", "org.wartremover.warts.AsInstanceOf"))
     def array[A >: Null <: AnyRef](
       schemaTypes: NonEmptyList[String],
-      elementType: String
+      elementType: String,
     ): Advanced[Array[A]] =
       one(
         JdbcType.Array,
         schemaTypes,
         (ps, n, a) => {
           val conn = ps.getConnection
-          val arr  = conn.createArrayOf(elementType, a.asInstanceOf[Array[AnyRef]])
+          val arr = conn.createArrayOf(elementType, a.asInstanceOf[Array[AnyRef]])
           ps.setArray(n, arr)
         },
         (rs, n, a) => {
           val stmt = rs.getStatement
           val conn = stmt.getConnection
-          val arr  = conn.createArrayOf(elementType, a.asInstanceOf[Array[AnyRef]])
+          val arr = conn.createArrayOf(elementType, a.asInstanceOf[Array[AnyRef]])
           rs.updateArray(n, arr)
-        }
+        },
       )
 
     def other[A >: Null <: AnyRef: TypeName](schemaTypes: NonEmptyList[String]): Advanced[A] =
@@ -162,14 +163,14 @@ object Put extends PutInstances {
         NonEmptyList.of(JdbcType.Other, JdbcType.JavaObject),
         schemaTypes,
         (ps, n, a) => ps.setObject(n, a),
-        (rs, n, a) => rs.updateObject(n, a)
+        (rs, n, a) => rs.updateObject(n, a),
       )
 
   }
 
   /** An implicit Meta[A] means we also have an implicit Put[A]. */
   implicit def metaProjectionWrite[A](
-    implicit m: Meta[A]
+    implicit m: Meta[A],
   ): Put[A] =
     m.put
 

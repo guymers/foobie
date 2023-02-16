@@ -4,17 +4,19 @@
 
 package doobie.postgres.free
 
+import cats.effect.kernel.CancelScope
+import cats.effect.kernel.Poll
+import cats.effect.kernel.Sync
+import cats.free.{Free => FF} // alias because some algebras have an op called Free
 import cats.~>
-import cats.effect.kernel.{ CancelScope, Poll, Sync }
-import cats.free.{ Free => FF } // alias because some algebras have an op called Free
-import doobie.util.log.LogEvent
 import doobie.WeakAsync
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
+import doobie.util.log.LogEvent
+import org.postgresql.largeobject.LargeObject
 
 import java.io.InputStream
 import java.io.OutputStream
-import org.postgresql.largeobject.LargeObject
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 object largeobject { module =>
 
@@ -190,9 +192,11 @@ object largeobject { module =>
   val unit: LargeObjectIO[Unit] = FF.pure[LargeObjectOp, Unit](())
   def pure[A](a: A): LargeObjectIO[A] = FF.pure[LargeObjectOp, A](a)
   def raw[A](f: LargeObject => A): LargeObjectIO[A] = FF.liftF(Raw(f))
-  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[LargeObjectOp, A] = FF.liftF(Embed(ev.embed(j, fa)))
+  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[LargeObjectOp, A] =
+    FF.liftF(Embed(ev.embed(j, fa)))
   def raiseError[A](err: Throwable): LargeObjectIO[A] = FF.liftF[LargeObjectOp, A](RaiseError(err))
-  def handleErrorWith[A](fa: LargeObjectIO[A])(f: Throwable => LargeObjectIO[A]): LargeObjectIO[A] = FF.liftF[LargeObjectOp, A](HandleErrorWith(fa, f))
+  def handleErrorWith[A](fa: LargeObjectIO[A])(f: Throwable => LargeObjectIO[A]): LargeObjectIO[A] =
+    FF.liftF[LargeObjectOp, A](HandleErrorWith(fa, f))
   val monotonic = FF.liftF[LargeObjectOp, FiniteDuration](Monotonic)
   val realtime = FF.liftF[LargeObjectOp, FiniteDuration](Realtime)
   def delay[A](thunk: => A) = FF.liftF[LargeObjectOp, A](Suspend(Sync.Type.Delay, () => thunk))
@@ -238,15 +242,17 @@ object largeobject { module =>
       override def flatMap[A, B](fa: LargeObjectIO[A])(f: A => LargeObjectIO[B]): LargeObjectIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => LargeObjectIO[Either[A, B]]): LargeObjectIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): LargeObjectIO[A] = module.raiseError(e)
-      override def handleErrorWith[A](fa: LargeObjectIO[A])(f: Throwable => LargeObjectIO[A]): LargeObjectIO[A] = module.handleErrorWith(fa)(f)
+      override def handleErrorWith[A](fa: LargeObjectIO[A])(f: Throwable => LargeObjectIO[A]): LargeObjectIO[A] =
+        module.handleErrorWith(fa)(f)
       override def monotonic: LargeObjectIO[FiniteDuration] = module.monotonic
       override def realTime: LargeObjectIO[FiniteDuration] = module.realtime
       override def suspend[A](hint: Sync.Type)(thunk: => A): LargeObjectIO[A] = module.suspend(hint)(thunk)
       override def forceR[A, B](fa: LargeObjectIO[A])(fb: LargeObjectIO[B]): LargeObjectIO[B] = module.forceR(fa)(fb)
-      override def uncancelable[A](body: Poll[LargeObjectIO] => LargeObjectIO[A]): LargeObjectIO[A] = module.uncancelable(body)
+      override def uncancelable[A](body: Poll[LargeObjectIO] => LargeObjectIO[A]): LargeObjectIO[A] =
+        module.uncancelable(body)
       override def canceled: LargeObjectIO[Unit] = module.canceled
-      override def onCancel[A](fa: LargeObjectIO[A], fin: LargeObjectIO[Unit]): LargeObjectIO[A] = module.onCancel(fa, fin)
+      override def onCancel[A](fa: LargeObjectIO[A], fin: LargeObjectIO[Unit]): LargeObjectIO[A] =
+        module.onCancel(fa, fin)
       override def fromFuture[A](fut: LargeObjectIO[Future[A]]): LargeObjectIO[A] = module.fromFuture(fut)
     }
 }
-

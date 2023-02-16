@@ -4,16 +4,19 @@
 
 package example
 
-import java.sql.Connection
-
-import cats.data.{EitherK, Kleisli}
-import cats.effect.{ IO, IOApp }
+import cats.InjectK
+import cats.data.EitherK
+import cats.data.Kleisli
+import cats.effect.IO
+import cats.effect.IOApp
 import cats.free.Free
 import cats.syntax.all._
-import cats.{InjectK, ~>}
+import cats.~>
 import doobie._
 import doobie.free.connection.ConnectionOp
 import doobie.implicits._
+
+import java.sql.Connection
 import scala.io.StdIn
 
 object Coproduct extends IOApp.Simple {
@@ -37,12 +40,12 @@ object Coproduct extends IOApp.Simple {
 
   // A console algebra
   sealed trait ConsoleOp[A]
-  case object ReadLn             extends ConsoleOp[String]
+  case object ReadLn extends ConsoleOp[String]
   final case class PrintLn(s: String) extends ConsoleOp[Unit]
 
   // A module of ConsoleOp constructors, parameterized over a coproduct
   class ConsoleOps[F[_]](implicit ev: InjectK[ConsoleOp, F]) {
-    val readLn             = Free.liftInject[F](ReadLn)
+    val readLn = Free.liftInject[F](ReadLn)
     def printLn(s: String) = Free.liftInject[F](PrintLn(s))
   }
   object ConsoleOps {
@@ -54,7 +57,7 @@ object Coproduct extends IOApp.Simple {
     new (ConsoleOp ~> IO) {
       def apply[A](fa: ConsoleOp[A]) =
         fa match {
-          case ReadLn     => IO(StdIn.readLine())
+          case ReadLn => IO(StdIn.readLine())
           case PrintLn(s) => IO(Console.println(s))
         }
     }
@@ -75,10 +78,10 @@ object Coproduct extends IOApp.Simple {
     import ev1._
     import ev2._
     for {
-      _   <- printLn("Enter a pattern:")
+      _ <- printLn("Enter a pattern:")
       pat <- readLn
-      ns  <- select(pat)
-      _   <- ns.traverse(printLn)
+      ns <- select(pat)
+      _ <- ns.traverse(printLn)
     } yield ()
   }
 
@@ -97,7 +100,8 @@ object Coproduct extends IOApp.Simple {
   val xa = Transactor.fromDriverManager[IO](
     "org.postgresql.Driver",
     "jdbc:postgresql:world",
-    "postgres", "password"
+    "postgres",
+    "password",
   )
 
   // Exec it!

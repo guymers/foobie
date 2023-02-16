@@ -6,8 +6,8 @@ package doobie.util
 
 import cats.effect.IO
 import doobie._
-import doobie.implicits._
 import doobie.enumerated.JdbcType.{Array => _, _}
+import doobie.implicits._
 
 import scala.annotation.nowarn
 
@@ -40,7 +40,6 @@ class GetSuite extends munit.FunSuite with GetSuitePlatform {
 final case class Foo(s: String)
 final case class Bar(n: Int)
 
-
 class GetDBSuite extends munit.FunSuite {
 
   import cats.effect.unsafe.implicits.global
@@ -48,7 +47,8 @@ class GetDBSuite extends munit.FunSuite {
   lazy val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
     "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
   // Both of these will fail at runtime if called with a null value, we check that this is

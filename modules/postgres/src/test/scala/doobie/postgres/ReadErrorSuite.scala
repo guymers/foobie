@@ -6,22 +6,26 @@ package doobie.postgres
 
 import doobie._
 import doobie.implicits._
-import doobie.postgres.implicits._
 import doobie.postgres.enums._
+import doobie.postgres.implicits._
 import doobie.util.invariant._
 
 class ReadErrorSuite extends munit.FunSuite {
-  import cats.effect.unsafe.implicits.global
   import PostgresTestTransactor.xa
+  import cats.effect.unsafe.implicits.global
 
-  implicit val MyEnumMetaOpt: Meta[MyEnum] = pgEnumStringOpt("myenum", {
-    case "foo" => Some(MyEnum.Foo)
-    case "bar" => Some(MyEnum.Bar)
-    case _ => None
-  }, {
-    case MyEnum.Foo => "foo"
-    case MyEnum.Bar => "bar"
-  })
+  implicit val MyEnumMetaOpt: Meta[MyEnum] = pgEnumStringOpt(
+    "myenum",
+    {
+      case "foo" => Some(MyEnum.Foo)
+      case "bar" => Some(MyEnum.Bar)
+      case _ => None
+    },
+    {
+      case MyEnum.Foo => "foo"
+      case MyEnum.Bar => "bar"
+    },
+  )
   implicit val MyScalaEnumMeta: Meta[MyScalaEnum.Value] = pgEnum(MyScalaEnum, "myenum")
   implicit val MyJavaEnumMeta: Meta[MyJavaEnum] = pgJavaEnum[MyJavaEnum]("myenum")
 

@@ -6,11 +6,13 @@ package doobie.postgres.circe
 
 import cats.Show
 import cats.data.NonEmptyList
-import cats.syntax.all._
+import cats.syntax.either._
+import cats.syntax.show._
+import doobie.Get
+import doobie.Put
 import io.circe._
 import io.circe.jawn._
 import io.circe.syntax._
-import doobie.util._
 import org.postgresql.util.PGobject
 
 object Instances {
@@ -20,8 +22,8 @@ object Instances {
   trait JsonbInstances {
     implicit val jsonbPut: Put[Json] =
       Put.Advanced.other[PGobject](
-        NonEmptyList.of("jsonb")
-      ).tcontramap{a =>
+        NonEmptyList.of("jsonb"),
+      ).tcontramap { a =>
         val o = new PGobject
         o.setType("jsonb")
         o.setValue(a.noSpaces)
@@ -30,9 +32,9 @@ object Instances {
 
     implicit val jsonbGet: Get[Json] =
       Get.Advanced.other[PGobject](
-        NonEmptyList.of("jsonb")
+        NonEmptyList.of("jsonb"),
       ).temap(a =>
-        parse(a.getValue).leftMap(_.show)
+        parse(a.getValue).leftMap(_.show),
       )
 
     def pgEncoderPutT[A: Encoder]: Put[A] =
@@ -52,8 +54,8 @@ object Instances {
   trait JsonInstances {
     implicit val jsonPut: Put[Json] =
       Put.Advanced.other[PGobject](
-        NonEmptyList.of("json")
-      ).tcontramap{a =>
+        NonEmptyList.of("json"),
+      ).tcontramap { a =>
         val o = new PGobject
         o.setType("json")
         o.setValue(a.noSpaces)
@@ -62,9 +64,9 @@ object Instances {
 
     implicit val jsonGet: Get[Json] =
       Get.Advanced.other[PGobject](
-        NonEmptyList.of("json")
+        NonEmptyList.of("json"),
       ).temap(a =>
-        parse(a.getValue).leftMap(_.show)
+        parse(a.getValue).leftMap(_.show),
       )
 
     def pgEncoderPutT[A: Encoder]: Put[A] =

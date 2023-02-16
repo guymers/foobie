@@ -4,17 +4,19 @@
 
 package doobie.free
 
+import cats.effect.kernel.CancelScope
+import cats.effect.kernel.Poll
+import cats.effect.kernel.Sync
+import cats.free.{Free => FF} // alias because some algebras have an op called Free
 import cats.~>
-import cats.effect.kernel.{ CancelScope, Poll, Sync }
-import cats.free.{ Free => FF } // alias because some algebras have an op called Free
-import doobie.util.log.LogEvent
 import doobie.WeakAsync
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
+import doobie.util.log.LogEvent
 
 import java.io.InputStream
 import java.io.OutputStream
 import java.sql.Blob
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 object blob { module =>
 
@@ -158,9 +160,11 @@ object blob { module =>
   val unit: BlobIO[Unit] = FF.pure[BlobOp, Unit](())
   def pure[A](a: A): BlobIO[A] = FF.pure[BlobOp, A](a)
   def raw[A](f: Blob => A): BlobIO[A] = FF.liftF(Raw(f))
-  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[BlobOp, A] = FF.liftF(Embed(ev.embed(j, fa)))
+  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[BlobOp, A] =
+    FF.liftF(Embed(ev.embed(j, fa)))
   def raiseError[A](err: Throwable): BlobIO[A] = FF.liftF[BlobOp, A](RaiseError(err))
-  def handleErrorWith[A](fa: BlobIO[A])(f: Throwable => BlobIO[A]): BlobIO[A] = FF.liftF[BlobOp, A](HandleErrorWith(fa, f))
+  def handleErrorWith[A](fa: BlobIO[A])(f: Throwable => BlobIO[A]): BlobIO[A] =
+    FF.liftF[BlobOp, A](HandleErrorWith(fa, f))
   val monotonic = FF.liftF[BlobOp, FiniteDuration](Monotonic)
   val realtime = FF.liftF[BlobOp, FiniteDuration](Realtime)
   def delay[A](thunk: => A) = FF.liftF[BlobOp, A](Suspend(Sync.Type.Delay, () => thunk))
@@ -198,7 +202,8 @@ object blob { module =>
       override def flatMap[A, B](fa: BlobIO[A])(f: A => BlobIO[B]): BlobIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => BlobIO[Either[A, B]]): BlobIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): BlobIO[A] = module.raiseError(e)
-      override def handleErrorWith[A](fa: BlobIO[A])(f: Throwable => BlobIO[A]): BlobIO[A] = module.handleErrorWith(fa)(f)
+      override def handleErrorWith[A](fa: BlobIO[A])(f: Throwable => BlobIO[A]): BlobIO[A] =
+        module.handleErrorWith(fa)(f)
       override def monotonic: BlobIO[FiniteDuration] = module.monotonic
       override def realTime: BlobIO[FiniteDuration] = module.realtime
       override def suspend[A](hint: Sync.Type)(thunk: => A): BlobIO[A] = module.suspend(hint)(thunk)
@@ -209,4 +214,3 @@ object blob { module =>
       override def fromFuture[A](fut: BlobIO[Future[A]]): BlobIO[A] = module.fromFuture(fut)
     }
 }
-

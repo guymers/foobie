@@ -4,20 +4,26 @@
 
 package doobie.util
 
-import shapeless.{ HList, HNil, ::, Generic, Lazy, <:!< }
-import shapeless.labelled.{ FieldType }
+import shapeless.::
+import shapeless.<:!<
+import shapeless.Generic
+import shapeless.HList
+import shapeless.HNil
+import shapeless.Lazy
+import shapeless.labelled.FieldType
 
 trait WritePlatform extends LowerPriorityWrite {
 
   implicit def recordWrite[K <: Symbol, H, T <: HList](
-    implicit H: Lazy[Write[H]],
-              T: Lazy[Write[T]]
+    implicit
+    H: Lazy[Write[H]],
+    T: Lazy[Write[T]],
   ): Write[FieldType[K, H] :: T] = {
     new Write(
       H.value.puts ++ T.value.puts,
       { case h :: t => H.value.toList(h) ++ T.value.toList(t) },
       { case (ps, n, h :: t) => H.value.unsafeSet(ps, n, h); T.value.unsafeSet(ps, n + H.value.length, t) },
-      { case (rs, n, h :: t) => H.value.unsafeUpdate(rs, n, h); T.value.unsafeUpdate(rs, n + H.value.length, t) }
+      { case (rs, n, h :: t) => H.value.unsafeUpdate(rs, n, h); T.value.unsafeUpdate(rs, n + H.value.length, t) },
     )
   }
 
@@ -26,14 +32,15 @@ trait WritePlatform extends LowerPriorityWrite {
 trait LowerPriorityWrite extends EvenLowerPriorityWrite {
 
   implicit def product[H, T <: HList](
-    implicit H: Lazy[Write[H]],
-              T: Lazy[Write[T]]
+    implicit
+    H: Lazy[Write[H]],
+    T: Lazy[Write[T]],
   ): Write[H :: T] =
     new Write(
       H.value.puts ++ T.value.puts,
       { case h :: t => H.value.toList(h) ++ T.value.toList(t) },
       { case (ps, n, h :: t) => H.value.unsafeSet(ps, n, h); T.value.unsafeSet(ps, n + H.value.length, t) },
-      { case (rs, n, h :: t) => H.value.unsafeUpdate(rs, n, h); T.value.unsafeUpdate(rs, n + H.value.length, t) }
+      { case (rs, n, h :: t) => H.value.unsafeUpdate(rs, n, h); T.value.unsafeUpdate(rs, n + H.value.length, t) },
     )
 
   implicit def emptyProduct: Write[HNil] =
@@ -44,7 +51,7 @@ trait LowerPriorityWrite extends EvenLowerPriorityWrite {
       A.value.puts,
       b => A.value.toList(gen.to(b)),
       (ps, n, b) => A.value.unsafeSet(ps, n, gen.to(b)),
-      (rs, n, b) => A.value.unsafeUpdate(rs, n, gen.to(b))
+      (rs, n, b) => A.value.unsafeUpdate(rs, n, gen.to(b)),
     )
 
 }
@@ -55,9 +62,10 @@ trait EvenLowerPriorityWrite {
     new Write[Option[HNil]](Nil, _ => Nil, (_, _, _) => (), (_, _, _) => ())
 
   implicit def ohcons1[H, T <: HList](
-    implicit H: Lazy[Write[Option[H]]],
-             T: Lazy[Write[Option[T]]],
-             N: H <:!< Option[α] forSome { type α }
+    implicit
+    H: Lazy[Write[Option[H]]],
+    T: Lazy[Write[Option[T]]],
+    N: H <:!< Option[α] forSome { type α },
   ): Write[Option[H :: T]] = {
     void(N)
 
@@ -68,14 +76,16 @@ trait EvenLowerPriorityWrite {
       H.value.puts ++ T.value.puts,
       split(_) { (h, t) => H.value.toList(h) ++ T.value.toList(t) },
       (ps, n, i) => split(i) { (h, t) => H.value.unsafeSet(ps, n, h); T.value.unsafeSet(ps, n + H.value.length, t) },
-      (rs, n, i) => split(i) { (h, t) => H.value.unsafeUpdate(rs, n, h); T.value.unsafeUpdate(rs, n + H.value.length, t) }
+      (rs, n, i) =>
+        split(i) { (h, t) => H.value.unsafeUpdate(rs, n, h); T.value.unsafeUpdate(rs, n + H.value.length, t) },
     )
 
   }
 
   implicit def ohcons2[H, T <: HList](
-    implicit H: Lazy[Write[Option[H]]],
-             T: Lazy[Write[Option[T]]]
+    implicit
+    H: Lazy[Write[Option[H]]],
+    T: Lazy[Write[Option[T]]],
   ): Write[Option[Option[H] :: T]] = {
 
     def split[A](i: Option[Option[H] :: T])(f: (Option[H], Option[T]) => A): A =
@@ -85,20 +95,22 @@ trait EvenLowerPriorityWrite {
       H.value.puts ++ T.value.puts,
       split(_) { (h, t) => H.value.toList(h) ++ T.value.toList(t) },
       (ps, n, i) => split(i) { (h, t) => H.value.unsafeSet(ps, n, h); T.value.unsafeSet(ps, n + H.value.length, t) },
-      (rs, n, i) => split(i) { (h, t) => H.value.unsafeUpdate(rs, n, h); T.value.unsafeUpdate(rs, n + H.value.length, t) }
+      (rs, n, i) =>
+        split(i) { (h, t) => H.value.unsafeUpdate(rs, n, h); T.value.unsafeUpdate(rs, n + H.value.length, t) },
     )
 
   }
 
   implicit def ogeneric[B, A <: HList](
-    implicit G: Generic.Aux[B, A],
-             A: Lazy[Write[Option[A]]]
+    implicit
+    G: Generic.Aux[B, A],
+    A: Lazy[Write[Option[A]]],
   ): Write[Option[B]] =
     new Write(
       A.value.puts,
       b => A.value.toList(b.map(G.to)),
       (rs, n, a) => A.value.unsafeSet(rs, n, a.map(G.to)),
-      (rs, n, a) => A.value.unsafeUpdate(rs, n, a.map(G.to))
+      (rs, n, a) => A.value.unsafeUpdate(rs, n, a.map(G.to)),
     )
 
 }

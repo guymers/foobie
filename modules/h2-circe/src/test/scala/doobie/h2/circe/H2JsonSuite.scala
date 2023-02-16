@@ -7,7 +7,9 @@ package doobie.h2.circe
 import cats.effect.IO
 import doobie._
 import doobie.implicits._
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.Decoder
+import io.circe.Encoder
+import io.circe.Json
 
 class H2JsonSuite extends munit.FunSuite {
 
@@ -16,12 +18,13 @@ class H2JsonSuite extends munit.FunSuite {
   val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
     "jdbc:h2:mem:testdb",
-    "sa", ""
+    "sa",
+    "",
   )
 
   def inOut[A: Write: Read](col: String, a: A) =
     for {
-      _  <- Update0(s"CREATE TEMPORARY TABLE TEST (value $col)", None).run
+      _ <- Update0(s"CREATE TEMPORARY TABLE TEST (value $col)", None).run
       a0 <- Update[A](s"INSERT INTO TEST VALUES (?)", None).withUniqueGeneratedKeys[A]("value")(a)
     } yield a0
 
@@ -43,7 +46,6 @@ class H2JsonSuite extends munit.FunSuite {
     testInOut("json", Json.obj("something" -> Json.fromString("Yellow")), xa)
   }
 
-
   // Explicit Type Checks
 
   test("json should check ok for read") {
@@ -61,12 +63,12 @@ class H2JsonSuite extends munit.FunSuite {
 
   // Encoder / Decoders
   private case class Foo(x: Json)
-  private object Foo{
+  private object Foo {
     import doobie.h2.circe.json.implicits._
     implicit val fooEncoder: Encoder[Foo] = Encoder[Json].contramap(_.x)
     implicit val fooDecoder: Decoder[Foo] = Decoder[Json].map(Foo(_))
-    implicit val fooGet : Get[Foo] = h2DecoderGetT[Foo]
-    implicit val fooPut : Put[Foo] = h2EncoderPutT[Foo]
+    implicit val fooGet: Get[Foo] = h2DecoderGetT[Foo]
+    implicit val fooPut: Put[Foo] = h2EncoderPutT[Foo]
   }
 
   test("fooGet should check ok for read") {

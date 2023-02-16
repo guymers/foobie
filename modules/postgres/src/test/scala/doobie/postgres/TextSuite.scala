@@ -10,39 +10,39 @@ import doobie._
 import doobie.implicits._
 import doobie.postgres.implicits._
 import fs2._
-import org.scalacheck.Gen
 import org.scalacheck.Arbitrary.arbitrary
+import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
 
 class TextSuite extends munit.ScalaCheckSuite {
-  import cats.effect.unsafe.implicits.global
   import PostgresTestTransactor.xa
   import TextSuite._
+  import cats.effect.unsafe.implicits.global
 
   implicit val byteListInstance: Text[List[Byte]] =
     Text[Array[Byte]].contramap(_.toArray)
 
   val create: ConnectionIO[Unit] =
     sql"""| CREATE TEMPORARY TABLE test (
-          |  id serial,  -- just for ordering
-          |   a text,    -- String
-          |   b int2,    -- Short
-          |   c int4,    -- Int
-          |   d int8,    -- Long
-          |   e float4,  -- Float
-          |   f float8,  -- Double
-          |   g numeric, -- BigDecimal
-          |   h boolean, -- Boolean
-          |   i bytea,   -- List[Byte]
-          |   j _text,   -- List[String]
-          |   k _int4    -- List[Int]
-          | ) ON COMMIT DELETE ROWS
-          |""".stripMargin.update.run.void
+      |  id serial,  -- just for ordering
+      |   a text,    -- String
+      |   b int2,    -- Short
+      |   c int4,    -- Int
+      |   d int8,    -- Long
+      |   e float4,  -- Float
+      |   f float8,  -- Double
+      |   g numeric, -- BigDecimal
+      |   h boolean, -- Boolean
+      |   i bytea,   -- List[Byte]
+      |   j _text,   -- List[String]
+      |   k _int4    -- List[Int]
+      | ) ON COMMIT DELETE ROWS
+      |""".stripMargin.update.run.void
 
   val insert: Fragment =
     sql"""| COPY test (a, b, c, d, e, f, g, h, i, j, k)
-          | FROM STDIN
-          |""".stripMargin
+      | FROM STDIN
+      |""".stripMargin
 
   val selectAll: ConnectionIO[List[Row]] =
     sql"SELECT a, b, c, d, e, f, g, h, i, j, k FROM test ORDER BY id ASC".query[Row].to[List]
@@ -50,10 +50,10 @@ class TextSuite extends munit.ScalaCheckSuite {
   // filter chars pg can't cope with
   def filter(s: String): String =
     s.replace("\u0000", "") // NUL
-     .toList
-     .map { c => if (Character.isSpaceChar(c)) ' ' else c } // high space
-     .filterNot(c => c >= 0x0E && c <= 0x1F) // low ctrl
-     .mkString
+      .toList
+      .map { c => if (Character.isSpaceChar(c)) ' ' else c } // high space
+      .filterNot(c => c >= 0x0e && c <= 0x1f) // low ctrl
+      .mkString
 
   val genRow: Gen[Row] =
     for {
@@ -71,7 +71,7 @@ class TextSuite extends munit.ScalaCheckSuite {
     } yield Row(a, b, c, d, e, f, g, h, i, j, k)
 
   val genRows: Gen[List[Row]] =
-    Gen.choose(0,50).flatMap(Gen.listOfN(_, genRow))
+    Gen.choose(0, 50).flatMap(Gen.listOfN(_, genRow))
 
   test("copyIn should correctly insert batches of rows") {
     forAll(genRows) { rs =>
@@ -82,7 +82,8 @@ class TextSuite extends munit.ScalaCheckSuite {
 
   test("correctly insert batches of rows via Stream") {
     forAll(genRows) { rs =>
-      val rsʹ = (create *> insert.copyIn(Stream.emits[ConnectionIO, Row](rs), 100) *> selectAll).transact(xa).unsafeRunSync()
+      val rsʹ =
+        (create *> insert.copyIn(Stream.emits[ConnectionIO, Row](rs), 100) *> selectAll).transact(xa).unsafeRunSync()
       assertEquals(rs, rsʹ)
     }
   }
@@ -110,7 +111,7 @@ object TextSuite {
     h: Option[Boolean],
     i: Option[List[Byte]],
     j: Option[List[String]],
-    k: Option[List[Int]]
+    k: Option[List[Int]],
   )
 
 }

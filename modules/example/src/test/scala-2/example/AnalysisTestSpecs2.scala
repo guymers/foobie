@@ -9,11 +9,13 @@ import doobie._
 import doobie.specs2.analysisspec._
 import org.specs2.mutable.Specification
 
-
 class AnalysisTestSpecs2 extends Specification with IOChecker {
 
   val transactor = Transactor.fromDriverManager[IO](
-    "org.postgresql.Driver", "jdbc:postgresql:world", "postgres", "password"
+    "org.postgresql.Driver",
+    "jdbc:postgresql:world",
+    "postgres",
+    "password",
   )
   // Commented tests fail!
   // check(AnalysisTest.speakerQuery(null, 0))

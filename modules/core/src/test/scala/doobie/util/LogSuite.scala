@@ -4,11 +4,14 @@
 
 package doobie.util
 
+import cats.effect.IO
+import cats.effect.IOLocal
 import cats.syntax.all._
-import cats.effect.{IO, IOLocal}
 import doobie._
 import doobie.implicits._
-import doobie.util.log.{LogEvent, ProcessingFailure, Success}
+import doobie.util.log.LogEvent
+import doobie.util.log.ProcessingFailure
+import doobie.util.log.Success
 
 class LogSuite extends munit.FunSuite {
 
@@ -20,7 +23,8 @@ class LogSuite extends munit.FunSuite {
   val xa = Transactor.fromDriverManager[IO].withLogHandler(ioLocal.set(_))(
     "org.h2.Driver",
     "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
   def eventForCIO[A](cio: ConnectionIO[A]): LogEvent =

@@ -9,15 +9,15 @@ import doobie.syntax.string._
 import doobie.util.transactor.Transactor
 import org.scalatest._
 
-
 trait MatcherChecks[M[_]] extends funsuite.AnyFunSuite
-    with matchers.must.Matchers
-    with AnalysisMatchers[M] {
+  with matchers.must.Matchers
+  with AnalysisMatchers[M] {
 
   lazy val transactor = Transactor.fromDriverManager[M](
     "org.h2.Driver",
     "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
   test("valid query should pass") {

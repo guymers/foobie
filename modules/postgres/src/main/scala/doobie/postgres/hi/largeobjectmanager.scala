@@ -6,7 +6,10 @@ package doobie.postgres.hi
 
 import cats.syntax.all._
 import doobie.postgres.implicits._
-import java.io.{ File, OutputStream, InputStream }
+
+import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
 
 object largeobjectmanager {
 

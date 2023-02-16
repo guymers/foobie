@@ -5,7 +5,6 @@
 package doobie.postgres.free
 
 import cats.free.Free
-
 import copyin.CopyInIO
 import copymanager.CopyManagerIO
 import copyout.CopyOutIO
@@ -21,7 +20,8 @@ object Embedded {
   final case class CopyManager[A](j: org.postgresql.copy.CopyManager, fa: CopyManagerIO[A]) extends Embedded[A]
   final case class CopyOut[A](j: org.postgresql.copy.CopyOut, fa: CopyOutIO[A]) extends Embedded[A]
   final case class LargeObject[A](j: org.postgresql.largeobject.LargeObject, fa: LargeObjectIO[A]) extends Embedded[A]
-  final case class LargeObjectManager[A](j: org.postgresql.largeobject.LargeObjectManager, fa: LargeObjectManagerIO[A]) extends Embedded[A]
+  final case class LargeObjectManager[A](j: org.postgresql.largeobject.LargeObjectManager, fa: LargeObjectManagerIO[A])
+    extends Embedded[A]
   final case class PGConnection[A](j: org.postgresql.PGConnection, fa: PGConnectionIO[A]) extends Embedded[A]
 }
 
@@ -29,4 +29,3 @@ object Embedded {
 trait Embeddable[F[_], J] {
   def embed[A](j: J, fa: Free[F, A]): Embedded[A]
 }
-

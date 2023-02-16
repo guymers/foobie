@@ -11,23 +11,22 @@ import doobie.postgres.implicits._
 import fs2._
 import org.openjdk.jmh.annotations._
 
-
 final case class Person(name: String, age: Int)
 
 class text {
-  import shared._
   import cats.effect.unsafe.implicits.global
+  import shared._
 
   def people(n: Int): List[Person] =
     List.fill(n)(Person("Bob", 42))
 
   def ddl: ConnectionIO[Unit] =
     sql"drop table if exists bench_person".update.run *>
-    sql"create table bench_person (name varchar not null, age integer not null)".update.run.void
+      sql"create table bench_person (name varchar not null, age integer not null)".update.run.void
 
   def naive(n: Int): ConnectionIO[Int] =
     ddl *> HC.prepareStatement("insert into bench_person (name, age) values (?, ?)")(
-      people(n).foldRight(HPS.executeBatch)((p, k) => HPS.set(p) *> HPS.addBatch *> k)
+      people(n).foldRight(HPS.executeBatch)((p, k) => HPS.set(p) *> HPS.addBatch *> k),
     ).map(_.combineAll)
 
   def optimized(n: Int): ConnectionIO[Int] =
@@ -39,7 +38,7 @@ class text {
           ps.addBatch
         }
         ps.executeBatch.sum
-      }
+      },
     )
 
   def copyin_stream(n: Int): ConnectionIO[Long] =

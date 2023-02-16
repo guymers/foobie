@@ -4,29 +4,30 @@
 
 package doobie.specs2
 
-import cats.effect.{ Async, IO }
+import cats.effect.Async
+import cats.effect.IO
 import cats.instances.list._
 import cats.syntax.foldable._
 import doobie.syntax.connectionio._
 import doobie.util.pretty._
-import doobie.util.testing.{
-  AnalysisReport,
-  Analyzable,
-  analyze,
-  CheckerBase,
-  UnsafeRun
-}
-import org.specs2.matcher.{ Expectable, Matcher, MatchResult }
+import doobie.util.testing.AnalysisReport
+import doobie.util.testing.Analyzable
+import doobie.util.testing.CheckerBase
+import doobie.util.testing.UnsafeRun
+import doobie.util.testing.analyze
+import org.specs2.matcher.Expectable
+import org.specs2.matcher.MatchResult
+import org.specs2.matcher.Matcher
 
 object analysismatchers {
 
   /**
-    * Provides matcher syntax for query checking:
-    *
-    * {{{
-    * sql"select 1".query[Int] must typecheck
-    * }}}
-    */
+   * Provides matcher syntax for query checking:
+   *
+   * {{{
+   * sql"select 1".query[Int] must typecheck
+   * }}}
+   */
   trait AnalysisMatchers[F[_]] extends CheckerBase[F] {
 
     def typecheck[T](implicit analyzable: Analyzable[T]): Matcher[T] =
@@ -34,8 +35,8 @@ object analysismatchers {
         def apply[S <: T](t: Expectable[S]): MatchResult[S] = {
           val report = U.unsafeRunSync(
             analyze(
-              analyzable.unpack(t.value)
-            ).transact(transactor)
+              analyzable.unpack(t.value),
+            ).transact(transactor),
           )
           reportToMatchResult(report, t)
         }
@@ -43,7 +44,7 @@ object analysismatchers {
 
     private def reportToMatchResult[S](
       r: AnalysisReport,
-      s: Expectable[S]
+      s: Expectable[S],
     ): MatchResult[S] = {
       // We aim to produce the same format the fragment version does.
 
@@ -67,7 +68,7 @@ object analysismatchers {
           Block.fromString(s"+ ${item.description}")
         case Some(e) =>
           Block.fromString(s"x ${item.description}").above(
-            Block.fromString(" x ").leftOf(e.wrap(70))
+            Block.fromString(" x ").leftOf(e.wrap(70)),
           )
       }
   }

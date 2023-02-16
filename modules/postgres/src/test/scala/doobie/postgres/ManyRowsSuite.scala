@@ -7,8 +7,8 @@ package doobie.postgres
 import doobie.implicits._
 
 class ManyRowsSuite extends munit.FunSuite {
-  import cats.effect.unsafe.implicits.global
   import PostgresTestTransactor.xa
+  import cats.effect.unsafe.implicits.global
 
   test("select should take consistent memory") {
     val q = sql"""select a.name, b.name from city a, city b""".query[(String, String)]

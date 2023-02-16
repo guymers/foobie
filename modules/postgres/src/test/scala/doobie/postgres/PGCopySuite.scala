@@ -7,11 +7,12 @@ package doobie.postgres
 import cats.effect.Sync
 import doobie._
 import doobie.implicits._
+
 import java.io.ByteArrayOutputStream
 
 class PGCopySuite extends munit.FunSuite {
-  import cats.effect.unsafe.implicits.global
   import PostgresTestTransactor.xa
+  import cats.effect.unsafe.implicits.global
 
   test("copy out should read csv in utf-8 and match expectations") {
 
@@ -37,7 +38,7 @@ class PGCopySuite extends munit.FunSuite {
     val prog: ConnectionIO[String] =
       for {
         out <- Sync[ConnectionIO].delay(new ByteArrayOutputStream)
-        _   <- PHC.pgGetCopyAPI(PFCM.copyOut(query, out))
+        _ <- PHC.pgGetCopyAPI(PFCM.copyOut(query, out))
       } yield new String(out.toByteArray, "UTF-8")
 
     assertEquals(prog.transact(xa).unsafeRunSync(), fixture)

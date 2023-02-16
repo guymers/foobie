@@ -4,16 +4,18 @@
 
 package doobie.postgres.free
 
+import cats.effect.kernel.CancelScope
+import cats.effect.kernel.Poll
+import cats.effect.kernel.Sync
+import cats.free.{Free => FF} // alias because some algebras have an op called Free
 import cats.~>
-import cats.effect.kernel.{ CancelScope, Poll, Sync }
-import cats.free.{ Free => FF } // alias because some algebras have an op called Free
-import doobie.util.log.LogEvent
 import doobie.WeakAsync
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
-
+import doobie.util.log.LogEvent
 import org.postgresql.largeobject.LargeObject
 import org.postgresql.largeobject.LargeObjectManager
+
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 object largeobjectmanager { module =>
 
@@ -80,7 +82,8 @@ object largeobjectmanager { module =>
     final case class RaiseError[A](e: Throwable) extends LargeObjectManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.raiseError(e)
     }
-    final case class HandleErrorWith[A](fa: LargeObjectManagerIO[A], f: Throwable => LargeObjectManagerIO[A]) extends LargeObjectManagerOp[A] {
+    final case class HandleErrorWith[A](fa: LargeObjectManagerIO[A], f: Throwable => LargeObjectManagerIO[A])
+      extends LargeObjectManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.handleErrorWith(fa)(f)
     }
     case object Monotonic extends LargeObjectManagerOp[FiniteDuration] {
@@ -95,7 +98,8 @@ object largeobjectmanager { module =>
     case class ForceR[A, B](fa: LargeObjectManagerIO[A], fb: LargeObjectManagerIO[B]) extends LargeObjectManagerOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[LargeObjectManagerIO] => LargeObjectManagerIO[A]) extends LargeObjectManagerOp[A] {
+    case class Uncancelable[A](body: Poll[LargeObjectManagerIO] => LargeObjectManagerIO[A])
+      extends LargeObjectManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
     case class Poll1[A](poll: Any, fa: LargeObjectManagerIO[A]) extends LargeObjectManagerOp[A] {
@@ -153,20 +157,26 @@ object largeobjectmanager { module =>
   val unit: LargeObjectManagerIO[Unit] = FF.pure[LargeObjectManagerOp, Unit](())
   def pure[A](a: A): LargeObjectManagerIO[A] = FF.pure[LargeObjectManagerOp, A](a)
   def raw[A](f: LargeObjectManager => A): LargeObjectManagerIO[A] = FF.liftF(Raw(f))
-  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[LargeObjectManagerOp, A] = FF.liftF(Embed(ev.embed(j, fa)))
+  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[LargeObjectManagerOp, A] =
+    FF.liftF(Embed(ev.embed(j, fa)))
   def raiseError[A](err: Throwable): LargeObjectManagerIO[A] = FF.liftF[LargeObjectManagerOp, A](RaiseError(err))
-  def handleErrorWith[A](fa: LargeObjectManagerIO[A])(f: Throwable => LargeObjectManagerIO[A]): LargeObjectManagerIO[A] = FF.liftF[LargeObjectManagerOp, A](HandleErrorWith(fa, f))
+  def handleErrorWith[A](fa: LargeObjectManagerIO[A])(
+    f: Throwable => LargeObjectManagerIO[A],
+  ): LargeObjectManagerIO[A] = FF.liftF[LargeObjectManagerOp, A](HandleErrorWith(fa, f))
   val monotonic = FF.liftF[LargeObjectManagerOp, FiniteDuration](Monotonic)
   val realtime = FF.liftF[LargeObjectManagerOp, FiniteDuration](Realtime)
   def delay[A](thunk: => A) = FF.liftF[LargeObjectManagerOp, A](Suspend(Sync.Type.Delay, () => thunk))
   def suspend[A](hint: Sync.Type)(thunk: => A) = FF.liftF[LargeObjectManagerOp, A](Suspend(hint, () => thunk))
-  def forceR[A, B](fa: LargeObjectManagerIO[A])(fb: LargeObjectManagerIO[B]) = FF.liftF[LargeObjectManagerOp, B](ForceR(fa, fb))
-  def uncancelable[A](body: Poll[LargeObjectManagerIO] => LargeObjectManagerIO[A]) = FF.liftF[LargeObjectManagerOp, A](Uncancelable(body))
+  def forceR[A, B](fa: LargeObjectManagerIO[A])(fb: LargeObjectManagerIO[B]) =
+    FF.liftF[LargeObjectManagerOp, B](ForceR(fa, fb))
+  def uncancelable[A](body: Poll[LargeObjectManagerIO] => LargeObjectManagerIO[A]) =
+    FF.liftF[LargeObjectManagerOp, A](Uncancelable(body))
   def capturePoll[M[_]](mpoll: Poll[M]) = new Poll[LargeObjectManagerIO] {
     def apply[A](fa: LargeObjectManagerIO[A]) = FF.liftF[LargeObjectManagerOp, A](Poll1(mpoll, fa))
   }
   val canceled = FF.liftF[LargeObjectManagerOp, Unit](Canceled)
-  def onCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit]) = FF.liftF[LargeObjectManagerOp, A](OnCancel(fa, fin))
+  def onCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit]) =
+    FF.liftF[LargeObjectManagerOp, A](OnCancel(fa, fin))
   def fromFuture[A](fut: LargeObjectManagerIO[Future[A]]) = FF.liftF[LargeObjectManagerOp, A](FromFuture(fut))
   def performLogging(event: LogEvent) = FF.liftF[LargeObjectManagerOp, Unit](PerformLogging(event))
 
@@ -189,18 +199,25 @@ object largeobjectmanager { module =>
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): LargeObjectManagerIO[A] = monad.pure(x)
-      override def flatMap[A, B](fa: LargeObjectManagerIO[A])(f: A => LargeObjectManagerIO[B]): LargeObjectManagerIO[B] = monad.flatMap(fa)(f)
-      override def tailRecM[A, B](a: A)(f: A => LargeObjectManagerIO[Either[A, B]]): LargeObjectManagerIO[B] = monad.tailRecM(a)(f)
+      override def flatMap[A, B](fa: LargeObjectManagerIO[A])(
+        f: A => LargeObjectManagerIO[B],
+      ): LargeObjectManagerIO[B] = monad.flatMap(fa)(f)
+      override def tailRecM[A, B](a: A)(f: A => LargeObjectManagerIO[Either[A, B]]): LargeObjectManagerIO[B] =
+        monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): LargeObjectManagerIO[A] = module.raiseError(e)
-      override def handleErrorWith[A](fa: LargeObjectManagerIO[A])(f: Throwable => LargeObjectManagerIO[A]): LargeObjectManagerIO[A] = module.handleErrorWith(fa)(f)
+      override def handleErrorWith[A](fa: LargeObjectManagerIO[A])(
+        f: Throwable => LargeObjectManagerIO[A],
+      ): LargeObjectManagerIO[A] = module.handleErrorWith(fa)(f)
       override def monotonic: LargeObjectManagerIO[FiniteDuration] = module.monotonic
       override def realTime: LargeObjectManagerIO[FiniteDuration] = module.realtime
       override def suspend[A](hint: Sync.Type)(thunk: => A): LargeObjectManagerIO[A] = module.suspend(hint)(thunk)
-      override def forceR[A, B](fa: LargeObjectManagerIO[A])(fb: LargeObjectManagerIO[B]): LargeObjectManagerIO[B] = module.forceR(fa)(fb)
-      override def uncancelable[A](body: Poll[LargeObjectManagerIO] => LargeObjectManagerIO[A]): LargeObjectManagerIO[A] = module.uncancelable(body)
+      override def forceR[A, B](fa: LargeObjectManagerIO[A])(fb: LargeObjectManagerIO[B]): LargeObjectManagerIO[B] =
+        module.forceR(fa)(fb)
+      override def uncancelable[A](body: Poll[LargeObjectManagerIO] => LargeObjectManagerIO[A]): LargeObjectManagerIO[A] =
+        module.uncancelable(body)
       override def canceled: LargeObjectManagerIO[Unit] = module.canceled
-      override def onCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit]): LargeObjectManagerIO[A] = module.onCancel(fa, fin)
+      override def onCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit]): LargeObjectManagerIO[A] =
+        module.onCancel(fa, fin)
       override def fromFuture[A](fut: LargeObjectManagerIO[Future[A]]): LargeObjectManagerIO[A] = module.fromFuture(fut)
     }
 }
-

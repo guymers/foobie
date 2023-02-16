@@ -19,13 +19,14 @@ trait CheckerChecks[M[_]] extends FunSuite with Checker[M] {
   lazy val transactor = Transactor.fromDriverManager[M](
     "org.h2.Driver",
     "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
   test("trivial") { check(sql"select 1".query[Int]) }
   test("fail".fail) { check(sql"select 1".query[String]) }
 
-  test ("trivial case-class"){ check(sql"select 1".query[CheckerChecks.Foo[cats.Id]]) }
+  test("trivial case-class") { check(sql"select 1".query[CheckerChecks.Foo[cats.Id]]) }
 
   test("Read should select correct columns when combined with `product`") {
     import cats.syntax.all._
@@ -56,5 +57,4 @@ object CheckerChecks {
   final case class Foo[F[_]](x: Int)
 }
 
-class IOCheckerCheck extends CheckerChecks[IO] with IOChecker {
-}
+class IOCheckerCheck extends CheckerChecks[IO] with IOChecker {}

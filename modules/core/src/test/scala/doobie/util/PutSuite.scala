@@ -22,7 +22,8 @@ class PutSuite extends munit.FunSuite with PutSuitePlatform {
   val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
     "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
   case class Foo(s: String)

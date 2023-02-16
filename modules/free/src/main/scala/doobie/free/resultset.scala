@@ -4,13 +4,13 @@
 
 package doobie.free
 
+import cats.effect.kernel.CancelScope
+import cats.effect.kernel.Poll
+import cats.effect.kernel.Sync
+import cats.free.{Free => FF} // alias because some algebras have an op called Free
 import cats.~>
-import cats.effect.kernel.{ CancelScope, Poll, Sync }
-import cats.free.{ Free => FF } // alias because some algebras have an op called Free
-import doobie.util.log.LogEvent
 import doobie.WeakAsync
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
+import doobie.util.log.LogEvent
 
 import java.io.InputStream
 import java.io.Reader
@@ -32,9 +32,11 @@ import java.sql.SQLXML
 import java.sql.Statement
 import java.sql.Time
 import java.sql.Timestamp
-import java.sql.{ Array => SqlArray }
+import java.sql.{Array => SqlArray}
 import java.util.Calendar
 import java.util.Map
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 object resultset { module =>
 
@@ -898,9 +900,11 @@ object resultset { module =>
   val unit: ResultSetIO[Unit] = FF.pure[ResultSetOp, Unit](())
   def pure[A](a: A): ResultSetIO[A] = FF.pure[ResultSetOp, A](a)
   def raw[A](f: ResultSet => A): ResultSetIO[A] = FF.liftF(Raw(f))
-  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[ResultSetOp, A] = FF.liftF(Embed(ev.embed(j, fa)))
+  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[ResultSetOp, A] =
+    FF.liftF(Embed(ev.embed(j, fa)))
   def raiseError[A](err: Throwable): ResultSetIO[A] = FF.liftF[ResultSetOp, A](RaiseError(err))
-  def handleErrorWith[A](fa: ResultSetIO[A])(f: Throwable => ResultSetIO[A]): ResultSetIO[A] = FF.liftF[ResultSetOp, A](HandleErrorWith(fa, f))
+  def handleErrorWith[A](fa: ResultSetIO[A])(f: Throwable => ResultSetIO[A]): ResultSetIO[A] =
+    FF.liftF[ResultSetOp, A](HandleErrorWith(fa, f))
   val monotonic = FF.liftF[ResultSetOp, FiniteDuration](Monotonic)
   val realtime = FF.liftF[ResultSetOp, FiniteDuration](Realtime)
   def delay[A](thunk: => A) = FF.liftF[ResultSetOp, A](Suspend(Sync.Type.Delay, () => thunk))
@@ -1072,7 +1076,8 @@ object resultset { module =>
   def updateNCharacterStream(a: Int, b: Reader): ResultSetIO[Unit] = FF.liftF(UpdateNCharacterStream(a, b))
   def updateNCharacterStream(a: Int, b: Reader, c: Long): ResultSetIO[Unit] = FF.liftF(UpdateNCharacterStream1(a, b, c))
   def updateNCharacterStream(a: String, b: Reader): ResultSetIO[Unit] = FF.liftF(UpdateNCharacterStream2(a, b))
-  def updateNCharacterStream(a: String, b: Reader, c: Long): ResultSetIO[Unit] = FF.liftF(UpdateNCharacterStream3(a, b, c))
+  def updateNCharacterStream(a: String, b: Reader, c: Long): ResultSetIO[Unit] =
+    FF.liftF(UpdateNCharacterStream3(a, b, c))
   def updateNClob(a: Int, b: NClob): ResultSetIO[Unit] = FF.liftF(UpdateNClob(a, b))
   def updateNClob(a: Int, b: Reader): ResultSetIO[Unit] = FF.liftF(UpdateNClob1(a, b))
   def updateNClob(a: Int, b: Reader, c: Long): ResultSetIO[Unit] = FF.liftF(UpdateNClob2(a, b, c))
@@ -1118,7 +1123,8 @@ object resultset { module =>
       override def flatMap[A, B](fa: ResultSetIO[A])(f: A => ResultSetIO[B]): ResultSetIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => ResultSetIO[Either[A, B]]): ResultSetIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): ResultSetIO[A] = module.raiseError(e)
-      override def handleErrorWith[A](fa: ResultSetIO[A])(f: Throwable => ResultSetIO[A]): ResultSetIO[A] = module.handleErrorWith(fa)(f)
+      override def handleErrorWith[A](fa: ResultSetIO[A])(f: Throwable => ResultSetIO[A]): ResultSetIO[A] =
+        module.handleErrorWith(fa)(f)
       override def monotonic: ResultSetIO[FiniteDuration] = module.monotonic
       override def realTime: ResultSetIO[FiniteDuration] = module.realtime
       override def suspend[A](hint: Sync.Type)(thunk: => A): ResultSetIO[A] = module.suspend(hint)(thunk)
@@ -1129,4 +1135,3 @@ object resultset { module =>
       override def fromFuture[A](fut: ResultSetIO[Future[A]]): ResultSetIO[A] = module.fromFuture(fut)
     }
 }
-

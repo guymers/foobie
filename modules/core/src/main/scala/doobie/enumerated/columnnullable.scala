@@ -4,13 +4,12 @@
 
 package doobie.enumerated
 
-import doobie.util.invariant._
-
-import java.sql.ResultSetMetaData._
-
 import cats.ApplicativeError
 import cats.kernel.Eq
 import cats.kernel.instances.int._
+import doobie.util.invariant._
+
+import java.sql.ResultSetMetaData._
 
 /** @group Types */
 sealed abstract class ColumnNullable(val toInt: Int) extends Product with Serializable {
@@ -21,21 +20,26 @@ sealed abstract class ColumnNullable(val toInt: Int) extends Product with Serial
 /** @group Modules */
 object ColumnNullable {
 
-  /** @group Values */ case object NoNulls         extends ColumnNullable(columnNoNulls)
-  /** @group Values */ case object Nullable        extends ColumnNullable(columnNullable)
-  /** @group Values */ case object NullableUnknown extends ColumnNullable(columnNullableUnknown)
+  /** @group Values */
+  case object NoNulls extends ColumnNullable(columnNoNulls)
 
-  def fromInt(n:Int): Option[ColumnNullable] =
+  /** @group Values */
+  case object Nullable extends ColumnNullable(columnNullable)
+
+  /** @group Values */
+  case object NullableUnknown extends ColumnNullable(columnNullableUnknown)
+
+  def fromInt(n: Int): Option[ColumnNullable] =
     Some(n) collect {
-      case NoNulls.toInt         => NoNulls
-      case Nullable.toInt        => Nullable
+      case NoNulls.toInt => NoNulls
+      case Nullable.toInt => Nullable
       case NullableUnknown.toInt => NullableUnknown
     }
 
   def fromNullability(n: Nullability): ColumnNullable =
     n match {
-      case Nullability.NoNulls         => NoNulls
-      case Nullability.Nullable        => Nullable
+      case Nullability.NoNulls => NoNulls
+      case Nullability.Nullable => Nullable
       case Nullability.NullableUnknown => NullableUnknown
     }
 

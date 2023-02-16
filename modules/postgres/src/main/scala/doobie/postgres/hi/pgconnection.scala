@@ -20,7 +20,7 @@ object pgconnection {
   val getNotifications: PGConnectionIO[List[PGNotification]] =
     PFPC.getNotifications map {
       case null => Nil
-      case ns   => ns.toList
+      case ns => ns.toList
     }
 
   val getPrepareThreshold: PGConnectionIO[Int] =

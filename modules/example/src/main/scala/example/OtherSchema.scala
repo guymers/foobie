@@ -5,21 +5,19 @@
 package example
 
 import cats.data.NonEmptyList
-import cats.effect.{ IO, IOApp }
+import cats.effect.IO
+import cats.effect.IOApp
 import doobie._
 import doobie.enumerated.JdbcType
 import doobie.implicits._
 import org.postgresql.util._
 
 /**
- * The normal string mapping doesn't work for enums defined in another schema. Here we have
+ * The normal string mapping doesn't work for enums defined in another schema.
+ * Here we have
  *
- *   CREATE TYPE returns_data.return_status AS ENUM (
- *     'INITIAL',
- *     'IN_PROGRESS',
- *     'FINISHED'
- *   );
- *
+ * CREATE TYPE returns_data.return_status AS ENUM ( 'INITIAL', 'IN_PROGRESS',
+ * 'FINISHED' );
  */
 object OtherSchema extends IOApp.Simple {
 
@@ -41,7 +39,7 @@ object OtherSchema extends IOApp.Simple {
         o.setValue(a.toString)
         o.setType(schemaName)
         rs.updateObject(n, o)
-      }
+      },
     )
 
   @SuppressWarnings(Array("org.wartremover.warts.Enumeration"))
@@ -57,9 +55,12 @@ object OtherSchema extends IOApp.Simple {
 
     // Some setup
     val xa = Transactor.fromDriverManager[IO](
-      "org.postgresql.Driver", "jdbc:postgresql:world", "postgres", "password"
+      "org.postgresql.Driver",
+      "jdbc:postgresql:world",
+      "postgres",
+      "password",
     )
-    val y  = xa.yolo
+    val y = xa.yolo
     import y._
 
     // Check as column value only

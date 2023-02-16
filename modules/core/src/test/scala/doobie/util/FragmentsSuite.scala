@@ -5,10 +5,10 @@
 package doobie.util
 
 import cats.data.NonEmptyList
-import cats.syntax.all._
-import doobie._, doobie.implicits._
 import cats.effect.IO
-
+import cats.syntax.all._
+import doobie._
+import doobie.implicits._
 
 class FragmentsSuite extends munit.FunSuite {
   import Fragments._
@@ -17,12 +17,13 @@ class FragmentsSuite extends munit.FunSuite {
   val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
     "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
-  val nel  = List(1,2,3).toNel.getOrElse(sys.error("unpossible"))
-  val fs   = List(1,2,3).map(n => fr"$n")
-  val ofs  = List(1,2,3).map(n => Some(fr"$n").filter(_ => n % 2 =!= 0))
+  val nel = List(1, 2, 3).toNel.getOrElse(sys.error("unpossible"))
+  val fs = List(1, 2, 3).map(n => fr"$n")
+  val ofs = List(1, 2, 3).map(n => Some(fr"$n").filter(_ => n % 2 =!= 0))
 
   test("values for one column") {
     assertEquals(values(nel).query[Unit].sql, "VALUES (?), (?), (?) ")

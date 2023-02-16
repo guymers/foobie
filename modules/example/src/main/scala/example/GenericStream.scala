@@ -4,18 +4,23 @@
 
 package example
 
-import cats.effect.{ IO, IOApp, ExitCode }
+import cats.effect.ExitCode
+import cats.effect.IO
+import cats.effect.IOApp
 import cats.syntax.all._
 import doobie._
 import doobie.implicits._
-import fs2.Stream
-import fs2.Stream.{ eval, bracket }
-import java.sql.{ PreparedStatement, ResultSet }
 import doobie.util.stream.repeatEvalChunks
+import fs2.Stream
+import fs2.Stream.bracket
+import fs2.Stream.eval
+
+import java.sql.PreparedStatement
+import java.sql.ResultSet
 
 /**
- * From a user question on Gitter, how can we have an equivalent to `Stream[A]` that constructs a
- * stream of untyped maps.
+ * From a user question on Gitter, how can we have an equivalent to `Stream[A]`
+ * that constructs a stream of untyped maps.
  */
 object GenericStream extends IOApp {
 
@@ -25,7 +30,7 @@ object GenericStream extends IOApp {
   @SuppressWarnings(Array(
     "org.wartremover.warts.Var",
     "org.wartremover.warts.While",
-    "org.wartremover.warts.NonUnitStatements"
+    "org.wartremover.warts.NonUnitStatements",
   ))
   def getNextChunkGeneric(chunkSize: Int): ResultSetIO[Seq[Row]] =
     FRS.raw { rs =>
@@ -42,12 +47,12 @@ object GenericStream extends IOApp {
       b.result()
     }
 
-
   def liftProcessGeneric(
     chunkSize: Int,
     create: ConnectionIO[PreparedStatement],
-    prep:   PreparedStatementIO[Unit],
-    exec:   PreparedStatementIO[ResultSet]): Stream[ConnectionIO, Row] = {
+    prep: PreparedStatementIO[Unit],
+    exec: PreparedStatementIO[ResultSet],
+  ): Stream[ConnectionIO, Row] = {
 
     def prepared(ps: PreparedStatement): Stream[ConnectionIO, PreparedStatement] =
       eval[ConnectionIO, PreparedStatement] {
@@ -71,15 +76,19 @@ object GenericStream extends IOApp {
   def processGeneric(sql: String, prep: PreparedStatementIO[Unit], chunkSize: Int): Stream[ConnectionIO, Row] =
     liftProcessGeneric(chunkSize, FC.prepareStatement(sql), prep, FPS.executeQuery)
 
-
   val xa = Transactor.fromDriverManager[IO](
-    "org.postgresql.Driver", "jdbc:postgresql:world", "postgres", "password"
+    "org.postgresql.Driver",
+    "jdbc:postgresql:world",
+    "postgres",
+    "password",
   )
 
   def run(args: List[String]): IO[ExitCode] =
     args match {
-      case sql :: Nil => processGeneric(sql, ().pure[PreparedStatementIO], 100).transact(xa).evalMap(m => IO(Console.println(m))).compile.drain.as(ExitCode.Success)
-      case _          => IO(Console.println("expected on arg, a query")).as(ExitCode.Error)
+      case sql :: Nil => processGeneric(sql, ().pure[PreparedStatementIO], 100).transact(xa).evalMap(m =>
+          IO(Console.println(m)),
+        ).compile.drain.as(ExitCode.Success)
+      case _ => IO(Console.println("expected on arg, a query")).as(ExitCode.Error)
     }
 
   // > runMain example.GenericStream "select * from city limit 10"

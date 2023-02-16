@@ -4,24 +4,26 @@
 
 package doobie.postgres.free
 
+import cats.effect.kernel.CancelScope
+import cats.effect.kernel.Poll
+import cats.effect.kernel.Sync
+import cats.free.{Free => FF} // alias because some algebras have an op called Free
 import cats.~>
-import cats.effect.kernel.{ CancelScope, Poll, Sync }
-import cats.free.{ Free => FF } // alias because some algebras have an op called Free
-import doobie.util.log.LogEvent
 import doobie.WeakAsync
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
+import doobie.util.log.LogEvent
+import org.postgresql.copy.{CopyDual => PGCopyDual}
+import org.postgresql.copy.{CopyIn => PGCopyIn}
+import org.postgresql.copy.{CopyManager => PGCopyManager}
+import org.postgresql.copy.{CopyOut => PGCopyOut}
+import org.postgresql.util.ByteStreamWriter
 
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.Reader
 import java.io.Writer
 import java.lang.String
-import org.postgresql.copy.{ CopyDual => PGCopyDual }
-import org.postgresql.copy.{ CopyIn => PGCopyIn }
-import org.postgresql.copy.{ CopyManager => PGCopyManager }
-import org.postgresql.copy.{ CopyOut => PGCopyOut }
-import org.postgresql.util.ByteStreamWriter
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 object copymanager { module =>
 
@@ -161,9 +163,11 @@ object copymanager { module =>
   val unit: CopyManagerIO[Unit] = FF.pure[CopyManagerOp, Unit](())
   def pure[A](a: A): CopyManagerIO[A] = FF.pure[CopyManagerOp, A](a)
   def raw[A](f: PGCopyManager => A): CopyManagerIO[A] = FF.liftF(Raw(f))
-  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[CopyManagerOp, A] = FF.liftF(Embed(ev.embed(j, fa)))
+  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[CopyManagerOp, A] =
+    FF.liftF(Embed(ev.embed(j, fa)))
   def raiseError[A](err: Throwable): CopyManagerIO[A] = FF.liftF[CopyManagerOp, A](RaiseError(err))
-  def handleErrorWith[A](fa: CopyManagerIO[A])(f: Throwable => CopyManagerIO[A]): CopyManagerIO[A] = FF.liftF[CopyManagerOp, A](HandleErrorWith(fa, f))
+  def handleErrorWith[A](fa: CopyManagerIO[A])(f: Throwable => CopyManagerIO[A]): CopyManagerIO[A] =
+    FF.liftF[CopyManagerOp, A](HandleErrorWith(fa, f))
   val monotonic = FF.liftF[CopyManagerOp, FiniteDuration](Monotonic)
   val realtime = FF.liftF[CopyManagerOp, FiniteDuration](Realtime)
   def delay[A](thunk: => A) = FF.liftF[CopyManagerOp, A](Suspend(Sync.Type.Delay, () => thunk))
@@ -200,15 +204,17 @@ object copymanager { module =>
       override def flatMap[A, B](fa: CopyManagerIO[A])(f: A => CopyManagerIO[B]): CopyManagerIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => CopyManagerIO[Either[A, B]]): CopyManagerIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): CopyManagerIO[A] = module.raiseError(e)
-      override def handleErrorWith[A](fa: CopyManagerIO[A])(f: Throwable => CopyManagerIO[A]): CopyManagerIO[A] = module.handleErrorWith(fa)(f)
+      override def handleErrorWith[A](fa: CopyManagerIO[A])(f: Throwable => CopyManagerIO[A]): CopyManagerIO[A] =
+        module.handleErrorWith(fa)(f)
       override def monotonic: CopyManagerIO[FiniteDuration] = module.monotonic
       override def realTime: CopyManagerIO[FiniteDuration] = module.realtime
       override def suspend[A](hint: Sync.Type)(thunk: => A): CopyManagerIO[A] = module.suspend(hint)(thunk)
       override def forceR[A, B](fa: CopyManagerIO[A])(fb: CopyManagerIO[B]): CopyManagerIO[B] = module.forceR(fa)(fb)
-      override def uncancelable[A](body: Poll[CopyManagerIO] => CopyManagerIO[A]): CopyManagerIO[A] = module.uncancelable(body)
+      override def uncancelable[A](body: Poll[CopyManagerIO] => CopyManagerIO[A]): CopyManagerIO[A] =
+        module.uncancelable(body)
       override def canceled: CopyManagerIO[Unit] = module.canceled
-      override def onCancel[A](fa: CopyManagerIO[A], fin: CopyManagerIO[Unit]): CopyManagerIO[A] = module.onCancel(fa, fin)
+      override def onCancel[A](fa: CopyManagerIO[A], fin: CopyManagerIO[Unit]): CopyManagerIO[A] =
+        module.onCancel(fa, fin)
       override def fromFuture[A](fut: CopyManagerIO[Future[A]]): CopyManagerIO[A] = module.fromFuture(fut)
     }
 }
-

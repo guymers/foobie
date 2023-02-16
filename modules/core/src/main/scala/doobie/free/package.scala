@@ -6,6 +6,6 @@ package doobie
 
 package object free
   extends Types
-     with Modules {
+  with Modules {
   object implicits extends Instances
 }

@@ -4,14 +4,15 @@
 
 package doobie.util.arbitraries
 
-import scala.math.Ordering.Implicits._
-
 import org.scalacheck.Gen
+
+import scala.math.Ordering.Implicits._
 
 object GenHelpers {
 
   /**
-   * [[Gen.chooseNum]] but allows `T` to have an `Ordering` instead of `Numeric`.
+   * [[Gen.chooseNum]] but allows `T` to have an `Ordering` instead of
+   * `Numeric`.
    */
   def chooseT[T](minT: T, maxT: T, specials: T*)(implicit ord: Ordering[T], c: Gen.Choose[T]): Gen[T] = {
     val basics = List(minT, maxT)

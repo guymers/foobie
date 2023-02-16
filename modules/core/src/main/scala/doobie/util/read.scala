@@ -5,8 +5,10 @@
 package doobie.util
 
 import cats._
-import doobie.free.{ FRS, ResultSetIO }
 import doobie.enumerated.Nullability._
+import doobie.free.FRS
+import doobie.free.ResultSetIO
+
 import java.sql.ResultSet
 import scala.annotation.implicitNotFound
 
@@ -40,13 +42,13 @@ of the book of doobie for more information.
 """)
 final class Read[A](
   val gets: List[(Get[_], NullabilityKnown)],
-  val unsafeGet: (ResultSet, Int) => A
+  val unsafeGet: (ResultSet, Int) => A,
 ) {
 
   final lazy val length: Int = gets.length
 
   def map[B](f: A => B): Read[B] =
-      new Read(gets, (rs, n) => f(unsafeGet(rs, n)))
+    new Read(gets, (rs, n) => f(unsafeGet(rs, n)))
 
   def ap[B](ff: Read[A => B]): Read[B] =
     new Read(ff.gets ++ gets, (rs, n) => ff.unsafeGet(rs, n)(unsafeGet(rs, n + ff.length)))

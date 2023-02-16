@@ -4,19 +4,20 @@
 
 package doobie.h2
 
-import java.util.UUID
-
 import cats.effect.IO
 import doobie._
 import doobie.h2.implicits._
 import doobie.implicits._
-import doobie.util.arbitraries.SQLArbitraries._
-import doobie.util.arbitraries.StringArbitraries._
-import org.scalacheck.Prop.forAll
-import org.scalacheck.{Arbitrary, Gen}
 import doobie.implicits.javasql._
 import doobie.implicits.javatimedrivernative.{JavaTimeInstantMeta => NewJavaTimeInstantMeta, _}
 import doobie.implicits.legacy.instant.{JavaTimeInstantMeta => LegacyJavaTimeInstantMeta}
+import doobie.util.arbitraries.SQLArbitraries._
+import doobie.util.arbitraries.StringArbitraries._
+import org.scalacheck.Arbitrary
+import org.scalacheck.Gen
+import org.scalacheck.Prop.forAll
+
+import java.util.UUID
 
 // Establish that we can read various types. It's not very comprehensive as a test, bit it's a start.
 class h2typesspec extends munit.ScalaCheckSuite {
@@ -26,17 +27,18 @@ class h2typesspec extends munit.ScalaCheckSuite {
   val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
     "jdbc:h2:mem:ch3;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
-  def inOut[A: Put : Get](col: String, a: A): ConnectionIO[A] =
+  def inOut[A: Put: Get](col: String, a: A): ConnectionIO[A] =
     for {
       _ <- Update0(s"CREATE LOCAL TEMPORARY TABLE TEST (value $col NOT NULL)", None).run
       _ <- sql"INSERT INTO TEST VALUES ($a)".update.run
       a0 <- sql"SELECT value FROM TEST".query[A].unique
     } yield (a0)
 
-  def inOutOpt[A: Put : Get](col: String, a: Option[A]): ConnectionIO[Option[A]] =
+  def inOutOpt[A: Put: Get](col: String, a: Option[A]): ConnectionIO[Option[A]] =
     for {
       _ <- Update0(s"CREATE LOCAL TEMPORARY TABLE TEST (value $col)", None).run
       _ <- sql"INSERT INTO TEST VALUES ($a)".update.run
@@ -49,25 +51,33 @@ class h2typesspec extends munit.ScalaCheckSuite {
 
   def testInOutWithCustomGen[A](col: String, gen: Gen[A])(implicit m: Get[A], p: Put[A]) = {
     test(s"Mapping for $col as ${m.typeStack} - write+read $col as ${m.typeStack}") {
-      forAll(gen) { (t: A) => assertEquals(  inOut(col, t).transact(xa).attempt.unsafeRunSync(), Right(t)) }
+      forAll(gen) { (t: A) => assertEquals(inOut(col, t).transact(xa).attempt.unsafeRunSync(), Right(t)) }
     }
     test(s"Mapping for $col as ${m.typeStack} - write+read $col as Option[${m.typeStack}] (Some)") {
-      forAll(gen) { (t: A) => assertEquals(  inOutOpt[A](col, Some(t)).transact(xa).attempt.unsafeRunSync(), Right(Some(t))) }
+      forAll(gen) { (t: A) =>
+        assertEquals(inOutOpt[A](col, Some(t)).transact(xa).attempt.unsafeRunSync(), Right(Some(t)))
+      }
     }
     test(s"Mapping for $col as ${m.typeStack} - write+read $col as Option[${m.typeStack}] (None)") {
-      assertEquals(  inOutOpt[A](col, None).transact(xa).attempt.unsafeRunSync(), Right(None))
+      assertEquals(inOutOpt[A](col, None).transact(xa).attempt.unsafeRunSync(), Right(None))
     }
   }
 
-  def testInOutWithCustomTransform[A](col: String)(f: A => A)(implicit m: Get[A], p: Put[A], arbitrary: Arbitrary[A]) = {
+  def testInOutWithCustomTransform[A](col: String)(f: A => A)(implicit
+    m: Get[A],
+    p: Put[A],
+    arbitrary: Arbitrary[A],
+  ) = {
     test(s"Mapping for $col as ${m.typeStack} - write+read $col as ${m.typeStack}") {
-      forAll { (t: A) => assertEquals(  inOut(col, f(t)).transact(xa).attempt.unsafeRunSync(), Right(f(t))) }
+      forAll { (t: A) => assertEquals(inOut(col, f(t)).transact(xa).attempt.unsafeRunSync(), Right(f(t))) }
     }
     test(s"Mapping for $col as ${m.typeStack} - write+read $col as Option[${m.typeStack}] (Some)") {
-      forAll { (t: A) => assertEquals(  inOutOpt[A](col, Some(f(t))).transact(xa).attempt.unsafeRunSync(), Right(Some(f(t)))) }
+      forAll { (t: A) =>
+        assertEquals(inOutOpt[A](col, Some(f(t))).transact(xa).attempt.unsafeRunSync(), Right(Some(f(t))))
+      }
     }
     test(s"Mapping for $col as ${m.typeStack} - write+read $col as Option[${m.typeStack}] (None)") {
-      assertEquals(  inOutOpt[A](col, None).transact(xa).attempt.unsafeRunSync(), Right(None))
+      assertEquals(inOutOpt[A](col, None).transact(xa).attempt.unsafeRunSync(), Right(None))
     }
   }
 
@@ -98,10 +108,14 @@ class h2typesspec extends munit.ScalaCheckSuite {
   testInOut[java.sql.Timestamp]("TIMESTAMP(9)")
   testInOut[java.time.LocalDateTime]("TIMESTAMP(9)")
   testInOut[java.time.Instant]("TIMESTAMP(9)")(
-    LegacyJavaTimeInstantMeta.get, LegacyJavaTimeInstantMeta.put, Arbitrary(arbitraryTimestamp.arbitrary.map(_.toInstant))
+    LegacyJavaTimeInstantMeta.get,
+    LegacyJavaTimeInstantMeta.put,
+    Arbitrary(arbitraryTimestamp.arbitrary.map(_.toInstant)),
   )
   testInOut[java.time.Instant]("TIMESTAMP(9) WITH TIME ZONE")(
-    NewJavaTimeInstantMeta.get, NewJavaTimeInstantMeta.put, implicitly
+    NewJavaTimeInstantMeta.get,
+    NewJavaTimeInstantMeta.put,
+    implicitly,
   )
 
   /*

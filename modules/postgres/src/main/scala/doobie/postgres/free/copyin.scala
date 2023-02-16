@@ -4,16 +4,18 @@
 
 package doobie.postgres.free
 
+import cats.effect.kernel.CancelScope
+import cats.effect.kernel.Poll
+import cats.effect.kernel.Sync
+import cats.free.{Free => FF} // alias because some algebras have an op called Free
 import cats.~>
-import cats.effect.kernel.{ CancelScope, Poll, Sync }
-import cats.free.{ Free => FF } // alias because some algebras have an op called Free
-import doobie.util.log.LogEvent
 import doobie.WeakAsync
+import doobie.util.log.LogEvent
+import org.postgresql.copy.{CopyIn => PGCopyIn}
+import org.postgresql.util.ByteStreamWriter
+
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
-
-import org.postgresql.copy.{ CopyIn => PGCopyIn }
-import org.postgresql.util.ByteStreamWriter
 
 object copyin { module =>
 
@@ -153,9 +155,11 @@ object copyin { module =>
   val unit: CopyInIO[Unit] = FF.pure[CopyInOp, Unit](())
   def pure[A](a: A): CopyInIO[A] = FF.pure[CopyInOp, A](a)
   def raw[A](f: PGCopyIn => A): CopyInIO[A] = FF.liftF(Raw(f))
-  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[CopyInOp, A] = FF.liftF(Embed(ev.embed(j, fa)))
+  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[CopyInOp, A] =
+    FF.liftF(Embed(ev.embed(j, fa)))
   def raiseError[A](err: Throwable): CopyInIO[A] = FF.liftF[CopyInOp, A](RaiseError(err))
-  def handleErrorWith[A](fa: CopyInIO[A])(f: Throwable => CopyInIO[A]): CopyInIO[A] = FF.liftF[CopyInOp, A](HandleErrorWith(fa, f))
+  def handleErrorWith[A](fa: CopyInIO[A])(f: Throwable => CopyInIO[A]): CopyInIO[A] =
+    FF.liftF[CopyInOp, A](HandleErrorWith(fa, f))
   val monotonic = FF.liftF[CopyInOp, FiniteDuration](Monotonic)
   val realtime = FF.liftF[CopyInOp, FiniteDuration](Realtime)
   def delay[A](thunk: => A) = FF.liftF[CopyInOp, A](Suspend(Sync.Type.Delay, () => thunk))
@@ -192,7 +196,8 @@ object copyin { module =>
       override def flatMap[A, B](fa: CopyInIO[A])(f: A => CopyInIO[B]): CopyInIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => CopyInIO[Either[A, B]]): CopyInIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): CopyInIO[A] = module.raiseError(e)
-      override def handleErrorWith[A](fa: CopyInIO[A])(f: Throwable => CopyInIO[A]): CopyInIO[A] = module.handleErrorWith(fa)(f)
+      override def handleErrorWith[A](fa: CopyInIO[A])(f: Throwable => CopyInIO[A]): CopyInIO[A] =
+        module.handleErrorWith(fa)(f)
       override def monotonic: CopyInIO[FiniteDuration] = module.monotonic
       override def realTime: CopyInIO[FiniteDuration] = module.realtime
       override def suspend[A](hint: Sync.Type)(thunk: => A): CopyInIO[A] = module.suspend(hint)(thunk)
@@ -203,4 +208,3 @@ object copyin { module =>
       override def fromFuture[A](fut: CopyInIO[Future[A]]): CopyInIO[A] = module.fromFuture(fut)
     }
 }
-

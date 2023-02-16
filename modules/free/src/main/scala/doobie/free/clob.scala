@@ -4,13 +4,13 @@
 
 package doobie.free
 
+import cats.effect.kernel.CancelScope
+import cats.effect.kernel.Poll
+import cats.effect.kernel.Sync
+import cats.free.{Free => FF} // alias because some algebras have an op called Free
 import cats.~>
-import cats.effect.kernel.{ CancelScope, Poll, Sync }
-import cats.free.{ Free => FF } // alias because some algebras have an op called Free
-import doobie.util.log.LogEvent
 import doobie.WeakAsync
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
+import doobie.util.log.LogEvent
 
 import java.io.InputStream
 import java.io.OutputStream
@@ -18,6 +18,8 @@ import java.io.Reader
 import java.io.Writer
 import java.lang.String
 import java.sql.Clob
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 object clob { module =>
 
@@ -169,9 +171,11 @@ object clob { module =>
   val unit: ClobIO[Unit] = FF.pure[ClobOp, Unit](())
   def pure[A](a: A): ClobIO[A] = FF.pure[ClobOp, A](a)
   def raw[A](f: Clob => A): ClobIO[A] = FF.liftF(Raw(f))
-  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[ClobOp, A] = FF.liftF(Embed(ev.embed(j, fa)))
+  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[ClobOp, A] =
+    FF.liftF(Embed(ev.embed(j, fa)))
   def raiseError[A](err: Throwable): ClobIO[A] = FF.liftF[ClobOp, A](RaiseError(err))
-  def handleErrorWith[A](fa: ClobIO[A])(f: Throwable => ClobIO[A]): ClobIO[A] = FF.liftF[ClobOp, A](HandleErrorWith(fa, f))
+  def handleErrorWith[A](fa: ClobIO[A])(f: Throwable => ClobIO[A]): ClobIO[A] =
+    FF.liftF[ClobOp, A](HandleErrorWith(fa, f))
   val monotonic = FF.liftF[ClobOp, FiniteDuration](Monotonic)
   val realtime = FF.liftF[ClobOp, FiniteDuration](Realtime)
   def delay[A](thunk: => A) = FF.liftF[ClobOp, A](Suspend(Sync.Type.Delay, () => thunk))
@@ -211,7 +215,8 @@ object clob { module =>
       override def flatMap[A, B](fa: ClobIO[A])(f: A => ClobIO[B]): ClobIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => ClobIO[Either[A, B]]): ClobIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): ClobIO[A] = module.raiseError(e)
-      override def handleErrorWith[A](fa: ClobIO[A])(f: Throwable => ClobIO[A]): ClobIO[A] = module.handleErrorWith(fa)(f)
+      override def handleErrorWith[A](fa: ClobIO[A])(f: Throwable => ClobIO[A]): ClobIO[A] =
+        module.handleErrorWith(fa)(f)
       override def monotonic: ClobIO[FiniteDuration] = module.monotonic
       override def realTime: ClobIO[FiniteDuration] = module.realtime
       override def suspend[A](hint: Sync.Type)(thunk: => A): ClobIO[A] = module.suspend(hint)(thunk)
@@ -222,4 +227,3 @@ object clob { module =>
       override def fromFuture[A](fut: ClobIO[Future[A]]): ClobIO[A] = module.fromFuture(fut)
     }
 }
-

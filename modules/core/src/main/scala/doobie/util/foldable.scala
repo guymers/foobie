@@ -4,7 +4,8 @@
 
 package doobie.util
 
-import cats._, cats.implicits._
+import cats._
+import cats.implicits._
 
 /** Module of additional functions for `Foldable`. */
 object foldable {

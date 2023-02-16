@@ -4,22 +4,21 @@
 
 package doobie.free
 
-import cats.free.Free
-
-import nclob.NClobIO
 import blob.BlobIO
+import callablestatement.CallableStatementIO
+import cats.free.Free
 import clob.ClobIO
+import connection.ConnectionIO
 import databasemetadata.DatabaseMetaDataIO
 import driver.DriverIO
+import nclob.NClobIO
+import preparedstatement.PreparedStatementIO
 import ref.RefIO
+import resultset.ResultSetIO
 import sqldata.SQLDataIO
 import sqlinput.SQLInputIO
 import sqloutput.SQLOutputIO
-import connection.ConnectionIO
 import statement.StatementIO
-import preparedstatement.PreparedStatementIO
-import callablestatement.CallableStatementIO
-import resultset.ResultSetIO
 
 // A pair (J, Free[F, A]) with constructors that tie down J and F.
 sealed trait Embedded[A]
@@ -45,4 +44,3 @@ object Embedded {
 trait Embeddable[F[_], J] {
   def embed[A](j: J, fa: Free[F, A]): Embedded[A]
 }
-

@@ -5,17 +5,21 @@
 package example
 
 import cats.Show
-import cats.effect.{ IO, IOApp, ExitCode }
+import cats.effect.ExitCode
+import cats.effect.IO
+import cats.effect.IOApp
 import cats.syntax.all._
-import doobie._, doobie.implicits._
+import doobie._
+import doobie.implicits._
 import fs2.Stream
 import shapeless._
-import shapeless.ops.record._
 import shapeless.ops.hlist._
+import shapeless.ops.record._
 
 /**
- * A super-simple ORM for super-simple data types. We assume auto-generated keys, represented
- * externally, and columns map 1:1 with fields and have the same names.
+ * A super-simple ORM for super-simple data types. We assume auto-generated
+ * keys, represented externally, and columns map 1:1 with fields and have the
+ * same names.
  */
 object Orm extends IOApp {
 
@@ -40,13 +44,14 @@ object Orm extends IOApp {
       def apply[A, K] = new Partial[A, K]
       class Partial[A, K] {
         def apply[R <: HList, S <: HList](table: String, keyCol: String)(
-          implicit ev: LabelledGeneric.Aux[A, R],
-                   ra: Read[A],
-                   wa: Write[A],
-                   ks: Keys.Aux[R, S],
-                   tl: ToList[S, Symbol],
-                   rk: Read[K],
-                   wk: Write[K]
+          implicit
+          ev: LabelledGeneric.Aux[A, R],
+          ra: Read[A],
+          wa: Write[A],
+          ks: Keys.Aux[R, S],
+          tl: ToList[S, Symbol],
+          rk: Read[K],
+          wk: Write[K],
         ): Aux[A, K] =
           new Dao[A] {
             void(ev)
@@ -67,7 +72,7 @@ object Orm extends IOApp {
                 WHERE $keyCol = ?
               """).option(key)
 
-           def findAll: Stream[ConnectionIO, A] =
+            def findAll: Stream[ConnectionIO, A] =
               Query0[A](s"""
                 SELECT ${cols.mkString(", ")}
                 FROM $table
@@ -116,16 +121,19 @@ object Orm extends IOApp {
     val dn = Dao[Neighbor]
     import dn._
     for {
-      _  <- ddl
+      _ <- ddl
       ka <- insert(Neighbor("Alice", 42))
       kb <- insert(Neighbor("Bob", 42))
       oa <- find(ka)
-      _  <- delete(kb)
+      _ <- delete(kb)
     } yield show"Did some stuff. Keys were $ka and $kb. Selected value was ${oa.fold("<nothing>")(_.show)}."
   }
 
   val xa = Transactor.fromDriverManager[IO](
-    "org.postgresql.Driver", "jdbc:postgresql:world", "postgres", "password"
+    "org.postgresql.Driver",
+    "jdbc:postgresql:world",
+    "postgres",
+    "password",
   )
 
   def run(args: List[String]): IO[ExitCode] =

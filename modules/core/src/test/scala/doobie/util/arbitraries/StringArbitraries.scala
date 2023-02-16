@@ -4,14 +4,13 @@
 
 package doobie.util.arbitraries
 
-import org.scalacheck.{Arbitrary, Gen}
+import org.scalacheck.Arbitrary
+import org.scalacheck.Gen
 
 object StringArbitraries {
 
   implicit val arbitraryString: Arbitrary[String] = Arbitrary(Gen.alphaNumStr)
 
   def nLongString(n: Int): Gen[String] = Gen.listOfN(n, Gen.alphaChar).map(_.mkString(""))
-
-
 
 }

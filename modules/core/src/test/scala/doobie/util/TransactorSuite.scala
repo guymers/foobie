@@ -4,9 +4,10 @@
 
 package doobie.util
 
-import cats.effect.{ Async, IO }
-import doobie._, doobie.implicits._
-
+import cats.effect.Async
+import cats.effect.IO
+import doobie._
+import doobie.implicits._
 
 class TransactorSuite extends munit.FunSuite {
 
@@ -17,7 +18,8 @@ class TransactorSuite extends munit.FunSuite {
   def xa[A[_]: Async] = Transactor.fromDriverManager[A](
     "org.h2.Driver",
     "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
   test("Transactor should support cats.effect.IO") {
@@ -30,12 +32,16 @@ class TransactorSuite extends munit.FunSuite {
 
     def track[F[_]](xa: Transactor[F]) = {
       def withA(t: doobie.util.transactor.Transactor[F]): Transactor.Aux[F, t.A] = {
-        Transactor.connect.modify(t, f => a => {
-          f(a).map { conn =>
-            connections = conn :: connections
-            conn
-          }
-        })
+        Transactor.connect.modify(
+          t,
+          f =>
+            a => {
+              f(a).map { conn =>
+                connections = conn :: connections
+                conn
+              }
+            },
+        )
       }
       withA(xa)
     }

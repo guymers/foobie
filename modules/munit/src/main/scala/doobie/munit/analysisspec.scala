@@ -4,16 +4,20 @@
 
 package doobie.munit
 
-import cats.effect.{IO, Async}
+import cats.effect.Async
+import cats.effect.IO
 import doobie.munit.analysisspec.Checker.ErrorItems
 import doobie.syntax.connectionio._
-import doobie.util.query.{Query0, Query}
+import doobie.util.query.Query
+import doobie.util.query.Query0
 import doobie.util.testing._
+import munit.Assertions
+import munit.Location
 import org.tpolecat.typename._
-import munit.{Assertions, Location}
 
 /**
- * Module with a mix-in trait for specifications that enables checking of doobie `Query` and `Update` values.
+ * Module with a mix-in trait for specifications that enables checking of doobie
+ * `Query` and `Update` values.
  *
  * {{{
  * class ExampleSuite extends FunSuite with IOChecker {
@@ -36,12 +40,18 @@ object analysisspec {
 
     def checkOutput[A: TypeName](q: Query0[A])(implicit loc: Location): Unit =
       checkImpl(AnalysisArgs(
-        s"Query0[${typeName[A]}]", q.pos, q.sql, q.outputAnalysis
+        s"Query0[${typeName[A]}]",
+        q.pos,
+        q.sql,
+        q.outputAnalysis,
       ))
 
     def checkOutput[A: TypeName, B: TypeName](q: Query[A, B])(implicit loc: Location): Unit =
       checkImpl(AnalysisArgs(
-        s"Query[${typeName[A]}, ${typeName[B]}]", q.pos, q.sql, q.outputAnalysis
+        s"Query[${typeName[A]}, ${typeName[B]}]",
+        q.pos,
+        q.sql,
+        q.outputAnalysis,
       ))
 
     private def checkImpl(args: AnalysisArgs)(implicit loc: Location): Unit = {
@@ -51,7 +61,7 @@ object analysisspec {
           message = formatReport(args, report, colors)
             .padLeft("  ")
             .toString,
-          cause = ErrorItems(report.items.filter(_.error.isDefined))
+          cause = ErrorItems(report.items.filter(_.error.isDefined)),
         )
       }
     }

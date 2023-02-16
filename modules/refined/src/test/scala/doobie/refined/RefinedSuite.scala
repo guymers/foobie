@@ -7,12 +7,14 @@ package doobie.refined
 import cats.Show
 import cats.effect.IO
 import cats.syntax.all._
-import doobie._, doobie.implicits._
+import doobie._
+import doobie.implicits._
 import doobie.refined.implicits._
-import eu.timepit.refined.api.{Refined, Validate}
-import eu.timepit.refined.numeric.Positive
-import eu.timepit.refined._
 import doobie.util.invariant._
+import eu.timepit.refined._
+import eu.timepit.refined.api.Refined
+import eu.timepit.refined.api.Validate
+import eu.timepit.refined.numeric.Positive
 
 class RefinedSuite extends munit.FunSuite {
 
@@ -21,7 +23,8 @@ class RefinedSuite extends munit.FunSuite {
   val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
     "jdbc:h2:mem:refined;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
   type PositiveInt = Int Refined Positive
@@ -75,15 +78,15 @@ class RefinedSuite extends munit.FunSuite {
 
   def insertOptionalPositiveInt(v: Option[PositiveInt]) = {
     val queryRes = for {
-      _  <- Update0(s"CREATE LOCAL TEMPORARY TABLE TEST (value INT)", None).run
-      _  <- sql"INSERT INTO TEST VALUES ($v)".update.run
+      _ <- Update0(s"CREATE LOCAL TEMPORARY TABLE TEST (value INT)", None).run
+      _ <- sql"INSERT INTO TEST VALUES ($v)".update.run
     } yield ()
     queryRes.transact(xa).unsafeRunSync()
   }
 
   test("Query should throw an SecondaryValidationFailed if value does not fit the refinement-type ") {
     secondaryValidationFailedCaught_?(
-      sql"select -1".query[PositiveInt].unique.transact(xa).void.unsafeRunSync()
+      sql"select -1".query[PositiveInt].unique.transact(xa).void.unsafeRunSync(),
     )
   }
 
@@ -93,7 +96,7 @@ class RefinedSuite extends munit.FunSuite {
 
   test("Query should throw an SecondaryValidationFailed if object does not fit the refinement-type ") {
     secondaryValidationFailedCaught_?(
-      sql"select -1, 1".query[PointInQuadrant1].unique.transact(xa).void.unsafeRunSync()
+      sql"select -1, 1".query[PointInQuadrant1].unique.transact(xa).void.unsafeRunSync(),
     )
   }
 

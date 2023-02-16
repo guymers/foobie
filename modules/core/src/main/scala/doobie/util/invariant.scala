@@ -10,10 +10,11 @@ import doobie.enumerated.JdbcType
 import org.tpolecat.typename._
 
 /**
- * Module defining the type of exceptions representing unmet expectations. These typically indicate a problem with
- * the schema, with type mapping, with driver compliance, and so on. The intent is that they be as
- * fine-grained as reasonable for diagnostic purposes, but it is not expected that the application
- * should be able to handle them in any meaningful way.
+ * Module defining the type of exceptions representing unmet expectations. These
+ * typically indicate a problem with the schema, with type mapping, with driver
+ * compliance, and so on. The intent is that they be as fine-grained as
+ * reasonable for diagnostic purposes, but it is not expected that the
+ * application should be able to handle them in any meaningful way.
  */
 object invariant {
 
@@ -48,11 +49,17 @@ object invariant {
   private def oneBasedDisclaimer = "Note that JDBC column indexing is 1-based."
 
   final case class NonNullableParameter(index: Int, jdbcType: JdbcType)
-    extends MappingViolation(show"Scala `null` value passed as parameter $index (JDBC type $jdbcType); use an Option type here. $oneBasedDisclaimer")
+    extends MappingViolation(
+      show"Scala `null` value passed as parameter $index (JDBC type $jdbcType); use an Option type here. $oneBasedDisclaimer",
+    )
   final case class NonNullableColumnUpdate(index: Int, jdbcType: JdbcType)
-    extends MappingViolation(show"Scala `null` value passed as update to column $index (JDBC type $jdbcType); use an Option type here. $oneBasedDisclaimer")
+    extends MappingViolation(
+      show"Scala `null` value passed as update to column $index (JDBC type $jdbcType); use an Option type here. $oneBasedDisclaimer",
+    )
   final case class NonNullableColumnRead(index: Int, jdbcType: JdbcType)
-    extends MappingViolation(show"SQL `NULL` read at column $index (JDBC type $jdbcType) but mapping is to a non-Option type; use Option here. $oneBasedDisclaimer")
+    extends MappingViolation(
+      show"SQL `NULL` read at column $index (JDBC type $jdbcType) but mapping is to a non-Option type; use Option here. $oneBasedDisclaimer",
+    )
 
   /** Array violations. Not terribly illuminating at this point. */
   sealed abstract class ArrayStructureViolation(msg: String) extends InvariantViolation(msg)
@@ -63,6 +70,8 @@ object invariant {
 
   /** Invalid JAVA_OBJECT mapping. */
   final case class InvalidObjectMapping[A, B](expected: Class[A], actual: Class[B])
-    extends InvariantViolation(show"SQL object of class ${actual.getName} cannot be cast to mapped class ${expected.getName}.")
+    extends InvariantViolation(
+      show"SQL object of class ${actual.getName} cannot be cast to mapped class ${expected.getName}.",
+    )
 
 }

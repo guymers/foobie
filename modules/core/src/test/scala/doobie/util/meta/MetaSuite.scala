@@ -7,7 +7,8 @@ package doobie.util.meta
 import cats.effect.IO
 import doobie._
 import doobie.implicits._
-import doobie.util.{Get, Put}
+import doobie.util.Get
+import doobie.util.Put
 
 import scala.annotation.nowarn
 
@@ -38,7 +39,8 @@ class MetaDBSuite extends munit.FunSuite {
   lazy val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
     "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
   implicit def FooMeta: Meta[Foo] = Meta[String].tiemap(s => Either.cond(!s.isEmpty, Foo(s), "may not be empty"))(_.str)

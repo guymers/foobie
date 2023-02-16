@@ -4,11 +4,11 @@
 
 package doobie.postgres.util.arbitraries
 
+import org.scalacheck.Arbitrary
+
 import java.sql.Date
 import java.sql.Time
 import java.sql.Timestamp
-
-import org.scalacheck.Arbitrary
 
 object SQLArbitraries {
 

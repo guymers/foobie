@@ -5,36 +5,37 @@
 package doobie.weaver
 
 import cats.effect.IO
+import cats.effect.kernel.Resource
 import doobie.syntax.string._
 import doobie.util.Read
 import doobie.util.transactor.Transactor
 import weaver._
-import cats.effect.kernel.Resource
 
 object CheckerTests extends IOSuite with IOChecker {
 
   override type Res = Transactor[IO]
-  override def sharedResource: Resource[IO,Res] = 
+  override def sharedResource: Resource[IO, Res] =
     Resource.pure(Transactor.fromDriverManager[IO](
       "org.h2.Driver",
       "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-      "sa", ""
+      "sa",
+      "",
     ))
 
   test("trivial") { implicit transactor =>
-    check(sql"select 1".query[Int]) 
+    check(sql"select 1".query[Int])
   }
 
   test("fail") { implicit transactor =>
     check(sql"select 1".query[String]).map(expectation =>
-      expectation.xor(success)
+      expectation.xor(success),
     )
   }
 
   final case class Foo[F[_]](x: Int)
 
-  test ("trivial case-class") { implicit transactor =>
-    check(sql"select 1".query[Foo[cats.Id]]) 
+  test("trivial case-class") { implicit transactor =>
+    check(sql"select 1".query[Foo[cats.Id]])
   }
 
   test("Read should select correct columns when combined with `product`") { implicit transactor =>

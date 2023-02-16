@@ -32,6 +32,9 @@ jobs:
         with:
           extraKey: v1
 
+      - name: Lint
+        run: sbt "++${{ matrix.scala }} scalafmtCheckAll"
+
       - name: Compile
         run: sbt "++${{ matrix.scala }} compile"
 

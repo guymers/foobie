@@ -4,13 +4,13 @@
 
 package doobie.enumerated
 
+import cats.ApplicativeError
+import cats.Show
+import cats.kernel.Eq
+import cats.kernel.instances.int._
 import doobie.util.invariant._
 
 import java.sql.Connection._
-
-import cats.{ApplicativeError, Show}
-import cats.kernel.Eq
-import cats.kernel.instances.int._
 
 /** @group Types */
 sealed abstract class TransactionIsolation(val toInt: Int) extends Product with Serializable
@@ -18,19 +18,28 @@ sealed abstract class TransactionIsolation(val toInt: Int) extends Product with 
 /** @group Modules */
 object TransactionIsolation {
 
-  /** @group Values */ case object TransactionNone            extends TransactionIsolation(TRANSACTION_NONE)
-  /** @group Values */ case object TransactionReadUncommitted extends TransactionIsolation(TRANSACTION_READ_UNCOMMITTED)
-  /** @group Values */ case object TransactionReadCommitted   extends TransactionIsolation(TRANSACTION_READ_COMMITTED)
-  /** @group Values */ case object TransactionRepeatableRead  extends TransactionIsolation(TRANSACTION_REPEATABLE_READ)
-  /** @group Values */ case object TransactionSerializable    extends TransactionIsolation(TRANSACTION_SERIALIZABLE)
+  /** @group Values */
+  case object TransactionNone extends TransactionIsolation(TRANSACTION_NONE)
+
+  /** @group Values */
+  case object TransactionReadUncommitted extends TransactionIsolation(TRANSACTION_READ_UNCOMMITTED)
+
+  /** @group Values */
+  case object TransactionReadCommitted extends TransactionIsolation(TRANSACTION_READ_COMMITTED)
+
+  /** @group Values */
+  case object TransactionRepeatableRead extends TransactionIsolation(TRANSACTION_REPEATABLE_READ)
+
+  /** @group Values */
+  case object TransactionSerializable extends TransactionIsolation(TRANSACTION_SERIALIZABLE)
 
   def fromInt(n: Int): Option[TransactionIsolation] =
     Some(n) collect {
-      case TransactionNone.toInt            => TransactionNone
+      case TransactionNone.toInt => TransactionNone
       case TransactionReadUncommitted.toInt => TransactionReadUncommitted
-      case TransactionReadCommitted.toInt   => TransactionReadCommitted
-      case TransactionRepeatableRead.toInt  => TransactionRepeatableRead
-      case TransactionSerializable.toInt    => TransactionSerializable
+      case TransactionReadCommitted.toInt => TransactionReadCommitted
+      case TransactionRepeatableRead.toInt => TransactionRepeatableRead
+      case TransactionSerializable.toInt => TransactionSerializable
     }
 
   def fromIntF[F[_]](n: Int)(implicit AE: ApplicativeError[F, Throwable]): F[TransactionIsolation] =

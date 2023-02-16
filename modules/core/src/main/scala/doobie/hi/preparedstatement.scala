@@ -4,37 +4,39 @@
 
 package doobie.hi
 
-import doobie.enumerated.JdbcType
-import doobie.util.{ Get, Put }
-import doobie.enumerated.ColumnNullable
-import doobie.enumerated.ParameterNullable
-import doobie.enumerated.ParameterMode
-import doobie.enumerated.Holdability
-import doobie.enumerated.Nullability.NullabilityKnown
-import doobie.enumerated.FetchDirection
-import doobie.enumerated.ResultSetConcurrency
-import doobie.enumerated.ResultSetType
-
-import doobie.util.{ Read, Write }
-import doobie.util.analysis._
-import doobie.util.stream.repeatEvalChunks
-
-import doobie.syntax.align._
-
-import java.sql.{ ParameterMetaData, ResultSetMetaData, SQLWarning }
-
-import scala.Predef.{ intArrayOps, intWrapper }
-
 import cats.Foldable
-import cats.syntax.all._
 import cats.data.Ior
 import cats.effect.kernel.syntax.monadCancel._
+import cats.syntax.all._
+import doobie.enumerated.ColumnNullable
+import doobie.enumerated.FetchDirection
+import doobie.enumerated.Holdability
+import doobie.enumerated.JdbcType
+import doobie.enumerated.Nullability.NullabilityKnown
+import doobie.enumerated.ParameterMode
+import doobie.enumerated.ParameterNullable
+import doobie.enumerated.ResultSetConcurrency
+import doobie.enumerated.ResultSetType
+import doobie.syntax.align._
+import doobie.util.Get
+import doobie.util.Put
+import doobie.util.Read
+import doobie.util.Write
+import doobie.util.analysis._
+import doobie.util.stream.repeatEvalChunks
 import fs2.Stream
 import fs2.Stream.bracket
 
+import java.sql.ParameterMetaData
+import java.sql.ResultSetMetaData
+import java.sql.SQLWarning
+import scala.Predef.intArrayOps
+import scala.Predef.intWrapper
+
 /**
- * Module of high-level constructors for `PreparedStatementIO` actions. Batching operations are not
- * provided; see the `statement` module for this functionality.
+ * Module of high-level constructors for `PreparedStatementIO` actions. Batching
+ * operations are not provided; see the `statement` module for this
+ * functionality.
  * @group Modules
  */
 
@@ -65,9 +67,10 @@ object preparedstatement {
     FPS.addBatch
 
   /**
-   * Add many sets of parameters and execute as a batch update, returning total rows updated. Note
-   * that failed updates are not reported (see https://github.com/tpolecat/doobie/issues/706). This
-   * API is likely to change.
+   * Add many sets of parameters and execute as a batch update, returning total
+   * rows updated. Note that failed updates are not reported (see
+   * https://github.com/tpolecat/doobie/issues/706). This API is likely to
+   * change.
    * @group Batching
    */
   def addBatchesAndExecute[F[_]: Foldable, A: Write](fa: F[A]): PreparedStatementIO[Int] =
@@ -94,7 +97,7 @@ object preparedstatement {
   def executeUpdateWithUniqueGeneratedKeys[A: Read]: PreparedStatementIO[A] =
     executeUpdate.flatMap(_ => getUniqueGeneratedKeys[A])
 
- /** @group Execution */
+  /** @group Execution */
   def executeUpdateWithGeneratedKeys[A: Read](chunkSize: Int): Stream[PreparedStatementIO, A] =
     bracket(FPS.executeUpdate *> FPS.getGeneratedKeys)(FPS.embed(_, FRS.close)).flatMap(unrolled[A](_, chunkSize))
 
@@ -105,7 +108,7 @@ object preparedstatement {
   def getColumnJdbcMeta: PreparedStatementIO[List[ColumnMeta]] =
     FPS.getMetaData.flatMap {
       case null => FPS.pure(Nil) // https://github.com/tpolecat/doobie/issues/262
-      case md   =>
+      case md =>
         (1 to md.getColumnCount).toList.traverse { i =>
           for {
             n <- ColumnNullable.fromIntF[PreparedStatementIO](md.isNullable(i))
@@ -119,8 +122,8 @@ object preparedstatement {
     }
 
   /**
-   * Compute the column mappings for this `PreparedStatement` by aligning its `JdbcMeta`
-   * with the `JdbcMeta` provided by a `Write` instance.
+   * Compute the column mappings for this `PreparedStatement` by aligning its
+   * `JdbcMeta` with the `JdbcMeta` provided by a `Write` instance.
    * @group Metadata
    */
   def getColumnMappings[A](implicit A: Read[A]): PreparedStatementIO[List[(Get[_], NullabilityKnown) Ior ColumnMeta]] =
@@ -161,11 +164,13 @@ object preparedstatement {
     }
 
   /**
-   * Compute the parameter mappings for this `PreparedStatement` by aligning its `JdbcMeta`
-   * with the `JdbcMeta` provided by a `Write` instance.
+   * Compute the parameter mappings for this `PreparedStatement` by aligning its
+   * `JdbcMeta` with the `JdbcMeta` provided by a `Write` instance.
    * @group Metadata
    */
-  def getParameterMappings[A](implicit A: Write[A]): PreparedStatementIO[List[(Put[_], NullabilityKnown) Ior ParameterMeta]] =
+  def getParameterMappings[A](implicit
+    A: Write[A],
+  ): PreparedStatementIO[List[(Put[_], NullabilityKnown) Ior ParameterMeta]] =
     getParameterJdbcMeta.map(m => A.puts align m)
 
   /** @group Properties */

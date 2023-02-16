@@ -4,24 +4,24 @@
 
 package doobie.scalatest
 
-import cats.effect.{ Async, IO }
+import cats.effect.Async
+import cats.effect.IO
 import doobie.syntax.connectionio._
 import doobie.util.testing._
-import org.scalatest.matchers.{
-  Matcher,
-  MatchResult,
-  LazyArg
-}
+import org.scalatest.matchers.LazyArg
+import org.scalatest.matchers.MatchResult
+import org.scalatest.matchers.Matcher
 import org.scalatest.matchers.dsl.MatcherFactory2
+
 import scala.reflect.ClassTag
 
 /**
-  * Provides matcher syntax for query checking:
-  *
-  * {{{
-  * sql"select 1".query[Int] must typecheck
-  * }}}
-  */
+ * Provides matcher syntax for query checking:
+ *
+ * {{{
+ * sql"select 1".query[Int] must typecheck
+ * }}}
+ */
 trait AnalysisMatchers[F[_]] extends CheckerBase[F] {
 
   val typecheck: MatcherFactory2[Any, Analyzable, ClassTag] =
@@ -31,7 +31,7 @@ trait AnalysisMatchers[F[_]] extends CheckerBase[F] {
     }
 
   private def matchTypecheck[T](t: T)(
-    implicit analyzable: Analyzable[T]
+    implicit analyzable: Analyzable[T],
   ): MatchResult = {
     val args = analyzable.unpack(t)
     val report = U.unsafeRunSync(analyze(args).transact(transactor))
@@ -44,8 +44,8 @@ trait AnalysisMatchers[F[_]] extends CheckerBase[F] {
         // Avoid formatting if the check performed as expected
         LazyArg(()) { _ =>
           formatReport(args, report, colors).padLeft("  ").toString
-        }
-      )
+        },
+      ),
     )
   }
 }

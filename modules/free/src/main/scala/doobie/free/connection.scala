@@ -4,14 +4,17 @@
 
 package doobie.free
 
-import cats.{Applicative, Monoid, Semigroup, ~>}
-import cats.effect.kernel.{ CancelScope, Poll, Sync }
-import cats.free.{ Free => FF } // alias because some algebras have an op called Free
-import doobie.util.log.LogEvent
+import cats.Applicative
+import cats.Monoid
+import cats.Semigroup
+import cats.effect.kernel.CancelScope
+import cats.effect.kernel.Poll
+import cats.effect.kernel.Sync
+import cats.free.{Free => FF} // alias because some algebras have an op called Free
+import cats.~>
 import doobie.WeakAsync
+import doobie.util.log.LogEvent
 
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
 import java.lang.Class
 import java.lang.String
 import java.sql.Blob
@@ -30,6 +33,8 @@ import java.sql.{Array => SqlArray}
 import java.util.Map
 import java.util.Properties
 import java.util.concurrent.Executor
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 object connection { module =>
 
@@ -345,9 +350,11 @@ object connection { module =>
   val unit: ConnectionIO[Unit] = FF.pure[ConnectionOp, Unit](())
   def pure[A](a: A): ConnectionIO[A] = FF.pure[ConnectionOp, A](a)
   def raw[A](f: Connection => A): ConnectionIO[A] = FF.liftF(Raw(f))
-  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[ConnectionOp, A] = FF.liftF(Embed(ev.embed(j, fa)))
+  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[ConnectionOp, A] =
+    FF.liftF(Embed(ev.embed(j, fa)))
   def raiseError[A](err: Throwable): ConnectionIO[A] = FF.liftF[ConnectionOp, A](RaiseError(err))
-  def handleErrorWith[A](fa: ConnectionIO[A])(f: Throwable => ConnectionIO[A]): ConnectionIO[A] = FF.liftF[ConnectionOp, A](HandleErrorWith(fa, f))
+  def handleErrorWith[A](fa: ConnectionIO[A])(f: Throwable => ConnectionIO[A]): ConnectionIO[A] =
+    FF.liftF[ConnectionOp, A](HandleErrorWith(fa, f))
   val monotonic = FF.liftF[ConnectionOp, FiniteDuration](Monotonic)
   val realtime = FF.liftF[ConnectionOp, FiniteDuration](Realtime)
   def delay[A](thunk: => A) = FF.liftF[ConnectionOp, A](Suspend(Sync.Type.Delay, () => thunk))
@@ -394,13 +401,15 @@ object connection { module =>
   def nativeSQL(a: String): ConnectionIO[String] = FF.liftF(NativeSQL(a))
   def prepareCall(a: String): ConnectionIO[CallableStatement] = FF.liftF(PrepareCall(a))
   def prepareCall(a: String, b: Int, c: Int): ConnectionIO[CallableStatement] = FF.liftF(PrepareCall1(a, b, c))
-  def prepareCall(a: String, b: Int, c: Int, d: Int): ConnectionIO[CallableStatement] = FF.liftF(PrepareCall2(a, b, c, d))
+  def prepareCall(a: String, b: Int, c: Int, d: Int): ConnectionIO[CallableStatement] =
+    FF.liftF(PrepareCall2(a, b, c, d))
   def prepareStatement(a: String): ConnectionIO[PreparedStatement] = FF.liftF(PrepareStatement(a))
   def prepareStatement(a: String, b: Array[Int]): ConnectionIO[PreparedStatement] = FF.liftF(PrepareStatement1(a, b))
   def prepareStatement(a: String, b: Array[String]): ConnectionIO[PreparedStatement] = FF.liftF(PrepareStatement2(a, b))
   def prepareStatement(a: String, b: Int): ConnectionIO[PreparedStatement] = FF.liftF(PrepareStatement3(a, b))
   def prepareStatement(a: String, b: Int, c: Int): ConnectionIO[PreparedStatement] = FF.liftF(PrepareStatement4(a, b, c))
-  def prepareStatement(a: String, b: Int, c: Int, d: Int): ConnectionIO[PreparedStatement] = FF.liftF(PrepareStatement5(a, b, c, d))
+  def prepareStatement(a: String, b: Int, c: Int, d: Int): ConnectionIO[PreparedStatement] =
+    FF.liftF(PrepareStatement5(a, b, c, d))
   def releaseSavepoint(a: Savepoint): ConnectionIO[Unit] = FF.liftF(ReleaseSavepoint(a))
   val rollback: ConnectionIO[Unit] = FF.liftF(Rollback)
   def rollback(a: Savepoint): ConnectionIO[Unit] = FF.liftF(Rollback1(a))
@@ -428,26 +437,27 @@ object connection { module =>
       override def flatMap[A, B](fa: ConnectionIO[A])(f: A => ConnectionIO[B]): ConnectionIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => ConnectionIO[Either[A, B]]): ConnectionIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): ConnectionIO[A] = module.raiseError(e)
-      override def handleErrorWith[A](fa: ConnectionIO[A])(f: Throwable => ConnectionIO[A]): ConnectionIO[A] = module.handleErrorWith(fa)(f)
+      override def handleErrorWith[A](fa: ConnectionIO[A])(f: Throwable => ConnectionIO[A]): ConnectionIO[A] =
+        module.handleErrorWith(fa)(f)
       override def monotonic: ConnectionIO[FiniteDuration] = module.monotonic
       override def realTime: ConnectionIO[FiniteDuration] = module.realtime
       override def suspend[A](hint: Sync.Type)(thunk: => A): ConnectionIO[A] = module.suspend(hint)(thunk)
       override def forceR[A, B](fa: ConnectionIO[A])(fb: ConnectionIO[B]): ConnectionIO[B] = module.forceR(fa)(fb)
-      override def uncancelable[A](body: Poll[ConnectionIO] => ConnectionIO[A]): ConnectionIO[A] = module.uncancelable(body)
+      override def uncancelable[A](body: Poll[ConnectionIO] => ConnectionIO[A]): ConnectionIO[A] =
+        module.uncancelable(body)
       override def canceled: ConnectionIO[Unit] = module.canceled
       override def onCancel[A](fa: ConnectionIO[A], fin: ConnectionIO[Unit]): ConnectionIO[A] = module.onCancel(fa, fin)
       override def fromFuture[A](fut: ConnectionIO[Future[A]]): ConnectionIO[A] = module.fromFuture(fut)
     }
 
-  implicit def MonoidConnectionIO[A : Monoid]: Monoid[ConnectionIO[A]] = new Monoid[ConnectionIO[A]] {
+  implicit def MonoidConnectionIO[A: Monoid]: Monoid[ConnectionIO[A]] = new Monoid[ConnectionIO[A]] {
     override def empty: ConnectionIO[A] = Applicative[ConnectionIO].pure(Monoid[A].empty)
     override def combine(x: ConnectionIO[A], y: ConnectionIO[A]): ConnectionIO[A] =
       Applicative[ConnectionIO].product(x, y).map { case (x, y) => Monoid[A].combine(x, y) }
   }
 
-  implicit def SemigroupConnectionIO[A : Semigroup]: Semigroup[ConnectionIO[A]] = new Semigroup[ConnectionIO[A]] {
+  implicit def SemigroupConnectionIO[A: Semigroup]: Semigroup[ConnectionIO[A]] = new Semigroup[ConnectionIO[A]] {
     override def combine(x: ConnectionIO[A], y: ConnectionIO[A]): ConnectionIO[A] =
       Applicative[ConnectionIO].product(x, y).map { case (x, y) => Semigroup[A].combine(x, y) }
   }
 }
-

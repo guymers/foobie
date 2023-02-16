@@ -6,11 +6,11 @@ package doobie.syntax
 
 trait AllSyntax
   extends ToApplicativeErrorOps
-     with ToFoldableOps
-     with ToConnectionIOOps
-     with ToStreamOps
-     with ToSqlInterpolator
-     with ToAlignSyntax
-     with ToPutOps
+  with ToFoldableOps
+  with ToConnectionIOOps
+  with ToStreamOps
+  with ToSqlInterpolator
+  with ToAlignSyntax
+  with ToPutOps
 
 object all extends AllSyntax

@@ -9,17 +9,18 @@ import cats.effect.kernel.Async
 import cats.instances.int._
 import cats.instances.list._
 import cats.instances.string._
-import cats.syntax.list._
 import cats.syntax.applicativeError._
 import cats.syntax.foldable._
+import cats.syntax.list._
 import cats.syntax.show._
 import doobie._
 import doobie.implicits._
 import doobie.util.analysis._
-import doobie.util.pretty._
 import doobie.util.pos.Pos
-import scala.Predef.augmentString
+import doobie.util.pretty._
 import org.tpolecat.typename._
+
+import scala.Predef.augmentString
 
 package testing {
 
@@ -28,8 +29,8 @@ package testing {
   }
 
   /**
-    * Common base trait for various checkers and matchers.
-    */
+   * Common base trait for various checkers and matchers.
+   */
   trait CheckerBase[M[_]] {
     // Effect type, required instances
     implicit def M: Async[M]
@@ -43,13 +44,13 @@ package testing {
     typeName: String,
     pos: Option[Pos],
     sql: String,
-    analysis: ConnectionIO[Analysis]
+    analysis: ConnectionIO[Analysis],
   ) {
     val cleanedSql = Block(
       sql.linesIterator
         .map(_.trim)
         .filterNot(_.isEmpty)
-        .toList
+        .toList,
     )
 
     private val location =
@@ -64,7 +65,7 @@ package testing {
   final case class AnalysisReport(
     header: String,
     sql: Block,
-    items: List[AnalysisReport.Item]
+    items: List[AnalysisReport.Item],
   ) {
     val succeeded: Boolean = items.forall(_.error.isEmpty)
   }
@@ -85,7 +86,7 @@ package testing {
       T.unpack(t)
 
     def instance[T](
-      impl: T => AnalysisArgs
+      impl: T => AnalysisArgs,
     ): Analyzable[T] =
       new Analyzable[T] {
         def unpack(t: T) = impl(t)
@@ -95,7 +96,9 @@ package testing {
       instance { q =>
         AnalysisArgs(
           s"Query[${typeName[A]}, ${typeName[B]}]",
-          q.pos, q.sql, q.analysis
+          q.pos,
+          q.sql,
+          q.analysis,
         )
       }
 
@@ -103,7 +106,9 @@ package testing {
       instance { q =>
         AnalysisArgs(
           s"Query0[${typeName[A]}]",
-          q.pos, q.sql, q.analysis
+          q.pos,
+          q.sql,
+          q.analysis,
         )
       }
 
@@ -111,7 +116,9 @@ package testing {
       instance { q =>
         AnalysisArgs(
           s"Update[${typeName[A]}]",
-          q.pos, q.sql, q.analysis
+          q.pos,
+          q.sql,
+          q.analysis,
         )
       }
 
@@ -119,56 +126,58 @@ package testing {
       instance { q =>
         AnalysisArgs(
           s"Update0",
-          q.pos, q.sql, q.analysis
+          q.pos,
+          q.sql,
+          q.analysis,
         )
       }
   }
 }
 
 /**
-  * Common utilities for query testing
-  */
+ * Common utilities for query testing
+ */
 package object testing {
 
   def analyze(args: AnalysisArgs): ConnectionIO[AnalysisReport] =
     args.analysis.attempt
       .map(buildItems)
       .map { items =>
-        AnalysisReport (
+        AnalysisReport(
           args.header,
           args.cleanedSql,
-          items
+          items,
         )
       }
 
   private def alignmentErrorsToBlock(
-    es: NonEmptyList[AlignmentError]
+    es: NonEmptyList[AlignmentError],
   ): Block =
     Block(es.toList.flatMap(_.msg.linesIterator))
 
   private def buildItems(
-    input: Either[Throwable, Analysis]
+    input: Either[Throwable, Analysis],
   ): List[AnalysisReport.Item] = input match {
     case Left(e) =>
       List(AnalysisReport.Item(
         "SQL Compiles and TypeChecks",
-        Some(Block.fromErrorMsgLines(e))
+        Some(Block.fromErrorMsgLines(e)),
       ))
     case Right(a) =>
       AnalysisReport.Item("SQL Compiles and TypeChecks", None) ::
-        (a.paramDescriptions ++ a.columnDescriptions)
+      (a.paramDescriptions ++ a.columnDescriptions)
         .map { case (s, es) =>
           AnalysisReport.Item(s, es.toNel.map(alignmentErrorsToBlock))
         }
   }
 
   /**
-    * Simple formatting for analysis results.
-    */
+   * Simple formatting for analysis results.
+   */
   def formatReport(
     args: AnalysisArgs,
     report: AnalysisReport,
-    colors: Colors
+    colors: Colors,
   ): Block = {
     val sql = args.cleanedSql
       .wrap(68)

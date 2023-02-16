@@ -4,10 +4,13 @@
 
 package doobie.syntax
 
-import cats.data.{EitherT, Kleisli, OptionT}
+import cats.data.EitherT
+import cats.data.Kleisli
+import cats.data.OptionT
 import cats.effect.kernel.MonadCancelThrow
 import cats.syntax.functor._
-import doobie.{ ConnectionIO, HC }
+import doobie.ConnectionIO
+import doobie.HC
 import doobie.implicits._
 import doobie.util.transactor.Transactor
 
@@ -18,14 +21,14 @@ class ConnectionIOOps[A](ma: ConnectionIO[A]) {
 class OptionTConnectionIOOps[A](ma: OptionT[ConnectionIO, A]) {
   def transact[M[_]: MonadCancelThrow](xa: Transactor[M]): OptionT[M, A] =
     OptionT(
-      xa.trans.apply(ma.orElseF(HC.rollback.as(None)).value)
+      xa.trans.apply(ma.orElseF(HC.rollback.as(None)).value),
     )
 }
 
 class EitherTConnectionIOOps[E, A](ma: EitherT[ConnectionIO, E, A]) {
   def transact[M[_]: MonadCancelThrow](xa: Transactor[M]): EitherT[M, E, A] =
     EitherT(
-      xa.trans.apply(ma.leftSemiflatMap(HC.rollback.as(_)).value)
+      xa.trans.apply(ma.leftSemiflatMap(HC.rollback.as(_)).value),
     )
 }
 

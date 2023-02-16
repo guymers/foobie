@@ -6,16 +6,21 @@ package doobie.util
 
 import cats.ContravariantSemigroupal
 import doobie.enumerated.Nullability._
-import doobie.free.{ FPS, FRS, PreparedStatementIO, ResultSetIO }
-import java.sql.{ PreparedStatement, ResultSet }
-import doobie.util.fragment.Fragment
+import doobie.free.FPS
+import doobie.free.FRS
+import doobie.free.PreparedStatementIO
+import doobie.free.ResultSetIO
 import doobie.util.fragment.Elem
+import doobie.util.fragment.Fragment
+
+import java.sql.PreparedStatement
+import java.sql.ResultSet
 
 final class Write[A](
   val puts: List[(Put[_], NullabilityKnown)],
   val toList: A => List[Any],
   val unsafeSet: (PreparedStatement, Int, A) => Unit,
-  val unsafeUpdate: (ResultSet, Int, A) => Unit
+  val unsafeUpdate: (ResultSet, Int, A) => Unit,
 ) {
 
   lazy val length = puts.length
@@ -31,7 +36,7 @@ final class Write[A](
       puts,
       b => toList(f(b)),
       (ps, n, a) => unsafeSet(ps, n, f(a)),
-      (rs, n, a) => unsafeUpdate(rs, n, f(a))
+      (rs, n, a) => unsafeUpdate(rs, n, f(a)),
     )
 
   def product[B](fb: Write[B]): Write[(A, B)] =
@@ -39,12 +44,13 @@ final class Write[A](
       puts ++ fb.puts,
       { case (a, b) => toList(a) ++ fb.toList(b) },
       { case (ps, n, (a, b)) => unsafeSet(ps, n, a); fb.unsafeSet(ps, n + length, b) },
-      { case (rs, n, (a, b)) => unsafeUpdate(rs, n, a); fb.unsafeUpdate(rs, n + length, b) }
+      { case (rs, n, (a, b)) => unsafeUpdate(rs, n, a); fb.unsafeUpdate(rs, n + length, b) },
     )
 
   /**
-   * Given a value of type `A` and an appropriately parameterized SQL string we can construct a
-   * `Fragment`. If `sql` is unspecified a comma-separated list of `length` placeholders will be used.
+   * Given a value of type `A` and an appropriately parameterized SQL string we
+   * can construct a `Fragment`. If `sql` is unspecified a comma-separated list
+   * of `length` placeholders will be used.
    */
   def toFragment(a: A, sql: String = List.fill(length)("?").mkString(",")): Fragment = {
     val elems: List[Elem] = (puts zip toList(a)).map {
@@ -74,7 +80,7 @@ object Write extends WritePlatform {
       List((P, NoNulls)),
       a => List(a),
       (ps, n, a) => P.unsafeSetNonNullable(ps, n, a),
-      (rs, n, a) => P.unsafeUpdateNonNullable(rs, n, a)
+      (rs, n, a) => P.unsafeUpdateNonNullable(rs, n, a),
     )
 
   implicit def fromPutOption[A](implicit P: Put[A]): Write[Option[A]] =
@@ -82,7 +88,7 @@ object Write extends WritePlatform {
       List((P, Nullable)),
       a => List(a),
       (ps, n, a) => P.unsafeSetNullable(ps, n, a),
-      (rs, n, a) => P.unsafeUpdateNullable(rs, n, a)
+      (rs, n, a) => P.unsafeUpdateNullable(rs, n, a),
     )
 
 }

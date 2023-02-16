@@ -4,13 +4,12 @@
 
 package doobie.postgres
 
-import java.util.concurrent.Executors
-
 import cats.effect.IO
 import com.zaxxer.hikari.HikariDataSource
 import doobie._
 import doobie.implicits._
 
+import java.util.concurrent.Executors
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
@@ -47,7 +46,7 @@ class PGConcurrentSuite extends munit.FunSuite {
 
     val xa = Transactor.fromDataSource[IO](
       dataSource,
-      ExecutionContext.fromExecutor(Executors.newFixedThreadPool(32))
+      ExecutionContext.fromExecutor(Executors.newFixedThreadPool(32)),
     )
 
     val poll: fs2.Stream[IO, Int] =

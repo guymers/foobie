@@ -4,13 +4,12 @@
 
 package doobie.enumerated
 
-import doobie.util.invariant._
-
-import java.sql.ResultSet._
-
 import cats.ApplicativeError
 import cats.kernel.Eq
 import cats.kernel.instances.int._
+import doobie.util.invariant._
+
+import java.sql.ResultSet._
 
 /** @group Types */
 sealed abstract class ResultSetType(val toInt: Int) extends Product with Serializable
@@ -18,15 +17,20 @@ sealed abstract class ResultSetType(val toInt: Int) extends Product with Seriali
 /** @group Modules */
 object ResultSetType {
 
-  /** @group Values */ case object TypeForwardOnly       extends ResultSetType(TYPE_FORWARD_ONLY)
-  /** @group Values */ case object TypeScrollInsensitive extends ResultSetType(TYPE_SCROLL_INSENSITIVE)
-  /** @group Values */ case object TypeScrollSensitive   extends ResultSetType(TYPE_SCROLL_SENSITIVE)
+  /** @group Values */
+  case object TypeForwardOnly extends ResultSetType(TYPE_FORWARD_ONLY)
+
+  /** @group Values */
+  case object TypeScrollInsensitive extends ResultSetType(TYPE_SCROLL_INSENSITIVE)
+
+  /** @group Values */
+  case object TypeScrollSensitive extends ResultSetType(TYPE_SCROLL_SENSITIVE)
 
   def fromInt(n: Int): Option[ResultSetType] =
     Some(n) collect {
-      case TypeForwardOnly.toInt       => TypeForwardOnly
+      case TypeForwardOnly.toInt => TypeForwardOnly
       case TypeScrollInsensitive.toInt => TypeScrollInsensitive
-      case TypeScrollSensitive.toInt   => TypeScrollSensitive
+      case TypeScrollSensitive.toInt => TypeScrollSensitive
     }
 
   def fromIntF[F[_]](n: Int)(implicit AE: ApplicativeError[F, Throwable]): F[ResultSetType] =

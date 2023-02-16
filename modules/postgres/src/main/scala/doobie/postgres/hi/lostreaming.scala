@@ -8,8 +8,10 @@ import cats.syntax.functor._
 import doobie.ConnectionIO
 import doobie.implicits._
 import fs2.Stream
-import java.io.{InputStream, OutputStream}
 import org.postgresql.largeobject.LargeObject
+
+import java.io.InputStream
+import java.io.OutputStream
 
 object lostreaming {
 

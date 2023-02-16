@@ -5,8 +5,8 @@
 package doobie.util
 
 import java.{util => ju}
-import scala.collection.mutable
 import scala.collection.immutable.Map
+import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
 package object compat {

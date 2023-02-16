@@ -14,7 +14,7 @@ object pos {
     def file: String =
       path.lastIndexOf(java.io.File.separatorChar.toString) match {
         case -1 => path
-        case n  => path.substring(n + 1)
+        case n => path.substring(n + 1)
       }
 
     override def toString =

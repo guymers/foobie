@@ -4,13 +4,13 @@
 
 package doobie.free
 
+import cats.effect.kernel.CancelScope
+import cats.effect.kernel.Poll
+import cats.effect.kernel.Sync
+import cats.free.{Free => FF} // alias because some algebras have an op called Free
 import cats.~>
-import cats.effect.kernel.{ CancelScope, Poll, Sync }
-import cats.free.{ Free => FF } // alias because some algebras have an op called Free
-import doobie.util.log.LogEvent
 import doobie.WeakAsync
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
+import doobie.util.log.LogEvent
 
 import java.io.InputStream
 import java.io.Reader
@@ -34,9 +34,11 @@ import java.sql.SQLWarning
 import java.sql.SQLXML
 import java.sql.Time
 import java.sql.Timestamp
-import java.sql.{ Array => SqlArray }
+import java.sql.{Array => SqlArray}
 import java.util.Calendar
 import java.util.Map
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 object callablestatement { module =>
 
@@ -322,7 +324,8 @@ object callablestatement { module =>
     final case class RaiseError[A](e: Throwable) extends CallableStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.raiseError(e)
     }
-    final case class HandleErrorWith[A](fa: CallableStatementIO[A], f: Throwable => CallableStatementIO[A]) extends CallableStatementOp[A] {
+    final case class HandleErrorWith[A](fa: CallableStatementIO[A], f: Throwable => CallableStatementIO[A])
+      extends CallableStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.handleErrorWith(fa)(f)
     }
     case object Monotonic extends CallableStatementOp[FiniteDuration] {
@@ -1052,20 +1055,25 @@ object callablestatement { module =>
   val unit: CallableStatementIO[Unit] = FF.pure[CallableStatementOp, Unit](())
   def pure[A](a: A): CallableStatementIO[A] = FF.pure[CallableStatementOp, A](a)
   def raw[A](f: CallableStatement => A): CallableStatementIO[A] = FF.liftF(Raw(f))
-  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[CallableStatementOp, A] = FF.liftF(Embed(ev.embed(j, fa)))
+  def embed[F[_], J, A](j: J, fa: FF[F, A])(implicit ev: Embeddable[F, J]): FF[CallableStatementOp, A] =
+    FF.liftF(Embed(ev.embed(j, fa)))
   def raiseError[A](err: Throwable): CallableStatementIO[A] = FF.liftF[CallableStatementOp, A](RaiseError(err))
-  def handleErrorWith[A](fa: CallableStatementIO[A])(f: Throwable => CallableStatementIO[A]): CallableStatementIO[A] = FF.liftF[CallableStatementOp, A](HandleErrorWith(fa, f))
+  def handleErrorWith[A](fa: CallableStatementIO[A])(f: Throwable => CallableStatementIO[A]): CallableStatementIO[A] =
+    FF.liftF[CallableStatementOp, A](HandleErrorWith(fa, f))
   val monotonic = FF.liftF[CallableStatementOp, FiniteDuration](Monotonic)
   val realtime = FF.liftF[CallableStatementOp, FiniteDuration](Realtime)
   def delay[A](thunk: => A) = FF.liftF[CallableStatementOp, A](Suspend(Sync.Type.Delay, () => thunk))
   def suspend[A](hint: Sync.Type)(thunk: => A) = FF.liftF[CallableStatementOp, A](Suspend(hint, () => thunk))
-  def forceR[A, B](fa: CallableStatementIO[A])(fb: CallableStatementIO[B]) = FF.liftF[CallableStatementOp, B](ForceR(fa, fb))
-  def uncancelable[A](body: Poll[CallableStatementIO] => CallableStatementIO[A]) = FF.liftF[CallableStatementOp, A](Uncancelable(body))
+  def forceR[A, B](fa: CallableStatementIO[A])(fb: CallableStatementIO[B]) =
+    FF.liftF[CallableStatementOp, B](ForceR(fa, fb))
+  def uncancelable[A](body: Poll[CallableStatementIO] => CallableStatementIO[A]) =
+    FF.liftF[CallableStatementOp, A](Uncancelable(body))
   def capturePoll[M[_]](mpoll: Poll[M]) = new Poll[CallableStatementIO] {
     def apply[A](fa: CallableStatementIO[A]) = FF.liftF[CallableStatementOp, A](Poll1(mpoll, fa))
   }
   val canceled = FF.liftF[CallableStatementOp, Unit](Canceled)
-  def onCancel[A](fa: CallableStatementIO[A], fin: CallableStatementIO[Unit]) = FF.liftF[CallableStatementOp, A](OnCancel(fa, fin))
+  def onCancel[A](fa: CallableStatementIO[A], fin: CallableStatementIO[Unit]) =
+    FF.liftF[CallableStatementOp, A](OnCancel(fa, fin))
   def fromFuture[A](fut: CallableStatementIO[Future[A]]) = FF.liftF[CallableStatementOp, A](FromFuture(fut))
   def performLogging(event: LogEvent) = FF.liftF[CallableStatementOp, Unit](PerformLogging(event))
 
@@ -1182,16 +1190,23 @@ object callablestatement { module =>
   def isWrapperFor(a: Class[_]): CallableStatementIO[Boolean] = FF.liftF(IsWrapperFor(a))
   def registerOutParameter(a: Int, b: Int): CallableStatementIO[Unit] = FF.liftF(RegisterOutParameter(a, b))
   def registerOutParameter(a: Int, b: Int, c: Int): CallableStatementIO[Unit] = FF.liftF(RegisterOutParameter1(a, b, c))
-  def registerOutParameter(a: Int, b: Int, c: String): CallableStatementIO[Unit] = FF.liftF(RegisterOutParameter2(a, b, c))
+  def registerOutParameter(a: Int, b: Int, c: String): CallableStatementIO[Unit] =
+    FF.liftF(RegisterOutParameter2(a, b, c))
   def registerOutParameter(a: Int, b: SQLType): CallableStatementIO[Unit] = FF.liftF(RegisterOutParameter3(a, b))
-  def registerOutParameter(a: Int, b: SQLType, c: Int): CallableStatementIO[Unit] = FF.liftF(RegisterOutParameter4(a, b, c))
-  def registerOutParameter(a: Int, b: SQLType, c: String): CallableStatementIO[Unit] = FF.liftF(RegisterOutParameter5(a, b, c))
+  def registerOutParameter(a: Int, b: SQLType, c: Int): CallableStatementIO[Unit] =
+    FF.liftF(RegisterOutParameter4(a, b, c))
+  def registerOutParameter(a: Int, b: SQLType, c: String): CallableStatementIO[Unit] =
+    FF.liftF(RegisterOutParameter5(a, b, c))
   def registerOutParameter(a: String, b: Int): CallableStatementIO[Unit] = FF.liftF(RegisterOutParameter6(a, b))
-  def registerOutParameter(a: String, b: Int, c: Int): CallableStatementIO[Unit] = FF.liftF(RegisterOutParameter7(a, b, c))
-  def registerOutParameter(a: String, b: Int, c: String): CallableStatementIO[Unit] = FF.liftF(RegisterOutParameter8(a, b, c))
+  def registerOutParameter(a: String, b: Int, c: Int): CallableStatementIO[Unit] =
+    FF.liftF(RegisterOutParameter7(a, b, c))
+  def registerOutParameter(a: String, b: Int, c: String): CallableStatementIO[Unit] =
+    FF.liftF(RegisterOutParameter8(a, b, c))
   def registerOutParameter(a: String, b: SQLType): CallableStatementIO[Unit] = FF.liftF(RegisterOutParameter9(a, b))
-  def registerOutParameter(a: String, b: SQLType, c: Int): CallableStatementIO[Unit] = FF.liftF(RegisterOutParameter10(a, b, c))
-  def registerOutParameter(a: String, b: SQLType, c: String): CallableStatementIO[Unit] = FF.liftF(RegisterOutParameter11(a, b, c))
+  def registerOutParameter(a: String, b: SQLType, c: Int): CallableStatementIO[Unit] =
+    FF.liftF(RegisterOutParameter10(a, b, c))
+  def registerOutParameter(a: String, b: SQLType, c: String): CallableStatementIO[Unit] =
+    FF.liftF(RegisterOutParameter11(a, b, c))
   def setArray(a: Int, b: SqlArray): CallableStatementIO[Unit] = FF.liftF(SetArray(a, b))
   def setAsciiStream(a: Int, b: InputStream): CallableStatementIO[Unit] = FF.liftF(SetAsciiStream(a, b))
   def setAsciiStream(a: Int, b: InputStream, c: Int): CallableStatementIO[Unit] = FF.liftF(SetAsciiStream1(a, b, c))
@@ -1206,7 +1221,8 @@ object callablestatement { module =>
   def setBinaryStream(a: Int, b: InputStream, c: Long): CallableStatementIO[Unit] = FF.liftF(SetBinaryStream2(a, b, c))
   def setBinaryStream(a: String, b: InputStream): CallableStatementIO[Unit] = FF.liftF(SetBinaryStream3(a, b))
   def setBinaryStream(a: String, b: InputStream, c: Int): CallableStatementIO[Unit] = FF.liftF(SetBinaryStream4(a, b, c))
-  def setBinaryStream(a: String, b: InputStream, c: Long): CallableStatementIO[Unit] = FF.liftF(SetBinaryStream5(a, b, c))
+  def setBinaryStream(a: String, b: InputStream, c: Long): CallableStatementIO[Unit] =
+    FF.liftF(SetBinaryStream5(a, b, c))
   def setBlob(a: Int, b: Blob): CallableStatementIO[Unit] = FF.liftF(SetBlob(a, b))
   def setBlob(a: Int, b: InputStream): CallableStatementIO[Unit] = FF.liftF(SetBlob1(a, b))
   def setBlob(a: Int, b: InputStream, c: Long): CallableStatementIO[Unit] = FF.liftF(SetBlob2(a, b, c))
@@ -1223,8 +1239,10 @@ object callablestatement { module =>
   def setCharacterStream(a: Int, b: Reader, c: Int): CallableStatementIO[Unit] = FF.liftF(SetCharacterStream1(a, b, c))
   def setCharacterStream(a: Int, b: Reader, c: Long): CallableStatementIO[Unit] = FF.liftF(SetCharacterStream2(a, b, c))
   def setCharacterStream(a: String, b: Reader): CallableStatementIO[Unit] = FF.liftF(SetCharacterStream3(a, b))
-  def setCharacterStream(a: String, b: Reader, c: Int): CallableStatementIO[Unit] = FF.liftF(SetCharacterStream4(a, b, c))
-  def setCharacterStream(a: String, b: Reader, c: Long): CallableStatementIO[Unit] = FF.liftF(SetCharacterStream5(a, b, c))
+  def setCharacterStream(a: String, b: Reader, c: Int): CallableStatementIO[Unit] =
+    FF.liftF(SetCharacterStream4(a, b, c))
+  def setCharacterStream(a: String, b: Reader, c: Long): CallableStatementIO[Unit] =
+    FF.liftF(SetCharacterStream5(a, b, c))
   def setClob(a: Int, b: Clob): CallableStatementIO[Unit] = FF.liftF(SetClob(a, b))
   def setClob(a: Int, b: Reader): CallableStatementIO[Unit] = FF.liftF(SetClob1(a, b))
   def setClob(a: Int, b: Reader, c: Long): CallableStatementIO[Unit] = FF.liftF(SetClob2(a, b, c))
@@ -1251,9 +1269,11 @@ object callablestatement { module =>
   def setMaxFieldSize(a: Int): CallableStatementIO[Unit] = FF.liftF(SetMaxFieldSize(a))
   def setMaxRows(a: Int): CallableStatementIO[Unit] = FF.liftF(SetMaxRows(a))
   def setNCharacterStream(a: Int, b: Reader): CallableStatementIO[Unit] = FF.liftF(SetNCharacterStream(a, b))
-  def setNCharacterStream(a: Int, b: Reader, c: Long): CallableStatementIO[Unit] = FF.liftF(SetNCharacterStream1(a, b, c))
+  def setNCharacterStream(a: Int, b: Reader, c: Long): CallableStatementIO[Unit] =
+    FF.liftF(SetNCharacterStream1(a, b, c))
   def setNCharacterStream(a: String, b: Reader): CallableStatementIO[Unit] = FF.liftF(SetNCharacterStream2(a, b))
-  def setNCharacterStream(a: String, b: Reader, c: Long): CallableStatementIO[Unit] = FF.liftF(SetNCharacterStream3(a, b, c))
+  def setNCharacterStream(a: String, b: Reader, c: Long): CallableStatementIO[Unit] =
+    FF.liftF(SetNCharacterStream3(a, b, c))
   def setNClob(a: Int, b: NClob): CallableStatementIO[Unit] = FF.liftF(SetNClob(a, b))
   def setNClob(a: Int, b: Reader): CallableStatementIO[Unit] = FF.liftF(SetNClob1(a, b))
   def setNClob(a: Int, b: Reader, c: Long): CallableStatementIO[Unit] = FF.liftF(SetNClob2(a, b, c))
@@ -1307,18 +1327,24 @@ object callablestatement { module =>
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): CallableStatementIO[A] = monad.pure(x)
-      override def flatMap[A, B](fa: CallableStatementIO[A])(f: A => CallableStatementIO[B]): CallableStatementIO[B] = monad.flatMap(fa)(f)
-      override def tailRecM[A, B](a: A)(f: A => CallableStatementIO[Either[A, B]]): CallableStatementIO[B] = monad.tailRecM(a)(f)
+      override def flatMap[A, B](fa: CallableStatementIO[A])(f: A => CallableStatementIO[B]): CallableStatementIO[B] =
+        monad.flatMap(fa)(f)
+      override def tailRecM[A, B](a: A)(f: A => CallableStatementIO[Either[A, B]]): CallableStatementIO[B] =
+        monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): CallableStatementIO[A] = module.raiseError(e)
-      override def handleErrorWith[A](fa: CallableStatementIO[A])(f: Throwable => CallableStatementIO[A]): CallableStatementIO[A] = module.handleErrorWith(fa)(f)
+      override def handleErrorWith[A](fa: CallableStatementIO[A])(
+        f: Throwable => CallableStatementIO[A],
+      ): CallableStatementIO[A] = module.handleErrorWith(fa)(f)
       override def monotonic: CallableStatementIO[FiniteDuration] = module.monotonic
       override def realTime: CallableStatementIO[FiniteDuration] = module.realtime
       override def suspend[A](hint: Sync.Type)(thunk: => A): CallableStatementIO[A] = module.suspend(hint)(thunk)
-      override def forceR[A, B](fa: CallableStatementIO[A])(fb: CallableStatementIO[B]): CallableStatementIO[B] = module.forceR(fa)(fb)
-      override def uncancelable[A](body: Poll[CallableStatementIO] => CallableStatementIO[A]): CallableStatementIO[A] = module.uncancelable(body)
+      override def forceR[A, B](fa: CallableStatementIO[A])(fb: CallableStatementIO[B]): CallableStatementIO[B] =
+        module.forceR(fa)(fb)
+      override def uncancelable[A](body: Poll[CallableStatementIO] => CallableStatementIO[A]): CallableStatementIO[A] =
+        module.uncancelable(body)
       override def canceled: CallableStatementIO[Unit] = module.canceled
-      override def onCancel[A](fa: CallableStatementIO[A], fin: CallableStatementIO[Unit]): CallableStatementIO[A] = module.onCancel(fa, fin)
+      override def onCancel[A](fa: CallableStatementIO[A], fin: CallableStatementIO[Unit]): CallableStatementIO[A] =
+        module.onCancel(fa, fin)
       override def fromFuture[A](fut: CallableStatementIO[Future[A]]): CallableStatementIO[A] = module.fromFuture(fut)
     }
 }
-

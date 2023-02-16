@@ -5,9 +5,9 @@
 package doobie
 package util
 
-import doobie.implicits._
 import cats.Reducible
 import cats.syntax.all._
+import doobie.implicits._
 
 /** Module of `Fragment` constructors. */
 object fragments {
@@ -21,8 +21,8 @@ object fragments {
     fs.toList.map(a => fr0"$a").foldSmash1(f ++ fr0"IN (", fr",", fr")")
 
   /** Returns `f IN ((fs0-A, fs0-B), (fs1-A, fs1-B), ...)`. */
-  def in[F[_]: Reducible, A: util.Put, B: util.Put](f: Fragment, fs: F[(A,B)]): Fragment =
-    fs.toList.map { case (a,b) => fr0"($a,$b)" }.foldSmash1(f ++ fr0"IN (", fr",", fr")")
+  def in[F[_]: Reducible, A: util.Put, B: util.Put](f: Fragment, fs: F[(A, B)]): Fragment =
+    fs.toList.map { case (a, b) => fr0"($a,$b)" }.foldSmash1(f ++ fr0"IN (", fr",", fr")")
 
   /** Returns `f NOT IN (fs0, fs1, ...)`. */
   def notIn[F[_]: Reducible, A: util.Put](f: Fragment, fs: F[A]): Fragment =
@@ -44,19 +44,31 @@ object fragments {
   def orOpt(fs: Option[Fragment]*): Fragment =
     or(fs.toList.unite: _*)
 
-  /** Returns `WHERE (f1) AND (f2) AND ... (fn)` or the empty fragment if `fs` is empty. */
+  /**
+   * Returns `WHERE (f1) AND (f2) AND ... (fn)` or the empty fragment if `fs` is
+   * empty.
+   */
   def whereAnd(fs: Fragment*): Fragment =
     if (fs.isEmpty) Fragment.empty else fr"WHERE" ++ and(fs: _*)
 
-  /** Returns `WHERE (f1) AND (f2) AND ... (fn)` for defined `f`, if any, otherwise the empty fragment. */
+  /**
+   * Returns `WHERE (f1) AND (f2) AND ... (fn)` for defined `f`, if any,
+   * otherwise the empty fragment.
+   */
   def whereAndOpt(fs: Option[Fragment]*): Fragment =
     whereAnd(fs.toList.unite: _*)
 
-  /** Returns `WHERE (f1) OR (f2) OR ... (fn)` or the empty fragment if `fs` is empty. */
+  /**
+   * Returns `WHERE (f1) OR (f2) OR ... (fn)` or the empty fragment if `fs` is
+   * empty.
+   */
   def whereOr(fs: Fragment*): Fragment =
     if (fs.isEmpty) Fragment.empty else fr"WHERE" ++ or(fs: _*)
 
-  /** Returns `WHERE (f1) OR (f2) OR ... (fn)` for defined `f`, if any, otherwise the empty fragment. */
+  /**
+   * Returns `WHERE (f1) OR (f2) OR ... (fn)` for defined `f`, if any, otherwise
+   * the empty fragment.
+   */
   def whereOrOpt(fs: Option[Fragment]*): Fragment =
     whereOr(fs.toList.unite: _*)
 
@@ -64,7 +76,10 @@ object fragments {
   def set(fs: Fragment*): Fragment =
     if (fs.isEmpty) Fragment.empty else fr"SET" ++ fs.toList.intercalate(fr",")
 
-  /** Returns `SET f1, f2, ... fn` for defined `f`, if any, otherwise the empty fragment. */
+  /**
+   * Returns `SET f1, f2, ... fn` for defined `f`, if any, otherwise the empty
+   * fragment.
+   */
   def setOpt(fs: Option[Fragment]*): Fragment =
     set(fs.toList.unite: _*)
 

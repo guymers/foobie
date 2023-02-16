@@ -4,22 +4,25 @@
 
 package doobie.hikari
 
-import java.util.Properties
-import java.util.concurrent.{ScheduledExecutorService, ThreadFactory, TimeUnit}
-
 import cats.effect.Sync
 import cats.syntax.show._
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.metrics.MetricsTrackerFactory
 import doobie.enumerated.TransactionIsolation
-import javax.sql.DataSource
 
+import java.util.Properties
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ThreadFactory
+import java.util.concurrent.TimeUnit
+import javax.sql.DataSource
 import scala.concurrent.duration.Duration
 
-/** Configuration case class, susceptible to PureConfig.
-  * Helps with creating `com.zaxxer.hikari.HikariConfig`,
-  * which in turn is used to create `doobie.hikari.HikariTransactor`.
-  * See the method `HikariTransactor.fromConfigAutoEc` */
+/**
+ * Configuration case class, susceptible to PureConfig. Helps with creating
+ * `com.zaxxer.hikari.HikariConfig`, which in turn is used to create
+ * `doobie.hikari.HikariTransactor`. See the method
+ * `HikariTransactor.fromConfigAutoEc`
+ */
 final case class Config(
   jdbcUrl: String,
   catalog: Option[String] = None,

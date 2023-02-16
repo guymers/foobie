@@ -5,10 +5,12 @@
 package doobie.issue
 
 import cats._
-import cats.syntax.all._
 import cats.effect.IO
-import doobie._, doobie.implicits._
+import cats.syntax.all._
+import doobie._
+import doobie.implicits._
 import org.scalacheck.Prop.forAll
+
 import scala.Predef._
 
 class `706` extends munit.ScalaCheckSuite {
@@ -18,7 +20,8 @@ class `706` extends munit.ScalaCheckSuite {
   val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
     "jdbc:h2:mem:issue-706;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
   val setup: ConnectionIO[Unit] =

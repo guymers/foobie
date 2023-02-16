@@ -6,7 +6,8 @@ package doobie.util
 
 import cats.effect.IO
 import cats.syntax.apply._
-import doobie._, doobie.implicits._
+import doobie._
+import doobie.implicits._
 
 class StrategySuite extends munit.FunSuite {
 
@@ -15,7 +16,8 @@ class StrategySuite extends munit.FunSuite {
   val baseXa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
     "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-    "sa", ""
+    "sa",
+    "",
   )
 
   // an instrumented interpreter
@@ -24,9 +26,9 @@ class StrategySuite extends munit.FunSuite {
 
     object Connection {
       var autoCommit: Option[Boolean] = None
-      var close:      Option[Unit]    = None
-      var commit:     Option[Unit]    = None
-      var rollback:   Option[Unit]    = None
+      var close: Option[Unit] = None
+      var commit: Option[Unit] = None
+      var rollback: Option[Unit] = None
     }
 
     object PreparedStatement {
@@ -87,7 +89,6 @@ class StrategySuite extends munit.FunSuite {
     assertEquals(sql"abc".query[Int].unique.transact(xa(i)).attempt.unsafeRunSync().toOption, None)
     assertEquals(i.Connection.rollback, Some(()))
   }
-
 
   test("[Streaming] Connection.autoCommit should be set to false") {
     val i = new Interp

@@ -12,7 +12,10 @@ final class H2TransactorOps[M[_]](h2: H2Transactor[M])(implicit ev: Sync[M]) {
   /** A program that shuts down this `H2Transactor`. */
   val dispose: M[Unit] = h2.configure(pool => ev.delay(pool.dispose))
 
-  /** Returns the number of active (open) connections of the underlying `JdbcConnectionPool`. */
+  /**
+   * Returns the number of active (open) connections of the underlying
+   * `JdbcConnectionPool`.
+   */
   val getActiveConnections: M[Int] = h2.configure(pool => ev.delay(pool.getActiveConnections))
 
   /** Gets the maximum time in seconds to wait for a free connection. */

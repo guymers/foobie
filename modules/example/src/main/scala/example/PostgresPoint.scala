@@ -4,7 +4,8 @@
 
 package example
 
-import cats.effect.{ IO, IOApp }
+import cats.effect.IO
+import cats.effect.IOApp
 import doobie._
 import doobie.implicits._
 import doobie.postgres.implicits._
@@ -13,7 +14,10 @@ import org.postgresql.geometric.PGpoint
 object PostgresPoint extends IOApp.Simple {
 
   val xa = Transactor.fromDriverManager[IO](
-    "org.postgresql.Driver", "jdbc:postgresql:world", "postgres", "password"
+    "org.postgresql.Driver",
+    "jdbc:postgresql:world",
+    "postgres",
+    "password",
   )
 
   // A custom Point type with a Meta instance xmapped from the PostgreSQL native type (which
