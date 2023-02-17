@@ -9,6 +9,7 @@ import doobie.enumerated.SqlState
 import doobie.util.catchsql as C
 
 import java.sql.SQLException
+import scala.language.implicitConversions
 
 class ApplicativeErrorOps[M[_], A](self: M[A])(implicit ev: ApplicativeError[M, Throwable]) {
   def attemptSql: M[Either[SQLException, A]] = C.attemptSql(self)

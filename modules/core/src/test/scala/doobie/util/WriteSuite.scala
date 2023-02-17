@@ -16,27 +16,27 @@ class WriteSuite extends munit.FunSuite with WriteSuitePlatform {
   }
 
   test("Write should exist for some fancy types") {
-    util.Write[Int]
-    util.Write[(Int, Int)]
-    util.Write[(Int, Int, String)]
-    util.Write[(Int, (Int, String))]
+    util.Write[Int]: Unit
+    util.Write[(Int, Int)]: Unit
+    util.Write[(Int, Int, String)]: Unit
+    util.Write[(Int, (Int, String))]: Unit
   }
 
   test("Write should exist for Unit") {
-    util.Write[Unit]
+    util.Write[Unit]: Unit
     assertEquals(util.Write[(Int, Unit)].length, 1)
   }
 
   test("Write should exist for option of some fancy types") {
-    util.Write[Option[Int]]
-    util.Write[Option[(Int, Int)]]
-    util.Write[Option[(Int, Int, String)]]
-    util.Write[Option[(Int, (Int, String))]]
-    util.Write[Option[(Int, Option[(Int, String)])]]
+    util.Write[Option[Int]]: Unit
+    util.Write[Option[(Int, Int)]]: Unit
+    util.Write[Option[(Int, Int, String)]]: Unit
+    util.Write[Option[(Int, (Int, String))]]: Unit
+    util.Write[Option[(Int, Option[(Int, String)])]]: Unit
   }
 
   test("Write should exist for option of Unit") {
-    util.Write[Option[Unit]]
+    util.Write[Option[Unit]]: Unit
     assertEquals(util.Write[Option[(Int, Unit)]].length, 1)
   }
 

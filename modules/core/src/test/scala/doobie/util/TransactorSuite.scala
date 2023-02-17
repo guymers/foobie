@@ -51,7 +51,7 @@ class TransactorSuite extends munit.FunSuite {
   test("Connection.close should be called on success") {
     val tracker = new ConnectionTracker
     val transactor = tracker.track(xa[IO])
-    sql"select 1".query[Int].unique.transact(transactor).unsafeRunSync()
+    sql"select 1".query[Int].unique.transact(transactor).unsafeRunSync(): Unit
     assertEquals(tracker.connections.map(_.isClosed), List(true))
   }
 
@@ -65,7 +65,7 @@ class TransactorSuite extends munit.FunSuite {
   test("[Streaming] Connection.close should be called on success") {
     val tracker = new ConnectionTracker
     val transactor = tracker.track(xa[IO])
-    sql"select 1".query[Int].stream.compile.toList.transact(transactor).unsafeRunSync()
+    sql"select 1".query[Int].stream.compile.toList.transact(transactor).unsafeRunSync(): Unit
     assertEquals(tracker.connections.map(_.isClosed), List(true))
   }
 

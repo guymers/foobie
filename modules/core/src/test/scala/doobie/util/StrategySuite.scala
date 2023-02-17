@@ -47,7 +47,6 @@ class StrategySuite extends munit.FunSuite {
       override val rollback = delay(Connection.rollback = Some(())) *> super.rollback
       override val commit = delay(Connection.commit = Some(())) *> super.commit
       override def setAutoCommit(b: Boolean) = delay(Connection.autoCommit = Option(b)) *> super.setAutoCommit(b)
-      override def getTypeMap = super.getTypeMap.asInstanceOf // No idea. Type error on Java 8 if we don't do this.
     }
 
     override lazy val PreparedStatementInterpreter = new PreparedStatementInterpreter {
@@ -65,13 +64,13 @@ class StrategySuite extends munit.FunSuite {
 
   test("Connection.autoCommit should be set to false") {
     val i = new Interp
-    sql"select 1".query[Int].unique.transact(xa(i)).unsafeRunSync()
+    sql"select 1".query[Int].unique.transact(xa(i)).unsafeRunSync(): Unit
     assertEquals(i.Connection.autoCommit, Some(false))
   }
 
   test("Connection.commit should be called on success") {
     val i = new Interp
-    sql"select 1".query[Int].unique.transact(xa(i)).unsafeRunSync()
+    sql"select 1".query[Int].unique.transact(xa(i)).unsafeRunSync(): Unit
     assertEquals(i.Connection.commit, Some(()))
   }
 
@@ -83,7 +82,7 @@ class StrategySuite extends munit.FunSuite {
 
   test("Connection.rollback should NOT be called on success") {
     val i = new Interp
-    sql"select 1".query[Int].unique.transact(xa(i)).unsafeRunSync()
+    sql"select 1".query[Int].unique.transact(xa(i)).unsafeRunSync(): Unit
     assertEquals(i.Connection.rollback, None)
   }
 
@@ -95,13 +94,13 @@ class StrategySuite extends munit.FunSuite {
 
   test("[Streaming] Connection.autoCommit should be set to false") {
     val i = new Interp
-    sql"select 1".query[Int].stream.compile.toList.transact(xa(i)).unsafeRunSync()
+    sql"select 1".query[Int].stream.compile.toList.transact(xa(i)).unsafeRunSync(): Unit
     assertEquals(i.Connection.autoCommit, Some(false))
   }
 
   test("[Streaming] Connection.commit should be called on success") {
     val i = new Interp
-    sql"select 1".query[Int].stream.compile.toList.transact(xa(i)).unsafeRunSync()
+    sql"select 1".query[Int].stream.compile.toList.transact(xa(i)).unsafeRunSync(): Unit
     assertEquals(i.Connection.commit, Some(()))
   }
 
@@ -113,7 +112,7 @@ class StrategySuite extends munit.FunSuite {
 
   test("[Streaming] Connection.rollback should NOT be called on success") {
     val i = new Interp
-    sql"select 1".query[Int].stream.compile.toList.transact(xa(i)).unsafeRunSync()
+    sql"select 1".query[Int].stream.compile.toList.transact(xa(i)).unsafeRunSync(): Unit
     assertEquals(i.Connection.rollback, None)
   }
 
@@ -125,7 +124,7 @@ class StrategySuite extends munit.FunSuite {
 
   test("PreparedStatement.close should be called on success") {
     val i = new Interp
-    sql"select 1".query[Int].unique.transact(xa(i)).unsafeRunSync()
+    sql"select 1".query[Int].unique.transact(xa(i)).unsafeRunSync(): Unit
     assertEquals(i.PreparedStatement.close, Some(()))
   }
 
@@ -137,7 +136,7 @@ class StrategySuite extends munit.FunSuite {
 
   test("[Streaming] PreparedStatement.close should be called on success") {
     val i = new Interp
-    sql"select 1".query[Int].stream.compile.toList.transact(xa(i)).unsafeRunSync()
+    sql"select 1".query[Int].stream.compile.toList.transact(xa(i)).unsafeRunSync(): Unit
     assertEquals(i.PreparedStatement.close, Some(()))
   }
 
@@ -149,7 +148,7 @@ class StrategySuite extends munit.FunSuite {
 
   test("ResultSet.close should be called on success") {
     val i = new Interp
-    sql"select 1".query[Int].unique.transact(xa(i)).unsafeRunSync()
+    sql"select 1".query[Int].unique.transact(xa(i)).unsafeRunSync(): Unit
     assertEquals(i.ResultSet.close, Some(()))
   }
 
@@ -161,7 +160,7 @@ class StrategySuite extends munit.FunSuite {
 
   test("[Streaming] ResultSet.close should be called on success") {
     val i = new Interp
-    sql"select 1".query[Int].stream.compile.toList.transact(xa(i)).unsafeRunSync()
+    sql"select 1".query[Int].stream.compile.toList.transact(xa(i)).unsafeRunSync(): Unit
     assertEquals(i.ResultSet.close, Some(()))
   }
 

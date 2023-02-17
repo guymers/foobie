@@ -58,7 +58,9 @@ object fragment {
       @SuppressWarnings(Array("org.wartremover.warts.Var"))
       val unsafeSet: (PreparedStatement, Int, elems.type) => Unit = { (ps, n, elems) =>
         var index = n
-        elems.iterator.foreach { e =>
+        val it = elems.iterator
+        while (it.hasNext) {
+          val e = it.next()
           e match {
             case Arg(a, p) => p.unsafeSetNonNullable(ps, index, a)
             case Opt(a, p) => p.unsafeSetNullable(ps, index, a)
@@ -70,7 +72,9 @@ object fragment {
       @SuppressWarnings(Array("org.wartremover.warts.Var"))
       val unsafeUpdate: (ResultSet, Int, elems.type) => Unit = { (ps, n, elems) =>
         var index = n
-        elems.iterator.foreach { e =>
+        val it = elems.iterator
+        while (it.hasNext) {
+          val e = it.next()
           e match {
             case Arg(a, p) => p.unsafeUpdateNonNullable(ps, index, a)
             case Opt(a, p) => p.unsafeUpdateNullable(ps, index, a)

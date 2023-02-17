@@ -16,6 +16,7 @@ import fs2.*
 import fs2.text.utf8.encode
 
 import java.io.StringReader
+import scala.language.implicitConversions
 
 class FragmentOps(f: Fragment) {
 

@@ -12,6 +12,8 @@ import doobie.util.transactor.Transactor
 import fs2.Pipe
 import fs2.Stream
 
+import scala.language.implicitConversions
+
 class StreamOps[F[_], A](fa: Stream[F, A]) {
   def transact[M[_]: MonadCancelThrow](xa: Transactor[M])(implicit
     ev: Stream[F, A] =:= Stream[ConnectionIO, A],

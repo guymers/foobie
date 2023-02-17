@@ -18,13 +18,13 @@ class AnalysisTestSpecs2 extends Specification with IOChecker {
     "password",
   )
   // Commented tests fail!
-  // check(AnalysisTest.speakerQuery(null, 0))
-  check(AnalysisTest.speakerQuery2)
-  check(AnalysisTest.arrayTest)
-  // check(AnalysisTest.arrayTest2)
-  check(AnalysisTest.pointTest)
-  // check(AnalysisTest.pointTest2)
-  checkOutput(AnalysisTest.update)
-  checkOutput(AnalysisTest.update0_1("foo", "bkah"))
-  check(AnalysisTest.update0_2)
+  // check(AnalysisTest.speakerQuery(null, 0)): Unit
+  check(AnalysisTest.speakerQuery2): Unit
+  check(AnalysisTest.arrayTest): Unit
+  // check(AnalysisTest.arrayTest2): Unit
+  check(AnalysisTest.pointTest): Unit
+  // check(AnalysisTest.pointTest2): Unit
+  checkOutput(AnalysisTest.update): Unit
+  checkOutput(AnalysisTest.update0_1("foo", "bkah")): Unit
+  check(AnalysisTest.update0_2): Unit
 }

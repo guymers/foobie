@@ -7,8 +7,6 @@ package doobie.util
 import cats.effect.IO
 import doobie.Transactor
 
-import scala.annotation.nowarn
-
 class PutSuite extends munit.FunSuite with PutSuitePlatform {
   case class X(x: Int)
   case class Q(x: String)
@@ -30,19 +28,19 @@ class PutSuite extends munit.FunSuite with PutSuitePlatform {
   case class Bar(n: Int)
 
   test("Put should exist for primitive types") {
-    Put[Int]
-    Put[String]
+    Put[Int]: Unit
+    Put[String]: Unit
   }
 
   test("Put should be derived for unary products") {
-    Put[X]
-    Put[Q]
+    Put[X]: Unit
+    Put[Q]: Unit
   }
 
   test("Put should not be derived for non-unary products") {
-    compileErrors("Put[Z]")
-    compileErrors("Put[(Int, Int)]")
-    compileErrors("Put[S.type]")
-  }: @nowarn("msg=.*pure expression does nothing in statement position.*")
+    val _ = compileErrors("Put[Z]")
+    val _ = compileErrors("Put[(Int, Int)]")
+    val _ = compileErrors("Put[S.type]")
+  }
 
 }

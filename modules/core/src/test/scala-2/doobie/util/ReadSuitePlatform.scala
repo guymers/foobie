@@ -15,22 +15,22 @@ trait ReadSuitePlatform { self: munit.FunSuite =>
   test("Read should exist for shapeless record types") {
     type DL = (Double, Long) // used below
     type A = Record.`'foo -> Int, 'bar -> String, 'baz -> DL, 'quz -> Woozle`.T
-    util.Read[A]
-    util.Read[(A, A)]
+    util.Read[A]: Unit
+    util.Read[(A, A)]: Unit
   }: @nowarn("msg=.*DL is never used.*")
 
   case class Woozle(a: (String, Int), b: Int :: String :: HNil, c: Boolean)
 
   test("Read should exist for some fancy types") {
-    util.Read[Woozle]
-    util.Read[(Woozle, String)]
-    util.Read[(Int, Woozle :: Woozle :: String :: HNil)]
+    util.Read[Woozle]: Unit
+    util.Read[(Woozle, String)]: Unit
+    util.Read[(Int, Woozle :: Woozle :: String :: HNil)]: Unit
   }
 
   test("Read should exist for option of some fancy types") {
-    util.Read[Option[Woozle]]
-    util.Read[Option[(Woozle, String)]]
-    util.Read[Option[(Int, Woozle :: Woozle :: String :: HNil)]]
+    util.Read[Option[Woozle]]: Unit
+    util.Read[Option[(Woozle, String)]]: Unit
+    util.Read[Option[(Int, Woozle :: Woozle :: String :: HNil)]]: Unit
   }
 
 }

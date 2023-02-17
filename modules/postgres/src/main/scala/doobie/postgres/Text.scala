@@ -8,6 +8,8 @@ import cats.ContravariantSemigroupal
 import cats.Foldable
 import cats.syntax.foldable.*
 
+import scala.annotation.nowarn
+
 /**
  * Typeclass for types that can be written as Postgres literal text, using the
  * default DELIMETER and NULL values, for use with `COPY`. If you wish to
@@ -168,12 +170,9 @@ trait TextInstances extends TextInstances0 { this: Text.type =>
 trait TextInstances0 extends TextInstances1 { this: Text.type =>
 
   // Iterable and views thereof, as [nested] ARRAY
+  @nowarn("msg=.*Modification of variable first within a closure causes it to be boxed.*")
   @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements", "org.wartremover.warts.Var"))
-  implicit def iterableInstance[F[_], A](
-    implicit
-    ev: Text[A],
-    f: F[A] => Iterable[A],
-  ): Text[F[A]] =
+  implicit def iterableInstance[F[_], A](implicit ev: Text[A], f: F[A] => Iterable[A]): Text[F[A]] =
     instance { (fa, sb) =>
       var first = true
       sb.append("{")

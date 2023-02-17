@@ -64,9 +64,6 @@ lazy val commonSettings = Seq(
     case _ => Seq.empty
   }),
   scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-    case Some((2, 12)) => Seq(
-      "-Ypartial-unification",
-    )
     case Some((2, 13)) => Seq(
       "-Vimplicits",
       "-Vtype-diffs",
@@ -83,6 +80,7 @@ lazy val commonSettings = Seq(
     )
     case _ => Seq.empty
   }),
+  Test / scalacOptions --= Seq("-Wperformance"),
 
   Compile / console / scalacOptions ~= filterScalacConsoleOpts,
   Test / console / scalacOptions ~= filterScalacConsoleOpts,

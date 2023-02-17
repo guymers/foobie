@@ -13,8 +13,8 @@ trait PutSuitePlatform { self: munit.FunSuite =>
   import PutSuitePlatform.*
 
   test("Put should be derived for unary products (AnyVal)") {
-    Put[Y]
-    Put[P]
+    Put[Y]: Unit
+    Put[P]: Unit
   }
 
 }

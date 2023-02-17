@@ -7,9 +7,9 @@ package doobie.postgres
 import cats.effect.IO
 import cats.syntax.applicative.catsSyntaxApplicativeId
 import doobie.ConnectionIO
+import doobie.postgres.implicits.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
-import doobie.postgres.implicits.*
 import doobie.util.transactor.Transactor
 import munit.CatsEffectSuite
 import org.postgresql.ds.PGSimpleDataSource
@@ -38,13 +38,13 @@ class Issue1512 extends CatsEffectSuite {
 
   test("A stream with a Pure effect inserts items properly") {
 
-    setup.unsafeRunSync()
+    val _ = setup.unsafeRunSync()
 
     // A pure stream is fine - can copy many items
     val count = 10000
     val stream = fs2.Stream.emits(1 to count)
 
-    sql"COPY demo(data) FROM STDIN".copyIn(stream, minChunkSize).transact(xa).unsafeRunSync()
+    val _ = sql"COPY demo(data) FROM STDIN".copyIn(stream, minChunkSize).transact(xa).unsafeRunSync()
 
     val queryCount =
       sql"SELECT count(*) from demo".query[Int].unique.transact(xa).unsafeRunSync()
@@ -54,7 +54,7 @@ class Issue1512 extends CatsEffectSuite {
 
   test("A stream with a ConnectionIO effect copies <= than minChunkSize items") {
 
-    setup.unsafeRunSync()
+    val _ = setup.unsafeRunSync()
 
     // Can copy up to minChunkSize just fine with ConnectionIO
     val inputs = 1 to minChunkSize
@@ -73,7 +73,7 @@ class Issue1512 extends CatsEffectSuite {
 
   test("A stream with a ConnectionIO effect copies items with count > minChunkSize") {
 
-    setup.unsafeRunSync()
+    val _ = setup.unsafeRunSync()
 
     val inputs = 1 to minChunkSize + 1
     val stream = fs2.Stream.emits[ConnectionIO, Int](inputs)

@@ -5,6 +5,7 @@
 package doobie.util
 
 import cats.effect.IO
+import cats.effect.Ref
 import doobie.enumerated.SqlState
 import doobie.syntax.applicativeerror.*
 
@@ -157,22 +158,33 @@ class CatchSqlSuite extends munit.FunSuite {
   }
 
   test("onSqlException should do nothing on success") {
-    var a = 1
-    IO.delay(3).onSqlException(IO.delay(a += 1)).attempt.unsafeRunSync()
+    val a = (for {
+      ref <- Ref[IO].of(1)
+      _ <- IO.delay(3).onSqlException(ref.update(_ + 1)).attempt
+      a <- ref.get
+    } yield a).unsafeRunSync()
     assertEquals(a, 1)
   }
 
   test("onSqlException should perform its effect on SQLException") {
-    var a = 1
     val e = new SQLException("", SQLSTATE_FOO.value)
-    assertEquals(IO.raiseError[Int](e).onSqlException(IO.delay(a += 1)).attempt.unsafeRunSync(), Left(e))
+    val (a, result) = (for {
+      ref <- Ref[IO].of(1)
+      result <- IO.raiseError[Int](e).onSqlException(ref.update(_ + 1)).attempt
+      a <- ref.get
+    } yield (a, result)).unsafeRunSync()
+    assertEquals(result, Left(e))
     assertEquals(a, 2)
   }
 
   test("onSqlException should ignore its effect on non-SQLException") {
-    var a = 1
     val e = new IllegalArgumentException
-    assertEquals(IO.raiseError[Int](e).onSqlException(IO.delay(a += 1)).attempt.unsafeRunSync(), Left(e))
+    val (a, result) = (for {
+      ref <- Ref[IO].of(1)
+      result <- IO.raiseError[Int](e).onSqlException(ref.update(_ + 1)).attempt
+      a <- ref.get
+    } yield (a, result)).unsafeRunSync()
+    assertEquals(result, Left(e))
     assertEquals(a, 1)
   }
 

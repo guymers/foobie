@@ -17,5 +17,5 @@ class IOAnalysisMatchersChecks extends Specification with IOAnalysisMatchers {
     "",
   )
 
-  "IOAnalysisMatchers should not crash during initialization" >> ok
+  "IOAnalysisMatchers should not crash during initialization" >> ok: Unit
 }

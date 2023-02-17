@@ -13,6 +13,8 @@ import doobie.ConnectionIO
 import doobie.HC
 import doobie.util.transactor.Transactor
 
+import scala.language.implicitConversions
+
 class ConnectionIOOps[A](ma: ConnectionIO[A]) {
   def transact[M[_]: MonadCancelThrow](xa: Transactor[M]): M[A] = xa.trans.apply(ma)
 }

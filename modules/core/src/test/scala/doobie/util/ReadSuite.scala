@@ -31,27 +31,27 @@ class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
   )
 
   test("Read should exist for some fancy types") {
-    util.Read[Int]
-    util.Read[(Int, Int)]
-    util.Read[(Int, Int, String)]
-    util.Read[(Int, (Int, String))]
+    util.Read[Int]: Unit
+    util.Read[(Int, Int)]: Unit
+    util.Read[(Int, Int, String)]: Unit
+    util.Read[(Int, (Int, String))]: Unit
   }
 
   test("Read should exist for Unit") {
-    util.Read[Unit]
+    util.Read[Unit]: Unit
     assertEquals(util.Read[(Int, Unit)].length, 1)
   }
 
   test("Read should exist for option of some fancy types") {
-    util.Read[Option[Int]]
-    util.Read[Option[(Int, Int)]]
-    util.Read[Option[(Int, Int, String)]]
-    util.Read[Option[(Int, (Int, String))]]
-    util.Read[Option[(Int, Option[(Int, String)])]]
+    util.Read[Option[Int]]: Unit
+    util.Read[Option[(Int, Int)]]: Unit
+    util.Read[Option[(Int, Int, String)]]: Unit
+    util.Read[Option[(Int, (Int, String))]]: Unit
+    util.Read[Option[(Int, Option[(Int, String)])]]: Unit
   }
 
   test("Read should exist for option of Unit") {
-    util.Read[Option[Unit]]
+    util.Read[Option[Unit]]: Unit
     assertEquals(util.Read[Option[(Int, Unit)]].length, 1)
   }
 

@@ -13,8 +13,8 @@ trait GetSuitePlatform { self: munit.FunSuite =>
   import GetSuitePlatform.*
 
   test("Get should be derived for unary products (AnyVal)") {
-    Get[Y]
-    Get[P]
+    Get[Y]: Unit
+    Get[P]: Unit
   }
 
 }

@@ -13,7 +13,7 @@ class `780` extends munit.FunSuite {
 
   test("deriving instances should work correctly for Write from class scope") {
     class Foo[A: Write, B: Write] {
-      Write[(A, B)]
+      Write[(A, B)]: Unit
     }
   }
 

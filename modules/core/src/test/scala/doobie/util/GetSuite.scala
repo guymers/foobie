@@ -10,8 +10,6 @@ import doobie.enumerated.JdbcType.{Array as _, *}
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 
-import scala.annotation.nowarn
-
 class GetSuite extends munit.FunSuite with GetSuitePlatform {
 
   case class X(x: Int)
@@ -21,20 +19,20 @@ class GetSuite extends munit.FunSuite with GetSuitePlatform {
   object S
 
   test("Get should exist for primitive types") {
-    Get[Int]
-    Get[String]
+    Get[Int]: Unit
+    Get[String]: Unit
   }
 
   test("Get should be derived for unary products") {
-    Get[X]
-    Get[Q]
+    Get[X]: Unit
+    Get[Q]: Unit
   }
 
   test("Get should not be derived for non-unary products") {
-    compileErrors("Get[Z]")
-    compileErrors("Get[(Int, Int)]")
-    compileErrors("Get[S.type]")
-  }: @nowarn("msg=.*pure expression does nothing in statement position.*")
+    val _ = compileErrors("Get[Z]")
+    val _ = compileErrors("Get[(Int, Int)]")
+    val _ = compileErrors("Get[S.type]")
+  }
 
 }
 

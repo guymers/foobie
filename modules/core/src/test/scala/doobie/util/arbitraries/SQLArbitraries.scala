@@ -13,7 +13,7 @@ import java.sql.Time
 import java.sql.Timestamp
 import scala.annotation.nowarn
 
-@nowarn("msg=.*deprecated.*")
+@nowarn("cat=deprecation")
 object SQLArbitraries {
 
   implicit val arbitraryTime: Arbitrary[Time] = Arbitrary {

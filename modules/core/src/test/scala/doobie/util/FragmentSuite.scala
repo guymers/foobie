@@ -44,9 +44,9 @@ class FragmentSuite extends munit.FunSuite {
 
   // https://github.com/tpolecat/doobie/issues/1186
   test("Fragment must interpolate an expression `Option(1).getOrElse(2)` properly") {
-    sql"${Option(1).getOrElse(2)} ${false} ${"xx"}"
-    fr"${Option(1).getOrElse(2)}"
-    fr0"${Option(1).getOrElse(2)}"
+    sql"${Option(1).getOrElse(2)} ${false} ${"xx"}": Unit
+    fr"${Option(1).getOrElse(2)}": Unit
+    fr0"${Option(1).getOrElse(2)}": Unit
   }
 
   test("Fragment must maintain parameter indexing (in-order)") {

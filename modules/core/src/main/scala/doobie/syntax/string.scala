@@ -12,6 +12,8 @@ import doobie.util.fragment.Elem
 import doobie.util.fragment.Fragment
 import doobie.util.pos.Pos
 
+import scala.language.implicitConversions
+
 /**
  * String interpolator for SQL literals. An expression of the form `sql".. \$a
  * ... \$b ..."` with interpolated values of type `A` and `B` (which must have

@@ -30,13 +30,10 @@ class beforeall extends Specification with IOChecker with BeforeAll {
   )
 
   // The test itself
-  check(targetQ)
+  check(targetQ): Unit
 
   // A hook for database initialization
   def beforeAll() = {
-    initQ.run
-      .transact(transactor)
-      .unsafeRunSync()
-    ()
+    initQ.run.transact(transactor).unsafeRunSync(): Unit
   }
 }

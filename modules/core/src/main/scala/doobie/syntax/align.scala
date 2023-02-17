@@ -7,6 +7,7 @@ package doobie.syntax
 import cats.data.Ior
 
 import scala.annotation.tailrec
+import scala.language.implicitConversions
 
 final class AlignSyntax[A](as: List[A]) {
   def align[B](bs: List[B]): List[A Ior B] = {

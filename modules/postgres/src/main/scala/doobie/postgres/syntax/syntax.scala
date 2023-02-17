@@ -17,6 +17,8 @@ import doobie.util.query.Query0
 import doobie.util.update.Update
 import doobie.util.update.Update0
 
+import scala.language.implicitConversions
+
 class PostgresMonadErrorOps[M[_], A](ma: M[A])(
   implicit ev: MonadError[M, Throwable],
 ) {

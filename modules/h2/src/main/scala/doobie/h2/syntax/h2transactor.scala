@@ -7,6 +7,8 @@ package syntax
 
 import cats.effect.kernel.Sync
 
+import scala.language.implicitConversions
+
 final class H2TransactorOps[M[_]](h2: H2Transactor[M])(implicit ev: Sync[M]) {
 
   /** A program that shuts down this `H2Transactor`. */

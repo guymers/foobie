@@ -10,6 +10,8 @@ import doobie.util.fragment.Elem.Opt
 import doobie.util.fragment.Fragment
 import doobie.util.pos.Pos
 
+import scala.language.implicitConversions
+
 final class PutOps[A: Put](a: A) {
   def fr(implicit pos: Pos): Fragment = mkFragment("? ", pos)
   def fr0(implicit pos: Pos): Fragment = mkFragment("?", pos)
