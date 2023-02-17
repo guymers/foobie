@@ -6,7 +6,7 @@ package doobie.postgres.syntax
 
 import cats.MonadError
 import cats.syntax.all.*
-import doobie.free.ConnectionIO
+import doobie.free.connection.ConnectionIO
 import doobie.hi.HC
 import doobie.hi.HPS
 import doobie.hi.HRS

@@ -11,8 +11,12 @@ import doobie.FC
 import doobie.HC
 import doobie.HPS
 import doobie.free.connection.ConnectionIO
+import doobie.postgres.PFPC
 import doobie.postgres.free.Embeddable
 import doobie.postgres.free.KleisliInterpreter
+import doobie.postgres.free.copymanager.CopyManagerIO
+import doobie.postgres.free.largeobjectmanager.LargeObjectManagerIO
+import doobie.postgres.free.pgconnection.PGConnectionIO
 import doobie.util.log.LogHandlerM
 import org.postgresql.PGConnection
 import org.postgresql.PGNotification

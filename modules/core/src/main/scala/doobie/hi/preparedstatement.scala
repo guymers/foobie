@@ -8,6 +8,8 @@ import cats.Foldable
 import cats.data.Ior
 import cats.effect.kernel.syntax.monadCancel.*
 import cats.syntax.all.*
+import doobie.FPS
+import doobie.FRS
 import doobie.enumerated.ColumnNullable
 import doobie.enumerated.FetchDirection
 import doobie.enumerated.Holdability
@@ -17,6 +19,8 @@ import doobie.enumerated.ParameterMode
 import doobie.enumerated.ParameterNullable
 import doobie.enumerated.ResultSetConcurrency
 import doobie.enumerated.ResultSetType
+import doobie.free.preparedstatement.PreparedStatementIO
+import doobie.free.resultset.ResultSetIO
 import doobie.syntax.align.*
 import doobie.util.Get
 import doobie.util.Put

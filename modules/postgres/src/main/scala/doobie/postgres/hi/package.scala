@@ -4,9 +4,11 @@
 
 package doobie.postgres
 
-package object hi
-  extends Modules
-  with free.Modules
-  with free.Types {
-  object implicits extends free.Instances
+package object hi {
+
+  val PHPC = pgconnection
+  val PHC = connection
+  val PHLO = largeobject
+  val PHLOM = largeobjectmanager
+  val PHLOS = lostreaming
 }

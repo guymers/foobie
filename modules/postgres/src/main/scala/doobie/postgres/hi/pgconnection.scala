@@ -4,6 +4,10 @@
 
 package doobie.postgres.hi
 
+import doobie.postgres.PFPC
+import doobie.postgres.free.copymanager.CopyManagerIO
+import doobie.postgres.free.largeobjectmanager.LargeObjectManagerIO
+import doobie.postgres.free.pgconnection.PGConnectionIO
 import org.postgresql.PGNotification
 
 object pgconnection {

@@ -21,11 +21,10 @@ package doobie
  *   - Lifting actions, low-level type mapping actions, and resource management
  *     actions do not appear in this API.
  */
-package object hi
-  extends Modules
-  with doobie.free.Modules
-  with doobie.free.Types {
+package object hi {
 
-  object implicits
-
+  val HC = doobie.hi.connection
+  val HS = doobie.hi.statement
+  val HPS = doobie.hi.preparedstatement
+  val HRS = doobie.hi.resultset
 }

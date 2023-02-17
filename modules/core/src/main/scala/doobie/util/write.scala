@@ -5,11 +5,11 @@
 package doobie.util
 
 import cats.ContravariantSemigroupal
+import doobie.FPS
+import doobie.FRS
 import doobie.enumerated.Nullability.*
-import doobie.free.FPS
-import doobie.free.FRS
-import doobie.free.PreparedStatementIO
-import doobie.free.ResultSetIO
+import doobie.free.preparedstatement.PreparedStatementIO
+import doobie.free.resultset.ResultSetIO
 import doobie.util.fragment.Elem
 import doobie.util.fragment.Fragment
 

@@ -5,9 +5,9 @@
 package doobie.util
 
 import cats.Applicative
+import doobie.FRS
 import doobie.enumerated.Nullability.*
-import doobie.free.FRS
-import doobie.free.ResultSetIO
+import doobie.free.resultset.ResultSetIO
 
 import java.sql.ResultSet
 import scala.annotation.implicitNotFound

@@ -15,10 +15,13 @@ import doobie.util.Write
 import doobie.util.invariant.*
 import doobie.util.stream.repeatEvalChunks
 import fs2.Stream
-
 import java.sql.ResultSetMetaData
 import java.sql.SQLWarning
+
 import scala.collection.Factory
+
+import doobie.FRS
+import doobie.free.resultset.ResultSetIO
 
 /**
  * Module of high-level constructors for `ResultSetIO` actions.

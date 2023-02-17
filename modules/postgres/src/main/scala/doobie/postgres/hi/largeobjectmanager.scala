@@ -5,7 +5,10 @@
 package doobie.postgres.hi
 
 import cats.syntax.all.*
-import doobie.postgres.implicits.*
+import doobie.postgres.PFLO
+import doobie.postgres.PFLOM
+import doobie.postgres.free.largeobject.LargeObjectIO
+import doobie.postgres.free.largeobjectmanager.LargeObjectManagerIO
 
 import java.io.File
 import java.io.InputStream
