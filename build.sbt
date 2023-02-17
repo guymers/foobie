@@ -8,7 +8,7 @@ val fs2Version = "3.6.1"
 val h2Version = "2.1.214"
 val hikariVersion = "4.0.3"
 val munitVersion = "1.0.0-M7"
-val postGisVersion = "2.5.1"
+val postgisVersion = "2021.1.0"
 val postgresVersion = "42.5.4"
 val refinedVersion = "0.10.1"
 val scalatestVersion = "3.2.15"
@@ -16,9 +16,6 @@ val shapelessVersion = "2.3.9"
 val specs2Version = "4.19.2"
 val slf4jVersion = "2.0.6"
 val weaverVersion = "0.8.1"
-
-// This is used in a couple places. Might be nice to separate these things out.
-lazy val postgisDep = "net.postgis" % "postgis-jdbc" % postGisVersion
 
 val Scala213 = "2.13.10"
 val Scala3 = "3.2.2"
@@ -179,13 +176,11 @@ lazy val core = module("core")
   )
 
 lazy val postgres = module("postgres")
-  .dependsOn(core % "compile->compile;test->test")
   .settings(freeGen2Settings)
   .settings(
     libraryDependencies ++= Seq(
       "co.fs2" %% "fs2-io" % fs2Version,
       "org.postgresql" % "postgresql" % postgresVersion,
-      postgisDep % "provided",
     ),
     freeGen2Dir := (Compile / scalaSource).value / "doobie" / "postgres" / "free",
     freeGen2Package := "doobie.postgres.free",
@@ -217,6 +212,16 @@ lazy val postgres = module("postgres")
     """,
     consoleQuick / initialCommands := "",
   )
+  .dependsOn(core % "compile->compile;test->test")
+
+lazy val postgis = module("postgis")
+  .settings(
+    libraryDependencies ++= Seq(
+      "net.postgis" % "postgis-jdbc" % postgisVersion,
+    ),
+  )
+  .dependsOn(core)
+  .dependsOn(postgres % "test->test")
 
 lazy val `postgres-circe` = module("postgres-circe")
   .settings(
@@ -274,7 +279,7 @@ lazy val munit = module("munit")
 lazy val scalatest = module("scalatest")
   .settings(
     libraryDependencies ++= Seq(
-      "org.scalatest"  %% "scalatest" % scalatestVersion,
+      "org.scalatest" %% "scalatest" % scalatestVersion,
       "com.h2database" % "h2" % h2Version % "test",
     )
   )
@@ -316,7 +321,7 @@ lazy val bench = project.in(file("modules/bench"))
   .dependsOn(core, postgres)
 
 lazy val docs = project.in(file("modules/docs"))
-  .dependsOn(core, postgres, h2, hikari, munit, scalatest, specs2, weaver)
+  .dependsOn(core, postgres, postgis, h2, hikari, munit, scalatest, specs2, weaver)
   .settings(commonSettings)
   .settings(publish / skip := true)
   .enablePlugins(GhpagesPlugin)
@@ -331,8 +336,6 @@ lazy val docs = project.in(file("modules/docs"))
       "io.circe" %% "circe-generic" % circeVersion,
       "io.circe" %% "circe-parser" % circeVersion,
     ),
-    // postgis is `provided` dependency for users, and section from book of doobie needs it
-    libraryDependencies += postgisDep,
     Test / fork := true,
 
     version := version.value.takeWhile(_ != '+'), // strip off the +3-f22dca22+20191110-1520-SNAPSHOT business

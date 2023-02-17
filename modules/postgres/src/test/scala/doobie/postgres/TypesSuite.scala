@@ -8,7 +8,6 @@ import doobie.free.connection.ConnectionIO
 import doobie.implicits.javasql.*
 import doobie.postgres.enums.*
 import doobie.postgres.implicits.*
-import doobie.postgres.pgisimplicits.*
 import doobie.postgres.util.arbitraries.SQLArbitraries.*
 import doobie.postgres.util.arbitraries.TimeArbitraries.*
 import doobie.syntax.connectionio.*
@@ -18,7 +17,6 @@ import doobie.util.arbitraries.StringArbitraries.*
 import doobie.util.meta.Meta
 import doobie.util.update.Update
 import doobie.util.update.Update0
-import org.postgis.*
 import org.postgresql.geometric.*
 import org.postgresql.util.*
 import org.scalacheck.Arbitrary
@@ -31,7 +29,7 @@ import java.time.ZoneOffset
 import java.util.UUID
 
 // Establish that we can write and read various types.
-class TypesSuite extends munit.ScalaCheckSuite {
+trait PostgresInstanceCheckSuite { self: munit.ScalaCheckSuite =>
   import PostgresTestTransactor.xa
   import cats.effect.unsafe.implicits.global
 
@@ -85,6 +83,9 @@ class TypesSuite extends munit.ScalaCheckSuite {
 
   def skip(col: String, msg: String = "not yet implemented") =
     test(s"Mapping for $col ($msg)".ignore) {}
+}
+
+class TypesSuite extends munit.ScalaCheckSuite with PostgresInstanceCheckSuite {
 
   // 8.1 Numeric Types
   testInOut[Short]("smallint")
@@ -157,26 +158,6 @@ class TypesSuite extends munit.ScalaCheckSuite {
   testInOut("polygon", new PGpolygon(Array(new PGpoint(1, 2), new PGpoint(3, 4))))
   skip("line", "doc says \"not fully implemented\"")
 
-  // test postgis geography mappings
-  {
-    def createPoint(lat: Double, lon: Double): Point = {
-      val p = new Point(lon, lat)
-      p.setSrid(4326)
-
-      p
-    }
-
-    import doobie.postgres.pgisgeographyimplicits.*
-    val point1 = createPoint(1, 2)
-    val point2 = createPoint(1, 3)
-    val lineString = new LineString(Array[Point](point1, point2))
-    lineString.setSrid(4326)
-
-    // test geography points
-    testInOut("GEOGRAPHY(POINT)", point1)
-    testInOut("GEOGRAPHY(LINESTRING)", lineString)
-  }
-
   // 8.9 Network Address Types
   testInOut("inet", InetAddress.getByName("123.45.67.8"))
   skip("inet", "no suitable JDK type")
@@ -222,40 +203,6 @@ class TypesSuite extends munit.ScalaCheckSuite {
   skip("tstzrange")
   skip("daterange")
   skip("custom")
-
-  // PostGIS geometry types
-
-  // Random streams of geometry values
-  lazy val rnd: Iterator[Double] = LazyList.continually(scala.util.Random.nextDouble()).iterator
-  lazy val pts: Iterator[Point] = LazyList.continually(new Point(rnd.next(), rnd.next())).iterator
-  lazy val lss: Iterator[LineString] =
-    LazyList.continually(new LineString(Array(pts.next(), pts.next(), pts.next()))).iterator
-  lazy val lrs: Iterator[LinearRing] = LazyList.continually(new LinearRing({
-    lazy val p = pts.next();
-    Array(p, pts.next(), pts.next(), pts.next(), p)
-  })).iterator
-  lazy val pls: Iterator[Polygon] = LazyList.continually(new Polygon(lras.next())).iterator
-
-  // Streams of arrays of random geometry values
-  lazy val ptas: Iterator[Array[Point]] = LazyList.continually(Array(pts.next(), pts.next(), pts.next())).iterator
-  lazy val plas: Iterator[Array[Polygon]] = LazyList.continually(Array(pls.next(), pls.next(), pls.next())).iterator
-  lazy val lsas: Iterator[Array[LineString]] = LazyList.continually(Array(lss.next(), lss.next(), lss.next())).iterator
-  lazy val lras: Iterator[Array[LinearRing]] = LazyList.continually(Array(lrs.next(), lrs.next(), lrs.next())).iterator
-
-  // All these types map to `geometry`
-  def testInOutGeom[A <: Geometry: Meta](a: A) =
-    testInOut[A]("geometry", a)
-
-  testInOutGeom[Geometry](pts.next())
-  testInOutGeom[ComposedGeom](new MultiLineString(lsas.next()))
-  testInOutGeom[GeometryCollection](new GeometryCollection(Array(pts.next(), lss.next())))
-  testInOutGeom[MultiLineString](new MultiLineString(lsas.next()))
-  testInOutGeom[MultiPolygon](new MultiPolygon(plas.next()))
-  testInOutGeom[PointComposedGeom](lss.next())
-  testInOutGeom[LineString](lss.next())
-  testInOutGeom[MultiPoint](new MultiPoint(ptas.next()))
-  testInOutGeom[Polygon](pls.next())
-  testInOutGeom[Point](pts.next())
 
   // hstore
   testInOut[Map[String, String]]("hstore")

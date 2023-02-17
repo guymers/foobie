@@ -2,16 +2,17 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-package doobie.postgres
+package doobie.postgis.instances
 
 import doobie.util.invariant.*
 import doobie.util.meta.Meta
-import org.postgis.*
+import net.postgis.jdbc.*
+import net.postgis.jdbc.geometry.*
 import org.tpolecat.typename.*
 
 import scala.reflect.ClassTag
 
-trait PgisInstances {
+object geometry {
 
   // PostGIS outer types
   implicit val PGgeometryType: Meta[PGgeometry] = Meta.Advanced.other[PGgeometry]("geometry")
