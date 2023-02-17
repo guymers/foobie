@@ -4,12 +4,10 @@
 
 package doobie.postgres
 
-import cats.effect.IO
 import cats.syntax.all.*
 import doobie.free.connection.ConnectionIO
 import doobie.postgres.implicits.*
 import doobie.syntax.connectionio.*
-import doobie.syntax.stream.*
 import doobie.syntax.string.*
 import doobie.util.Read
 import doobie.util.fragment.Fragment
@@ -79,24 +77,16 @@ class TextSuite extends munit.ScalaCheckSuite {
 
   test("copyIn should correctly insert batches of rows") {
     forAll(genRows) { rs =>
-      val rsʹ = (create *> insert.copyIn(rs) *> selectAll).transact(xa).unsafeRunSync()
-      assertEquals(rs, rsʹ)
+      val rs_ = (create *> insert.copyIn(rs) *> selectAll).transact(xa).unsafeRunSync()
+      assertEquals(rs, rs_)
     }
   }
 
   test("correctly insert batches of rows via Stream") {
     forAll(genRows) { rs =>
-      val rsʹ =
+      val rs_ =
         (create *> insert.copyIn(Stream.emits[ConnectionIO, Row](rs), 100) *> selectAll).transact(xa).unsafeRunSync()
-      assertEquals(rs, rsʹ)
-    }
-  }
-
-  test("correctly insert batches of rows via Stream in IO") {
-    forAll(genRows) { rs =>
-      val inner = (rows: Stream[ConnectionIO, Row]) => Stream.eval(create *> insert.copyIn(rows, 100) *> selectAll)
-      val rsʹ = Stream.emits[IO, Row](rs).through(inner.transact(xa)).compile.foldMonoid.unsafeRunSync()
-      assertEquals(rs, rsʹ)
+      assertEquals(rs, rs_)
     }
   }
 

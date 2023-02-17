@@ -4,8 +4,8 @@
 
 package doobie.util
 
-import cats.effect.Async
 import cats.effect.IO
+import cats.effect.kernel.Sync
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 import doobie.util.transactor.Transactor
@@ -16,7 +16,7 @@ class TransactorSuite extends munit.FunSuite {
 
   val q = sql"select 42".query[Int].unique
 
-  def xa[A[_]: Async] = Transactor.fromDriverManager[A](
+  def xa[A[_]: Sync] = Transactor.fromDriverManager[A](
     "org.h2.Driver",
     "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
     "sa",

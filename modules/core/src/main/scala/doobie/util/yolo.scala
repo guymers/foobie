@@ -4,7 +4,7 @@
 
 package doobie.util
 
-import cats.effect.kernel.Async
+import cats.effect.kernel.MonadCancelThrow
 import cats.syntax.show.*
 import doobie.free.connection.ConnectionIO
 import doobie.free.connection.delay
@@ -24,7 +24,7 @@ import org.tpolecat.typename.*
 /** Module for implicit syntax useful in REPL session. */
 object yolo {
 
-  class Yolo[M[_]](xa: Transactor[M])(implicit ev: Async[M]) {
+  class Yolo[M[_]](xa: Transactor[M])(implicit ev: MonadCancelThrow[M]) {
 
     private def out(s: String, colors: Colors): ConnectionIO[Unit] =
       delay(Console.println(show"${colors.BLUE}  $s${colors.RESET}"))

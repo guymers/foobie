@@ -4,18 +4,16 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 
-import java.lang.String
 import java.sql.SQLData
 import java.sql.SQLInput
 import java.sql.SQLOutput
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object sqldata { module =>
@@ -56,7 +54,6 @@ object sqldata { module =>
       def poll[A](poll: Any, fa: SQLDataIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: SQLDataIO[A], fin: SQLDataIO[Unit]): F[A]
-      def fromFuture[A](fut: SQLDataIO[Future[A]]): F[A]
 
       // SQLData
       def getSQLTypeName: F[String]
@@ -102,9 +99,6 @@ object sqldata { module =>
     case class OnCancel[A](fa: SQLDataIO[A], fin: SQLDataIO[Unit]) extends SQLDataOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: SQLDataIO[Future[A]]) extends SQLDataOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
-    }
 
     // SQLData-specific operations.
     case object GetSQLTypeName extends SQLDataOp[String] {
@@ -140,20 +134,20 @@ object sqldata { module =>
   }
   val canceled = FF.liftF[SQLDataOp, Unit](Canceled)
   def onCancel[A](fa: SQLDataIO[A], fin: SQLDataIO[Unit]) = FF.liftF[SQLDataOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: SQLDataIO[Future[A]]) = FF.liftF[SQLDataOp, A](FromFuture(fut))
 
   // Smart constructors for SQLData-specific operations.
   val getSQLTypeName: SQLDataIO[String] = FF.liftF(GetSQLTypeName)
   def readSQL(a: SQLInput, b: String): SQLDataIO[Unit] = FF.liftF(ReadSQL(a, b))
   def writeSQL(a: SQLOutput): SQLDataIO[Unit] = FF.liftF(WriteSQL(a))
 
+  private val monad = FF.catsFreeMonadForFree[SQLDataOp]
+
   // Typeclass instances for SQLDataIO
-  implicit val WeakAsyncSQLDataIO: WeakAsync[SQLDataIO] =
-    new WeakAsync[SQLDataIO] {
-      val monad = FF.catsFreeMonadForFree[SQLDataOp]
-      override val applicative = monad
+  implicit val SyncSQLDataIO: Sync[SQLDataIO] =
+    new Sync[SQLDataIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): SQLDataIO[A] = monad.pure(x)
+      override def map[A, B](fa: SQLDataIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: SQLDataIO[A])(f: A => SQLDataIO[B]): SQLDataIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => SQLDataIO[Either[A, B]]): SQLDataIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): SQLDataIO[A] = module.raiseError(e)
@@ -166,6 +160,12 @@ object sqldata { module =>
       override def uncancelable[A](body: Poll[SQLDataIO] => SQLDataIO[A]): SQLDataIO[A] = module.uncancelable(body)
       override def canceled: SQLDataIO[Unit] = module.canceled
       override def onCancel[A](fa: SQLDataIO[A], fin: SQLDataIO[Unit]): SQLDataIO[A] = module.onCancel(fa, fin)
-      override def fromFuture[A](fut: SQLDataIO[Future[A]]): SQLDataIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidSQLDataIO[A](implicit M: Monoid[A]): Monoid[SQLDataIO[A]] =
+    new Monoid[SQLDataIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: SQLDataIO[A], y: SQLDataIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

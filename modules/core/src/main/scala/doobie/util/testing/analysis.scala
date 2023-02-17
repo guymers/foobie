@@ -4,7 +4,7 @@
 
 package doobie.util.testing
 
-import cats.effect.kernel.Async
+import cats.effect.kernel.Sync
 import cats.syntax.show.*
 import doobie.free.connection.ConnectionIO
 import doobie.util.Colors
@@ -27,7 +27,7 @@ trait UnsafeRun[F[_]] {
  */
 trait CheckerBase[M[_]] {
   // Effect type, required instances
-  implicit def M: Async[M]
+  implicit def M: Sync[M]
   implicit def U: UnsafeRun[M]
   def transactor: Transactor[M]
   def colors: Colors = Colors.Ansi

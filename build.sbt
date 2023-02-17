@@ -132,7 +132,7 @@ lazy val free = module("free")
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % catsVersion,
       "org.typelevel" %% "cats-free" % catsVersion,
-      "org.typelevel" %% "cats-effect-std" % catsEffectVersion,
+      "org.typelevel" %% "cats-effect-kernel" % catsEffectVersion,
     ),
     libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, _)) => Seq(scalaOrganization.value %  "scala-reflect" % scalaVersion.value) // for macros
