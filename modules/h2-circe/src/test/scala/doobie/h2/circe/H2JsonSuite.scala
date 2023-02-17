@@ -31,8 +31,8 @@ class H2JsonSuite extends munit.FunSuite {
 
   def inOut[A: Write: Read](col: String, a: A) =
     for {
-      _ <- Update0(s"CREATE TEMPORARY TABLE TEST (value $col)", None).run
-      a0 <- Update[A](s"INSERT INTO TEST VALUES (?)", None).withUniqueGeneratedKeys[A]("value")(a)
+      _ <- Update0(s"CREATE TEMPORARY TABLE TEST (v $col)", None).run
+      a0 <- Update[A](s"INSERT INTO TEST VALUES (?)", None).withUniqueGeneratedKeys[A]("v")(a)
     } yield a0
 
   @SuppressWarnings(Array("org.wartremover.warts.StringPlusAny"))

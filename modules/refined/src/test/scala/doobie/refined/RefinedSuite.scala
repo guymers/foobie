@@ -82,7 +82,7 @@ class RefinedSuite extends munit.FunSuite {
 
   def insertOptionalPositiveInt(v: Option[PositiveInt]) = {
     val queryRes = for {
-      _ <- Update0(s"CREATE LOCAL TEMPORARY TABLE TEST (value INT)", None).run
+      _ <- Update0(s"CREATE LOCAL TEMPORARY TABLE TEST (v INT)", None).run
       _ <- sql"INSERT INTO TEST VALUES ($v)".update.run
     } yield ()
     queryRes.transact(xa).unsafeRunSync()

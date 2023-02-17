@@ -30,41 +30,40 @@ trait Instances {
       (rs, n, a) => rs.updateObject(n, a),
     )
 
-  // see postgres contrib for an explanation of array mapping; we may want to factor this out
+  private def checkNull[B >: Null](a: Array[B], e: Exception): Array[B] =
+    if (a == null) null else if (a.exists(_ == null)) throw e else a
 
-  private def boxedPair[A >: Null <: AnyRef: ClassTag]: (Meta[Array[A]], Meta[Array[Option[A]]]) = {
-    val raw = Meta.Advanced.other[Array[Object]]("ARRAY").timap[Array[A]](a =>
-      if (a == null) null else a.map(_.asInstanceOf[A]),
-    )(a => if (a == null) null else a.map(_.asInstanceOf[Object]))
-    def checkNull[B >: Null](a: Array[B], e: Exception): Array[B] =
-      if (a == null) null else if (a.exists(_ == null)) throw e else a
+  private def boxedPair[A >: Null <: AnyRef: ClassTag](
+    elementType: String,
+  ): (Meta[Array[A]], Meta[Array[Option[A]]]) = {
+    val raw = Meta.Advanced.array[A](elementType, "ARRAY")
     (
       raw.timap(checkNull(_, NullableCellRead))(checkNull(_, NullableCellUpdate)),
       raw.timap[Array[Option[A]]](_.map(Option(_)))(_.map(_.orNull).toArray),
     )
   }
 
-  private val boxedBooleanPair = boxedPair[java.lang.Boolean]
+  private val boxedBooleanPair = boxedPair[java.lang.Boolean]("BOOLEAN")
   implicit val unliftedBooleanArrayType: Meta[Array[java.lang.Boolean]] = boxedBooleanPair._1
   implicit val liftedBooleanArrayType: Meta[Array[Option[java.lang.Boolean]]] = boxedBooleanPair._2
 
-  private val boxedIntegerPair = boxedPair[java.lang.Integer]
+  private val boxedIntegerPair = boxedPair[java.lang.Integer]("INT")
   implicit val unliftedIntegerArrayType: Meta[Array[java.lang.Integer]] = boxedIntegerPair._1
   implicit val liftedIntegerArrayType: Meta[Array[Option[java.lang.Integer]]] = boxedIntegerPair._2
 
-  private val boxedLongPair = boxedPair[java.lang.Long]
+  private val boxedLongPair = boxedPair[java.lang.Long]("BIGINT")
   implicit val unliftedLongArrayType: Meta[Array[java.lang.Long]] = boxedLongPair._1
   implicit val liftedLongArrayType: Meta[Array[Option[java.lang.Long]]] = boxedLongPair._2
 
-  private val boxedFloatPair = boxedPair[java.lang.Float]
+  private val boxedFloatPair = boxedPair[java.lang.Float]("REAL")
   implicit val unliftedFloatArrayType: Meta[Array[java.lang.Float]] = boxedFloatPair._1
   implicit val liftedFloatArrayType: Meta[Array[Option[java.lang.Float]]] = boxedFloatPair._2
 
-  private val boxedDoublePair = boxedPair[java.lang.Double]
+  private val boxedDoublePair = boxedPair[java.lang.Double]("DOUBLE PRECISION")
   implicit val unliftedDoubleArrayType: Meta[Array[java.lang.Double]] = boxedDoublePair._1
   implicit val liftedDoubleArrayType: Meta[Array[Option[java.lang.Double]]] = boxedDoublePair._2
 
-  private val boxedStringPair = boxedPair[java.lang.String]
+  private val boxedStringPair = boxedPair[java.lang.String]("VARCHAR")
   implicit val unliftedStringArrayType: Meta[Array[java.lang.String]] = boxedStringPair._1
   implicit val liftedStringArrayType: Meta[Array[Option[java.lang.String]]] = boxedStringPair._2
 

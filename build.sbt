@@ -2,20 +2,20 @@
 import FreeGen2._
 
 val catsVersion = "2.9.0"
-val catsEffectVersion = "3.4.6"
-val circeVersion = "0.14.3"
-val fs2Version = "3.6.0"
-val h2Version = "1.4.200"
+val catsEffectVersion = "3.4.7"
+val circeVersion = "0.14.4"
+val fs2Version = "3.6.1"
+val h2Version = "2.1.214"
 val hikariVersion = "4.0.3"
 val munitVersion = "1.0.0-M7"
 val postGisVersion = "2.5.1"
-val postgresVersion = "42.5.3"
+val postgresVersion = "42.5.4"
 val refinedVersion = "0.10.1"
 val scalatestVersion = "3.2.15"
 val shapelessVersion = "2.3.9"
 val specs2Version = "4.19.2"
-val slf4jVersion = "2.0.5"
-val weaverVersion = "0.7.15"
+val slf4jVersion = "2.0.6"
+val weaverVersion = "0.8.1"
 
 // This is used in a couple places. Might be nice to separate these things out.
 lazy val postgisDep = "net.postgis" % "postgis-jdbc" % postGisVersion

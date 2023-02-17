@@ -38,16 +38,16 @@ class h2typesspec extends munit.ScalaCheckSuite {
 
   def inOut[A: Put: Get](col: String, a: A): ConnectionIO[A] =
     for {
-      _ <- Update0(s"CREATE LOCAL TEMPORARY TABLE TEST (value $col NOT NULL)", None).run
+      _ <- Update0(s"CREATE LOCAL TEMPORARY TABLE TEST (v $col NOT NULL)", None).run
       _ <- sql"INSERT INTO TEST VALUES ($a)".update.run
-      a0 <- sql"SELECT value FROM TEST".query[A].unique
+      a0 <- sql"SELECT v FROM TEST".query[A].unique
     } yield (a0)
 
   def inOutOpt[A: Put: Get](col: String, a: Option[A]): ConnectionIO[Option[A]] =
     for {
-      _ <- Update0(s"CREATE LOCAL TEMPORARY TABLE TEST (value $col)", None).run
+      _ <- Update0(s"CREATE LOCAL TEMPORARY TABLE TEST (v $col)", None).run
       _ <- sql"INSERT INTO TEST VALUES ($a)".update.run
-      a0 <- sql"SELECT value FROM TEST".query[Option[A]].unique
+      a0 <- sql"SELECT v FROM TEST".query[Option[A]].unique
     } yield (a0)
 
   def testInOut[A](col: String)(implicit m: Get[A], p: Put[A], arbitrary: Arbitrary[A]) = {
@@ -94,7 +94,9 @@ class h2typesspec extends munit.ScalaCheckSuite {
   testInOut[Byte]("TINYINT")
   testInOut[Short]("SMALLINT")
   testInOut[Long]("BIGINT")
-  testInOut[BigDecimal]("DECIMAL")
+  testInOut[Float]("REAL")
+  testInOut[Double]("DOUBLE PRECISION")
+  testInOut[BigDecimal]("DECFLOAT")
 
   /*
       TIME
@@ -136,15 +138,15 @@ class h2typesspec extends munit.ScalaCheckSuite {
   testInOut[java.time.OffsetDateTime]("TIMESTAMP(9) WITH TIME ZONE")
   testInOutWithCustomTransform[java.time.ZonedDateTime]("TIMESTAMP WITH TIME ZONE")(_.withFixedOffsetZone().withNano(0))
 
-  testInOut[List[Byte]]("BINARY")
+  testInOut[List[Byte]]("BINARY VARYING")
   skip("OTHER")
   testInOut[String]("VARCHAR")
   testInOutWithCustomGen[String]("CHAR(3)", nLongString(3))
   skip("BLOB")
   skip("CLOB")
   testInOut[UUID]("UUID")
-  testInOut[List[Int]]("ARRAY")
-  testInOut[List[String]]("ARRAY")
+  testInOut[List[Int]]("INT ARRAY")
+  testInOut[List[String]]("VARCHAR ARRAY")
   skip("GEOMETRY")
 
   test("Mapping for Boolean should pass query analysis for unascribed 'true'") {
