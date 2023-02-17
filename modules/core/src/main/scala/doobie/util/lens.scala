@@ -18,7 +18,7 @@ object lens {
       andThen(bc)
 
     def compose[C](bc: Lens[C, A]): Lens[C, B] =
-      bc andThen this
+      bc.andThen(this)
 
     def modify(a: A, f: B => B): A =
       set(a, f(get(a)))
@@ -32,9 +32,9 @@ object lens {
     def mods(f: B => B): State[A, B] =
       State { a =>
         val b = get(a)
-        val bʹ = f(b)
-        val aʹ = set(a, bʹ)
-        (aʹ, bʹ)
+        val b_ = f(b)
+        val a_ = set(a, b_)
+        (a_, b_)
       }
 
     def %=(f: B => B): State[A, B] =

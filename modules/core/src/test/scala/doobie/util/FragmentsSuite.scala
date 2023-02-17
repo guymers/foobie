@@ -47,7 +47,7 @@ class FragmentsSuite extends munit.FunSuite {
   }
 
   test("and (many)") {
-    assertEquals(and(fs: _*).query[Unit].sql, "(? ) AND (? ) AND (? ) ")
+    assertEquals(and(fs*).query[Unit].sql, "(? ) AND (? ) AND (? ) ")
   }
 
   test("and (single)") {
@@ -59,7 +59,7 @@ class FragmentsSuite extends munit.FunSuite {
   }
 
   test("andOpt (many)") {
-    assertEquals(andOpt(ofs: _*).query[Unit].sql, "(? ) AND (? ) ")
+    assertEquals(andOpt(ofs*).query[Unit].sql, "(? ) AND (? ) ")
   }
 
   test("andOpt (one)") {
@@ -71,7 +71,7 @@ class FragmentsSuite extends munit.FunSuite {
   }
 
   test("or (many)") {
-    assertEquals(or(fs: _*).query[Unit].sql, "(? ) OR (? ) OR (? ) ")
+    assertEquals(or(fs*).query[Unit].sql, "(? ) OR (? ) OR (? ) ")
   }
 
   test("or (single)") {
@@ -83,7 +83,7 @@ class FragmentsSuite extends munit.FunSuite {
   }
 
   test("orOpt (many)") {
-    assertEquals(orOpt(ofs: _*).query[Unit].sql, "(? ) OR (? ) ")
+    assertEquals(orOpt(ofs*).query[Unit].sql, "(? ) OR (? ) ")
   }
 
   test("orOpt (one)") {
@@ -95,7 +95,7 @@ class FragmentsSuite extends munit.FunSuite {
   }
 
   test("whereAnd (many)") {
-    assertEquals(whereAnd(fs: _*).query[Unit].sql, "WHERE (? ) AND (? ) AND (? ) ")
+    assertEquals(whereAnd(fs*).query[Unit].sql, "WHERE (? ) AND (? ) AND (? ) ")
   }
 
   test("whereAnd (single)") {
@@ -107,7 +107,7 @@ class FragmentsSuite extends munit.FunSuite {
   }
 
   test("whereAndOpt (many)") {
-    assertEquals(whereAndOpt(ofs: _*).query[Unit].sql, "WHERE (? ) AND (? ) ")
+    assertEquals(whereAndOpt(ofs*).query[Unit].sql, "WHERE (? ) AND (? ) ")
   }
 
   test("whereAndOpt (one)") {
@@ -119,7 +119,7 @@ class FragmentsSuite extends munit.FunSuite {
   }
 
   test("whereOr (many)") {
-    assertEquals(whereOr(fs: _*).query[Unit].sql, "WHERE (? ) OR (? ) OR (? ) ")
+    assertEquals(whereOr(fs*).query[Unit].sql, "WHERE (? ) OR (? ) OR (? ) ")
   }
 
   test("whereOr (single)") {
@@ -131,7 +131,7 @@ class FragmentsSuite extends munit.FunSuite {
   }
 
   test("whereOrOpt (many)") {
-    assertEquals(whereOrOpt(ofs: _*).query[Unit].sql, "WHERE (? ) OR (? ) ")
+    assertEquals(whereOrOpt(ofs*).query[Unit].sql, "WHERE (? ) OR (? ) ")
   }
 
   test("whereOrOpt (one)") {

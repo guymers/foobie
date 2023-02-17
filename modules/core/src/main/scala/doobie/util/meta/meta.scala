@@ -147,7 +147,7 @@ trait MetaConstructors {
 }
 
 trait MetaInstances { this: MetaConstructors =>
-  import doobie.enumerated.JdbcType.{Boolean as JdbcBoolean, _}
+  import doobie.enumerated.JdbcType.{Boolean as JdbcBoolean, *}
 
   /** @group Instances */
   implicit val GetPutInvariant: Invariant[Meta] =

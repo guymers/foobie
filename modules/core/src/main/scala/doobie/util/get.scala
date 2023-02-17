@@ -183,7 +183,6 @@ object Get extends GetInstances {
 }
 
 trait GetInstances extends GetPlatform {
-  import Predef._ // for array ops
 
   /** @group Instances */
   implicit val FunctorGet: Functor[Get] =

@@ -56,9 +56,11 @@ lazy val commonSettings = Seq(
       "-Xsource:3",
     )
     case Some((3, _)) => Seq(
+      "-explain",
       "-explain-types",
-      //"-no-indent",
-//      "-source:future",
+      "-language:adhocExtensions",
+      "-no-indent",
+      "-source:future",
       "-Ykind-projector",
     )
     case _ => Seq.empty

@@ -20,11 +20,11 @@ package object postgres {
   val PFLOM = doobie.postgres.free.largeobjectmanager
   val PFPC = doobie.postgres.free.pgconnection
 
-  val PHPC =  doobie.postgres.hi.pgconnection
-  val PHC =  doobie.postgres.hi.connection
-  val PHLO =  doobie.postgres.hi.largeobject
-  val PHLOM =  doobie.postgres.hi.largeobjectmanager
-  val PHLOS =  doobie.postgres.hi.lostreaming
+  val PHPC = doobie.postgres.hi.pgconnection
+  val PHC = doobie.postgres.hi.connection
+  val PHLO = doobie.postgres.hi.largeobject
+  val PHLOM = doobie.postgres.hi.largeobjectmanager
+  val PHLOS = doobie.postgres.hi.lostreaming
 
   object implicits
     extends Instances

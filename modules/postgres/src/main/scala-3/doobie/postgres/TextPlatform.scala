@@ -14,13 +14,14 @@ trait TextPlatform { this: Text.type =>
 
   // Tuples of more that one element
   given [H, T <: Tuple](using h: Text[H], t: Text[T]): Text[H *: T] =
-    (h product t).contramap(l => (l.head, l.tail))
+    h.product(t).contramap(l => (l.head, l.tail))
 
   // Put is available for single-element products.
   given derived[P <: Product, A](
-    using m: Mirror.ProductOf[P],
-          i: m.MirroredElemTypes =:= A,
-          t: Text[A]
+    using
+    m: Mirror.ProductOf[P],
+    i: m.MirroredElemTypes =:= A,
+    t: Text[A],
   ): Text[P] =
     t.contramap(p => i(Tuple.fromProductTyped(p)))
 

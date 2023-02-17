@@ -6,7 +6,7 @@ package doobie.util
 
 import scala.deriving.Mirror
 
-trait ReadPlatform:
+trait ReadPlatform {
 
   // Trivial Read for EmptyTuple
   given Read[EmptyTuple] =
@@ -16,14 +16,15 @@ trait ReadPlatform:
   given [H, T <: Tuple](using H: Read[H], T: Read[T]): Read[H *: T] =
     new Read[H *: T](
       H.gets ++ T.gets,
-      (rs, n) => H.unsafeGet(rs, n) *: T.unsafeGet(rs, n + H.length)
+      (rs, n) => H.unsafeGet(rs, n) *: T.unsafeGet(rs, n + H.length),
     )
 
   // Generic Read for products.
-  given derived [P <: Product, A](
-    using m: Mirror.ProductOf[P],
-          i: A =:= m.MirroredElemTypes,
-          w: Read[A]
+  given derived[P <: Product, A](
+    using
+    m: Mirror.ProductOf[P],
+    i: A =:= m.MirroredElemTypes,
+    w: Read[A],
   ): Read[P] =
     w.map(a => m.fromProduct(i(a)))
 
@@ -34,8 +35,9 @@ trait ReadPlatform:
     new Read[Option[Unit]](Nil, (_, _) => Some(()))
 
   given cons1[H, T <: Tuple](
-    using H: => Read[Option[H]],
-          T: => Read[Option[T]],
+    using
+    H: => Read[Option[H]],
+    T: => Read[Option[T]],
   ): Read[Option[H *: T]] =
     new Read[Option[H *: T]](
       H.gets ++ T.gets,
@@ -43,22 +45,26 @@ trait ReadPlatform:
         for {
           h <- H.unsafeGet(rs, n)
           t <- T.unsafeGet(rs, n + H.length)
-        } yield h *: t
+        } yield h *: t,
     )
 
   given cons2[H, T <: Tuple](
-    using H: => Read[Option[H]],
-          T: => Read[Option[T]]
+    using
+    H: => Read[Option[H]],
+    T: => Read[Option[T]],
   ): Read[Option[Option[H] *: T]] =
     new Read[Option[Option[H] *: T]](
       H.gets ++ T.gets,
-      (rs, n) => T.unsafeGet(rs, n + H.length).map(H.unsafeGet(rs, n) *: _)
+      (rs, n) => T.unsafeGet(rs, n + H.length).map(H.unsafeGet(rs, n) *: _),
     )
 
   // Generic Read for option of products.
   given [P <: Product, A](
-    using m: Mirror.ProductOf[P],
-          i: A =:= m.MirroredElemTypes,
-          w: Read[Option[A]]
+    using
+    m: Mirror.ProductOf[P],
+    i: A =:= m.MirroredElemTypes,
+    w: Read[Option[A]],
   ): Read[Option[P]] =
     w.map(a => a.map(a => m.fromProduct(i(a))))
+
+}

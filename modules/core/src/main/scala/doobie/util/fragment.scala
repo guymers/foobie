@@ -110,7 +110,7 @@ object fragment {
      * Construct a [[Query0]] from this fragment, with asserted row type `B`.
      */
     @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
-    def query[B: Read](implicit h: LogHandler = LogHandler.nop): Query0[B] =
+    def query[B](implicit R: Read[B], h: LogHandler = LogHandler.nop): Query0[B] =
       queryWithLogHandler(h)
 
     /**

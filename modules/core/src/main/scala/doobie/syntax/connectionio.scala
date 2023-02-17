@@ -16,7 +16,7 @@ import doobie.util.transactor.Transactor
 import scala.language.implicitConversions
 
 class ConnectionIOOps[A](ma: ConnectionIO[A]) {
-  def transact[M[_]: MonadCancelThrow](xa: Transactor[M]): M[A] = xa.trans.apply(ma)
+  def transact[M[_]](xa: Transactor[M])(implicit M: MonadCancelThrow[M]): M[A] = xa.trans.apply(ma)
 }
 
 class OptionTConnectionIOOps[A](ma: OptionT[ConnectionIO, A]) {

@@ -117,17 +117,17 @@ object connection {
    */
   def prepareQueryAnalysis[A: Write, B: Read](sql: String): ConnectionIO[Analysis] =
     prepareStatement(sql) {
-      (HPS.getParameterMappings[A], HPS.getColumnMappings[B]) mapN (Analysis(sql, _, _))
+      (HPS.getParameterMappings[A], HPS.getColumnMappings[B]).mapN(Analysis(sql, _, _))
     }
 
   def prepareQueryAnalysis0[B: Read](sql: String): ConnectionIO[Analysis] =
     prepareStatement(sql) {
-      HPS.getColumnMappings[B] map (cm => Analysis(sql, Nil, cm))
+      HPS.getColumnMappings[B].map(cm => Analysis(sql, Nil, cm))
     }
 
   def prepareUpdateAnalysis[A: Write](sql: String): ConnectionIO[Analysis] =
     prepareStatement(sql) {
-      HPS.getParameterMappings[A] map (pm => Analysis(sql, pm, Nil))
+      HPS.getParameterMappings[A].map(pm => Analysis(sql, pm, Nil))
     }
 
   def prepareUpdateAnalysis0(sql: String): ConnectionIO[Analysis] =

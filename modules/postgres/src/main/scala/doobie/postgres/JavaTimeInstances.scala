@@ -5,7 +5,7 @@
 package doobie.postgres
 
 import doobie.Meta
-import doobie.enumerated.{JdbcType => JT}
+import doobie.enumerated.JdbcType as JT
 import doobie.util.meta.MetaConstructors
 
 import java.time.OffsetDateTime

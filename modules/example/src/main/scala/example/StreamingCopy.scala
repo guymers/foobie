@@ -68,7 +68,7 @@ object StreamingCopy extends IOApp.Simple {
     def mkStream(c: Connection): Stream[F, C] = {
 
       // Now we can interpret a ConnectionIO into a Stream of F via the sink interpreter.
-      def evalS(f: ConnectionIO[_]): Stream[F, Nothing] =
+      def evalS(f: ConnectionIO[?]): Stream[F, Nothing] =
         Stream.eval(interpS(f)(c)).drain
 
       // And can thus lift all the sink operations into Stream of F
@@ -96,8 +96,8 @@ object StreamingCopy extends IOApp.Simple {
     HC.delay(Console.println(s"$tag: $s")) <* _
 
   /** Derive a new transactor that logs stuff. */
-  def addLogging[F[_], A](name: String)(xa: Transactor[F]): Transactor[F] = {
-    import Transactor._ // bring the lenses into scope
+  def addLogging[F[_]](name: String)(xa: Transactor[F]): Transactor[F] = {
+    import Transactor.* // bring the lenses into scope
     val update: State[Transactor[F], Unit] =
       for {
         _ <- before %= printBefore(name, "before - setting up the connection")

@@ -18,18 +18,18 @@ class PGConcurrentSuite extends munit.FunSuite {
 
   import cats.effect.unsafe.implicits.global
 
-  private var dataSource: HikariDataSource = _
+  private var dataSource: HikariDataSource = null
 
   private def createDataSource() = {
 
     Class.forName("org.postgresql.Driver")
     val dataSource = new HikariDataSource
 
-    dataSource setJdbcUrl "jdbc:postgresql://localhost:5432/postgres"
-    dataSource setUsername "postgres"
-    dataSource setPassword "password"
-    dataSource setMaximumPoolSize 10
-    dataSource setConnectionTimeout 2000
+    dataSource.setJdbcUrl("jdbc:postgresql://localhost:5432/postgres")
+    dataSource.setUsername("postgres")
+    dataSource.setPassword("password")
+    dataSource.setMaximumPoolSize(10)
+    dataSource.setConnectionTimeout(2000)
     dataSource
   }
 

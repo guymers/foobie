@@ -150,9 +150,9 @@ object HikariTransactor {
       _ <- Resource.eval {
         t.configure { ds =>
           Async[M].delay {
-            ds setJdbcUrl url
-            ds setUsername user
-            ds setPassword pass
+            ds.setJdbcUrl(url)
+            ds.setUsername(user)
+            ds.setPassword(pass)
           }
         }
       }

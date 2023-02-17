@@ -156,7 +156,7 @@ object update {
      * @group Execution
      */
     def withGeneratedKeys[K: Read](columns: String*)(a: A): Stream[ConnectionIO, K] =
-      withGeneratedKeysWithChunkSize[K](columns: _*)(a, DefaultChunkSize)
+      withGeneratedKeysWithChunkSize[K](columns*)(a, DefaultChunkSize)
 
     /**
      * Construct a stream that performs the update, yielding generated keys of
@@ -203,9 +203,9 @@ object update {
         def outputAnalysis = u.outputAnalysis
         def run = u.run(a)
         def withGeneratedKeysWithChunkSize[K: Read](columns: String*)(chunkSize: Int) =
-          u.withGeneratedKeysWithChunkSize[K](columns: _*)(a, chunkSize)
+          u.withGeneratedKeysWithChunkSize[K](columns*)(a, chunkSize)
         def withUniqueGeneratedKeys[K: Read](columns: String*) =
-          u.withUniqueGeneratedKeys(columns: _*)(a)
+          u.withUniqueGeneratedKeys(columns*)(a)
         def inspect[R](f: (String, PreparedStatementIO[Unit]) => ConnectionIO[R]) = u.inspect(a)(f)
       }
 
@@ -238,7 +238,7 @@ object update {
      */
     implicit val updateContravariant: Contravariant[Update] =
       new Contravariant[Update] {
-        def contramap[A, B](fa: Update[A])(f: B => A) = fa contramap f
+        def contramap[A, B](fa: Update[A])(f: B => A) = fa.contramap(f)
       }
 
   }
@@ -298,7 +298,7 @@ object update {
      * @group Execution
      */
     def withGeneratedKeys[K: Read](columns: String*): Stream[ConnectionIO, K] =
-      withGeneratedKeysWithChunkSize(columns: _*)(DefaultChunkSize)
+      withGeneratedKeysWithChunkSize(columns*)(DefaultChunkSize)
 
     /**
      * Construct a stream that performs the update, yielding generated keys of

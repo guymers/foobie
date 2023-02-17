@@ -7,9 +7,9 @@ package doobie.refined
 import cats.Show
 import cats.effect.IO
 import cats.syntax.all.*
+import doobie.refined.implicits.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
-import doobie.refined.implicits.*
 import doobie.util.Write
 import doobie.util.invariant.*
 import doobie.util.meta.Meta
@@ -104,7 +104,7 @@ class RefinedSuite extends munit.FunSuite {
     )
   }
 
-  private[this] def secondaryValidationFailedCaught_?(query: => Unit) =
-    intercept[SecondaryValidationFailed[_]](query)
+  private def secondaryValidationFailedCaught_?(query: => Unit) =
+    intercept[SecondaryValidationFailed[?]](query)
 
 }

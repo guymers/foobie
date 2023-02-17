@@ -85,7 +85,7 @@ trait Instances {
     arrayType: String,
     arrayTypeT: String*,
   ): (Meta[Array[A]], Meta[Array[Option[A]]]) = {
-    val raw = Meta.Advanced.array[A](elemType, arrayType, arrayTypeT: _*)
+    val raw = Meta.Advanced.array[A](elemType, arrayType, arrayTypeT*)
     // Ensure `a`, which may be null, which is ok, contains no null elements.
     def checkNull[B >: Null](a: Array[B], e: Exception): Array[B] =
       if (a == null) null else if (a.exists(_ == null)) throw e else a

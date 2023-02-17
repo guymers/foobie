@@ -5,12 +5,14 @@
 package doobie.util
 
 import doobie.util.pos.Pos
-import scala.quoted.{ Expr, Quotes }
+
+import scala.quoted.Expr
+import scala.quoted.Quotes
 
 trait PosPlatform {
 
   implicit inline def instance: Pos =
-    ${PosPlatform.originImpl}
+    ${ PosPlatform.originImpl }
 
 }
 
@@ -20,7 +22,7 @@ object PosPlatform {
     val rootPosition = ctx.reflect.Position.ofMacroExpansion
     val file = Expr(rootPosition.sourceFile.path)
     val line = Expr(rootPosition.startLine + 1)
-    '{Pos($file, $line)}
+    '{ Pos($file, $line) }
   }
 
 }

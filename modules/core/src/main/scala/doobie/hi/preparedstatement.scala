@@ -76,7 +76,7 @@ object preparedstatement {
   def addBatchesAndExecute[F[_]: Foldable, A: Write](fa: F[A]): PreparedStatementIO[Int] =
     fa.toList
       .foldRight(executeBatch)((a, b) => set(a) *> addBatch *> b)
-      .map(_.foldLeft(0)((acc, n) => acc + (n max 0))) // treat negatives (failures) as no rows updated
+      .map(_.foldLeft(0)((acc, n) => acc + n.max(0))) // treat negatives (failures) as no rows updated
 
   /**
    * Add many sets of parameters.
@@ -126,8 +126,10 @@ object preparedstatement {
    * `JdbcMeta` with the `JdbcMeta` provided by a `Write` instance.
    * @group Metadata
    */
-  def getColumnMappings[A](implicit A: Read[A]): PreparedStatementIO[List[(Get[?], NullabilityKnown) Ior ColumnMeta]] =
-    getColumnJdbcMeta.map(m => A.gets align m)
+  def getColumnMappings[A](implicit
+    A: Read[A],
+  ): PreparedStatementIO[List[Ior[(Get[?], NullabilityKnown), ColumnMeta]]] =
+    getColumnJdbcMeta.map(m => A.gets.align(m))
 
   /** @group Properties */
   val getFetchDirection: PreparedStatementIO[FetchDirection] =
@@ -170,8 +172,8 @@ object preparedstatement {
    */
   def getParameterMappings[A](implicit
     A: Write[A],
-  ): PreparedStatementIO[List[(Put[?], NullabilityKnown) Ior ParameterMeta]] =
-    getParameterJdbcMeta.map(m => A.puts align m)
+  ): PreparedStatementIO[List[Ior[(Put[?], NullabilityKnown), ParameterMeta]]] =
+    getParameterJdbcMeta.map(m => A.puts.align(m))
 
   /** @group Properties */
   val getMaxFieldSize: PreparedStatementIO[Int] =

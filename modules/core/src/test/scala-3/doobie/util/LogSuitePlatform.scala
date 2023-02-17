@@ -4,7 +4,8 @@
 
 package doobie.util
 
-import doobie.util.log.{ Success, ProcessingFailure }
+import doobie.util.log.ProcessingFailure
+import doobie.util.log.Success
 
 trait LogSuitePlatform { self: LogSuite =>
 

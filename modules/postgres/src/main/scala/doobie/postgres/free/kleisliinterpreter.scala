@@ -27,9 +27,9 @@ import doobie.postgres.free.pgconnection.PGConnectionOp
 import doobie.util.log.LogEvent
 import doobie.util.log.LogHandlerM
 import org.postgresql.PGConnection
-import org.postgresql.copy.{CopyIn => PGCopyIn}
-import org.postgresql.copy.{CopyManager => PGCopyManager}
-import org.postgresql.copy.{CopyOut => PGCopyOut}
+import org.postgresql.copy.CopyIn as PGCopyIn
+import org.postgresql.copy.CopyManager as PGCopyManager
+import org.postgresql.copy.CopyOut as PGCopyOut
 import org.postgresql.jdbc.AutoSave
 import org.postgresql.largeobject.LargeObject
 import org.postgresql.largeobject.LargeObjectManager
@@ -339,7 +339,7 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def fromFuture[A](fut: PGConnectionIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
-    override def addDataType(a: String, b: Class[_ <: org.postgresql.util.PGobject]) = primitive(_.addDataType(a, b))
+    override def addDataType(a: String, b: Class[? <: org.postgresql.util.PGobject]) = primitive(_.addDataType(a, b))
     override def cancelQuery = primitive(_.cancelQuery)
     override def createArrayOf(a: String, b: AnyRef) = primitive(_.createArrayOf(a, b))
     override def escapeIdentifier(a: String) = primitive(_.escapeIdentifier(a))
