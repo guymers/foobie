@@ -7,10 +7,12 @@ package doobie.postgres
 import cats.effect.IO
 import cats.syntax.all.*
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
 import doobie.postgres.implicits.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.stream.*
+import doobie.syntax.string.*
 import doobie.util.fragment.Fragment
-import fs2.*
+import fs2.Stream
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll

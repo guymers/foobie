@@ -9,7 +9,6 @@ import doobie.enumerated.FetchDirection
 import doobie.enumerated.Holdability
 import doobie.enumerated.ResultSetConcurrency
 import doobie.enumerated.ResultSetType
-import doobie.implicits.*
 
 import java.sql.SQLWarning
 

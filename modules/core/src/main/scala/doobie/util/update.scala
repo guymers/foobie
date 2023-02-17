@@ -11,7 +11,6 @@ import doobie.HC
 import doobie.HPS
 import doobie.free.connection.ConnectionIO
 import doobie.free.preparedstatement.PreparedStatementIO
-import doobie.implicits.*
 import doobie.util.analysis.Analysis
 import doobie.util.fragment.Fragment
 import doobie.util.log.*

@@ -7,7 +7,8 @@ package doobie.util
 import cats.effect.IO
 import cats.syntax.apply.*
 import doobie.free.KleisliInterpreter
-import doobie.implicits.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.log.LogHandlerM
 import doobie.util.transactor.Transactor
 

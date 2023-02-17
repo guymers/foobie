@@ -15,7 +15,7 @@ import doobie.Transactor
 import doobie.free.connection.ConnectionIO
 import doobie.free.preparedstatement.PreparedStatementIO
 import doobie.free.resultset.ResultSetIO
-import doobie.implicits.*
+import doobie.syntax.all.*
 import doobie.util.stream.repeatEvalChunks
 import fs2.Stream
 import fs2.Stream.bracket

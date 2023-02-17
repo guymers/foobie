@@ -6,7 +6,6 @@ package doobie.postgres
 
 import doobie.FC
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
 import doobie.postgres.implicits.*
 
 class SyntaxSuite extends munit.FunSuite {

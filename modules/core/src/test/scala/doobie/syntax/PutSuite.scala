@@ -4,8 +4,8 @@
 
 package doobie.syntax
 
-import cats.syntax.all.*
-import doobie.implicits.*
+import cats.syntax.foldable.*
+import doobie.syntax.all.*
 
 class PutSuite extends munit.FunSuite {
 

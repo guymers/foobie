@@ -17,10 +17,7 @@ import doobie.HRS
 import doobie.free.connection.ConnectionIO
 import doobie.free.preparedstatement.PreparedStatementIO
 import doobie.free.resultset.ResultSetIO
-import doobie.implicits.*
-import doobie.util.MultiVersionTypeSupport.=:=
 import doobie.util.analysis.Analysis
-import doobie.util.compat.FactoryCompat
 import doobie.util.fragment.Fragment
 import doobie.util.log.ExecFailure
 import doobie.util.log.LogEvent
@@ -30,7 +27,7 @@ import doobie.util.log.Success
 import doobie.util.pos.Pos
 import fs2.Stream
 
-import scala.collection.immutable.Map
+import scala.collection.Factory
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.NANOSECONDS
 
@@ -153,12 +150,12 @@ object query {
 
     /**
      * Apply the argument `a` to construct a program in
-     * `[[doobie.free.connection.ConnectionIO ConnectionIO]]` yielding an `F[B]`
-     * accumulated via the provided `CanBuildFrom`. This is the fastest way to
+     * [[doobie.free.connection.ConnectionIO ConnectionIO]] yielding an `F[B]`
+     * accumulated via the provided [[Factory]]. This is the fastest way to
      * accumulate a collection.
      * @group Results
      */
-    def to[F[_]](a: A)(implicit f: FactoryCompat[B, F[B]]): ConnectionIO[F[B]] =
+    def to[F[_]](a: A)(implicit f: Factory[B, F[B]]): ConnectionIO[F[B]] =
       HC.prepareStatement(sql)(HPS.set(a) *> executeQuery(a, HRS.build[F, B]))
 
     /**
@@ -169,7 +166,7 @@ object query {
      * B is (K, V).
      * @group Results
      */
-    def toMap[K, V](a: A)(implicit ev: B =:= (K, V), f: FactoryCompat[(K, V), Map[K, V]]): ConnectionIO[Map[K, V]] =
+    def toMap[K, V](a: A)(implicit ev: B =:= (K, V), f: Factory[(K, V), Map[K, V]]): ConnectionIO[Map[K, V]] =
       HC.prepareStatement(sql)(HPS.set(a) *> executeQuery(a, HRS.buildPair[Map, K, V](f, read.map(ev))))
 
     /**
@@ -246,8 +243,8 @@ object query {
         def outputAnalysis = outer.outputAnalysis
         def streamWithChunkSize(n: Int) = outer.streamWithChunkSize(a, n)
         def accumulate[F[_]: Alternative] = outer.accumulate[F](a)
-        def to[F[_]](implicit f: FactoryCompat[B, F[B]]) = outer.to[F](a)
-        def toMap[K, V](implicit ev: B =:= (K, V), f: FactoryCompat[(K, V), Map[K, V]]) = outer.toMap(a)
+        def to[F[_]](implicit f: Factory[B, F[B]]) = outer.to[F](a)
+        def toMap[K, V](implicit ev: B =:= (K, V), f: Factory[(K, V), Map[K, V]]) = outer.toMap(a)
         def unique = outer.unique(a)
         def option = outer.option(a)
         def nel = outer.nel(a)
@@ -371,7 +368,7 @@ object query {
      * the fastest way to accumulate a collection.
      * @group Results
      */
-    def to[F[_]](implicit f: FactoryCompat[B, F[B]]): ConnectionIO[F[B]]
+    def to[F[_]](implicit f: Factory[B, F[B]]): ConnectionIO[F[B]]
 
     /**
      * Apply the argument `a` to construct a program in
@@ -381,7 +378,7 @@ object query {
      * B is (K, V).
      * @group Results
      */
-    def toMap[K, V](implicit ev: B =:= (K, V), f: FactoryCompat[(K, V), Map[K, V]]): ConnectionIO[Map[K, V]]
+    def toMap[K, V](implicit ev: B =:= (K, V), f: Factory[(K, V), Map[K, V]]): ConnectionIO[Map[K, V]]
 
     /**
      * Program in `[[doobie.free.connection.ConnectionIO ConnectionIO]]`

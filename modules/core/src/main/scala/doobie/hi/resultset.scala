@@ -12,21 +12,19 @@ import doobie.enumerated.FetchDirection
 import doobie.enumerated.Holdability
 import doobie.util.Read
 import doobie.util.Write
-import doobie.util.compat.FactoryCompat
 import doobie.util.invariant.*
 import doobie.util.stream.repeatEvalChunks
 import fs2.Stream
 
 import java.sql.ResultSetMetaData
 import java.sql.SQLWarning
+import scala.collection.Factory
 
 /**
  * Module of high-level constructors for `ResultSetIO` actions.
  * @group Modules
  */
-
 object resultset {
-  import implicits.*
 
   /**
    * Non-strict unit for capturing effects.
@@ -84,7 +82,7 @@ object resultset {
    * @group Results
    */
   @SuppressWarnings(Array("org.wartremover.warts.While", "org.wartremover.warts.NonUnitStatements"))
-  def build[F[_], A](implicit F: FactoryCompat[A, F[A]], A: Read[A]): ResultSetIO[F[A]] =
+  def build[F[_], A](implicit F: Factory[A, F[A]], A: Read[A]): ResultSetIO[F[A]] =
     FRS.raw { rs =>
       val b = F.newBuilder
       while (rs.next)
@@ -98,7 +96,7 @@ object resultset {
    * `CanBuildFrom`.
    * @group Results
    */
-  def buildPair[F[_, _], A, B](implicit F: FactoryCompat[(A, B), F[A, B]], A: Read[(A, B)]): ResultSetIO[F[A, B]] =
+  def buildPair[F[_, _], A, B](implicit F: Factory[(A, B), F[A, B]], A: Read[(A, B)]): ResultSetIO[F[A, B]] =
     FRS.raw { rs =>
       val b = F.newBuilder
       while (rs.next)
@@ -114,7 +112,7 @@ object resultset {
    * @group Results
    */
   @SuppressWarnings(Array("org.wartremover.warts.While", "org.wartremover.warts.NonUnitStatements"))
-  def buildMap[F[_], A, B](f: A => B)(implicit F: FactoryCompat[B, F[B]], A: Read[A]): ResultSetIO[F[B]] =
+  def buildMap[F[_], A, B](f: A => B)(implicit F: Factory[B, F[B]], A: Read[A]): ResultSetIO[F[B]] =
     FRS.raw { rs =>
       val b = F.newBuilder
       while (rs.next)

@@ -10,7 +10,8 @@ import cats.effect.IO
 import cats.effect.IOApp
 import cats.syntax.all.*
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.Read
 import doobie.util.Write
 import doobie.util.query.Query

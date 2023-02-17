@@ -5,7 +5,8 @@
 package doobie.postgres.circe
 
 import cats.effect.IO
-import doobie.implicits.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.Get
 import doobie.util.Put
 import doobie.util.Read

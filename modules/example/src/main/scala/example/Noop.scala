@@ -4,10 +4,10 @@
 
 package example
 
-import cats.syntax.applicative.*
+import cats.syntax.all.*
 import cats.~>
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
+import doobie.syntax.all.*
 
 /**
  * Example interpreter that fails if it encounters any constructors. This lets

@@ -9,7 +9,7 @@ import cats.syntax.all.*
 import com.zaxxer.hikari.HikariDataSource
 import doobie.free.connection.ConnectionIO
 import doobie.hikari.*
-import doobie.implicits.*
+import doobie.syntax.connectionio.*
 import doobie.util.ExecutionContexts
 
 import scala.concurrent.duration.*

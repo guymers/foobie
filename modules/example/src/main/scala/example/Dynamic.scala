@@ -6,8 +6,7 @@ package example
 
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.syntax.monad.*
-import cats.syntax.traverse.*
+import cats.syntax.all.*
 import doobie.FRS
 import doobie.HPS
 import doobie.HRS

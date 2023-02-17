@@ -9,7 +9,7 @@ import cats.effect.IO
 import cats.kernel.Monoid
 import cats.syntax.semigroup.*
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
+import doobie.syntax.connectionio.*
 import doobie.util.transactor.Transactor
 
 class ConnectionIOSuite extends munit.FunSuite {

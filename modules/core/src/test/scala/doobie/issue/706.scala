@@ -8,7 +8,8 @@ import cats.Foldable
 import cats.effect.IO
 import cats.syntax.all.*
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.Write
 import doobie.util.transactor.Transactor
 import doobie.util.update.Update

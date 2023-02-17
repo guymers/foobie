@@ -12,11 +12,9 @@ import doobie.enumerated.Holdability
 import doobie.enumerated.ResultSetConcurrency
 import doobie.enumerated.ResultSetType
 import doobie.enumerated.TransactionIsolation
-import doobie.implicits.*
 import doobie.util.Read
 import doobie.util.Write
 import doobie.util.analysis.Analysis
-import doobie.util.compat.propertiesToScala
 import doobie.util.stream.repeatEvalChunks
 import fs2.Stream
 import fs2.Stream.bracket
@@ -25,6 +23,7 @@ import fs2.Stream.eval
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Savepoint
+import scala.jdk.CollectionConverters.*
 
 /**
  * Module of high-level constructors for `ConnectionIO` actions.
@@ -153,7 +152,7 @@ object connection {
 
   /** @group Connection Properties */
   val getClientInfo: ConnectionIO[Map[String, String]] =
-    FC.getClientInfo.map(propertiesToScala)
+    FC.getClientInfo.map(_.asScala.toMap)
 
   /** @group Connection Properties */
   val getHoldability: ConnectionIO[Holdability] =

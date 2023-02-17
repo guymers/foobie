@@ -26,6 +26,6 @@ package object hi
   with doobie.free.Modules
   with doobie.free.Types {
 
-  object implicits extends doobie.free.Instances
+  object implicits
 
 }

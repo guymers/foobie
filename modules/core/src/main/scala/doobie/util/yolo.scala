@@ -8,7 +8,7 @@ import cats.effect.kernel.Async
 import cats.syntax.show.*
 import doobie.free.connection.ConnectionIO
 import doobie.free.connection.delay
-import doobie.implicits.*
+import doobie.syntax.connectionio.*
 import doobie.util.query.Query
 import doobie.util.query.Query0
 import doobie.util.testing.AnalysisArgs

@@ -11,7 +11,6 @@ import cats.effect.kernel.MonadCancelThrow
 import cats.syntax.functor.*
 import doobie.ConnectionIO
 import doobie.HC
-import doobie.implicits.*
 import doobie.util.transactor.Transactor
 
 class ConnectionIOOps[A](ma: ConnectionIO[A]) {

@@ -6,7 +6,8 @@ package doobie.postgres
 
 import cats.effect.IO
 import com.zaxxer.hikari.HikariDataSource
-import doobie.implicits.*
+import doobie.syntax.stream.*
+import doobie.syntax.string.*
 import doobie.util.transactor.Transactor
 
 import java.util.concurrent.Executors

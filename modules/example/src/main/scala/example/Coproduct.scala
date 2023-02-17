@@ -15,7 +15,7 @@ import cats.~>
 import doobie.LogHandlerM
 import doobie.free.KleisliInterpreter
 import doobie.free.connection.ConnectionOp
-import doobie.implicits.*
+import doobie.syntax.all.*
 import doobie.util.transactor.Transactor
 
 import java.sql.Connection

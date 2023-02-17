@@ -9,8 +9,8 @@ import cats.effect.*
 import cats.syntax.all.*
 import doobie.HC
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
 import doobie.postgres.*
+import doobie.syntax.all.*
 import doobie.util.transactor.Transactor
 import fs2.Pipe
 import fs2.Stream

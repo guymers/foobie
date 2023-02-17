@@ -5,7 +5,7 @@
 package example
 
 import doobie.postgres.implicits.*
-import doobie.syntax.string.*
+import doobie.syntax.all.*
 import doobie.util.meta.Meta
 import doobie.util.query.Query0
 import doobie.util.update.Update

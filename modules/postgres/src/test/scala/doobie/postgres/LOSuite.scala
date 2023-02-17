@@ -5,8 +5,8 @@
 package doobie.postgres
 
 import cats.syntax.all.*
-import doobie.implicits.*
 import doobie.postgres.implicits.*
+import doobie.syntax.connectionio.*
 
 import java.io.File
 import java.io.FileInputStream

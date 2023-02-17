@@ -20,7 +20,6 @@ val weaverVersion = "0.7.15"
 // This is used in a couple places. Might be nice to separate these things out.
 lazy val postgisDep = "net.postgis" % "postgis-jdbc" % postGisVersion
 
-val Scala212 = "2.12.17"
 val Scala213 = "2.13.10"
 val Scala3 = "3.2.2"
 
@@ -40,7 +39,7 @@ inThisBuild(Seq(
 
 lazy val commonSettings = Seq(
   scalaVersion := Scala213,
-  crossScalaVersions := Seq(Scala212, Scala213, Scala3),
+  crossScalaVersions := Seq(Scala213, Scala3),
   versionScheme := Some("early-semver"),
 
   scalacOptions ++= Seq(
@@ -177,13 +176,6 @@ lazy val core = module("core")
       "org.tpolecat" %% "typename" % "1.0.0",
       "com.h2database" % "h2" % h2Version % "test",
     ),
-    Compile / unmanagedSourceDirectories += {
-      val sourceDir = (Compile / sourceDirectory).value
-      CrossVersion.partialVersion(scalaVersion.value) match {
-        case Some((2, n)) if n <= 12 => sourceDir / "scala-2.13-"
-        case _                       => sourceDir / "scala-2.13+"
-      }
-    },
   )
 
 lazy val postgres = module("postgres")

@@ -7,7 +7,7 @@ package example
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.syntax.all.*
-import doobie.implicits.*
+import doobie.syntax.all.*
 import doobie.util.fragment.Fragment
 import doobie.util.transactor.Transactor
 

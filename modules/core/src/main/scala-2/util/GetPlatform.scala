@@ -8,7 +8,6 @@ import shapeless.*
 import shapeless.ops.hlist.IsHCons
 
 trait GetPlatform {
-  import doobie.util.compat.=:=
 
   /** @group Instances */
   implicit def unaryProductGet[A, L <: HList, H, T <: HList](

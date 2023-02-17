@@ -11,7 +11,6 @@ import cats.syntax.foldable.*
 import cats.syntax.list.*
 import cats.syntax.show.*
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
 import doobie.util.analysis.*
 import doobie.util.pos.Pos
 import doobie.util.pretty.*

@@ -6,7 +6,7 @@ package doobie.util
 
 import cats.effect.IO
 import doobie.enumerated.SqlState
-import doobie.implicits.*
+import doobie.syntax.applicativeerror.*
 
 import java.sql.SQLException
 

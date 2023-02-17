@@ -15,6 +15,7 @@ import org.tpolecat.typename.*
 import java.net.InetAddress
 import java.util.Map as JMap
 import java.util.UUID
+import scala.jdk.CollectionConverters.*
 import scala.reflect.ClassTag
 
 trait Instances {
@@ -274,6 +275,6 @@ trait Instances {
 
   /** HSTORE maps to a Map[String, String]. */
   implicit val hstoreMeta: Meta[Map[String, String]] =
-    hstoreMetaJava.timap[Map[String, String]](doobie.util.compat.mapToScala(_).toMap)(doobie.util.compat.scalaToMap(_))
+    hstoreMetaJava.timap[Map[String, String]](_.asScala.toMap)(_.asJava)
 
 }

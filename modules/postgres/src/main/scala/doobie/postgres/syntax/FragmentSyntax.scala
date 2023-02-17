@@ -9,7 +9,6 @@ import cats.effect.Ref
 import cats.effect.kernel.Resource
 import cats.syntax.all.*
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
 import doobie.postgres.*
 import doobie.postgres.implicits.*
 import doobie.util.fragment.Fragment

@@ -9,7 +9,8 @@ import cats.effect.IOLocal
 import cats.syntax.all.*
 import doobie.Transactor
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.log.LogEvent
 import doobie.util.log.ProcessingFailure
 import doobie.util.log.Success

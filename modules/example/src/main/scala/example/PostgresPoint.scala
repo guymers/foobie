@@ -6,8 +6,8 @@ package example
 
 import cats.effect.IO
 import cats.effect.IOApp
-import doobie.implicits.*
 import doobie.postgres.implicits.*
+import doobie.syntax.all.*
 import doobie.util.Write
 import doobie.util.meta.Meta
 import doobie.util.transactor.Transactor

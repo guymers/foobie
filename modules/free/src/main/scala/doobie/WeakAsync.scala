@@ -4,12 +4,12 @@
 
 package doobie
 
-import cats.effect.implicits.*
 import cats.effect.kernel.Async
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
+import cats.effect.syntax.monadCancel.*
 import cats.syntax.flatMap.*
 import cats.~>
 

@@ -11,7 +11,6 @@ import doobie.FC
 import doobie.HC
 import doobie.HPS
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
 import doobie.postgres.free.Embeddable
 import doobie.postgres.free.KleisliInterpreter
 import doobie.util.log.LogHandlerM

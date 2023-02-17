@@ -4,10 +4,6 @@
 
 package doobie.free
 
-import cats.Monoid
-import cats.Semigroup
-import doobie.WeakAsync
-
 trait Types {
 
   /** @group Type Aliases - Free API */
@@ -96,72 +92,4 @@ trait Modules {
 
   /** @group Module Aliases - Free API */
   lazy val FS = statement
-}
-
-trait Instances {
-
-  /** @group Typeclass Instances */
-  implicit lazy val WeakAsyncBlobIO: WeakAsync[BlobIO] =
-    blob.WeakAsyncBlobIO
-
-  /** @group Typeclass Instances */
-  implicit lazy val WeakAsyncCallableStatementIO: WeakAsync[CallableStatementIO] =
-    callablestatement.WeakAsyncCallableStatementIO
-
-  /** @group Typeclass Instances */
-  implicit lazy val WeakAsyncClobIO: WeakAsync[ClobIO] =
-    clob.WeakAsyncClobIO
-
-  /** @group Typeclass Instances */
-  implicit lazy val WeakAsyncConnectionIO: WeakAsync[ConnectionIO] =
-    connection.WeakAsyncConnectionIO
-
-  /** @group Typeclass Instances */
-  implicit def MonoidConnectionIO[A: Monoid]: Monoid[ConnectionIO[A]] =
-    connection.MonoidConnectionIO[A]
-
-  /** @group Typeclass Instances */
-  implicit def SemigroupConnectionIO[A: Semigroup]: Semigroup[ConnectionIO[A]] =
-    connection.SemigroupConnectionIO[A]
-
-  /** @group Typeclass Instances */
-  implicit lazy val WeakAsyncDatabaseMetaDataIO: WeakAsync[DatabaseMetaDataIO] =
-    databasemetadata.WeakAsyncDatabaseMetaDataIO
-
-  /** @group Typeclass Instances */
-  implicit lazy val WeakAsyncDriverIO: WeakAsync[DriverIO] =
-    driver.WeakAsyncDriverIO
-
-  /** @group Typeclass Instances */
-  implicit lazy val WeakAsyncNClobIO: WeakAsync[NClobIO] =
-    nclob.WeakAsyncNClobIO
-
-  /** @group Typeclass Instances */
-  implicit lazy val WeakAsyncPreparedStatementIO: WeakAsync[PreparedStatementIO] =
-    preparedstatement.WeakAsyncPreparedStatementIO
-
-  /** @group Typeclass Instances */
-  implicit lazy val WeakAsyncRefIO: WeakAsync[RefIO] =
-    ref.WeakAsyncRefIO
-
-  /** @group Typeclass Instances */
-  implicit lazy val WeakAsyncResultSetIO: WeakAsync[ResultSetIO] =
-    resultset.WeakAsyncResultSetIO
-
-  /** @group Typeclass Instances */
-  implicit lazy val WeakAsyncSQLDataIO: WeakAsync[SQLDataIO] =
-    sqldata.WeakAsyncSQLDataIO
-
-  /** @group Typeclass Instances */
-  implicit lazy val WeakAsyncSQLInputIO: WeakAsync[SQLInputIO] =
-    sqlinput.WeakAsyncSQLInputIO
-
-  /** @group Typeclass Instances */
-  implicit lazy val WeakAsyncSQLOutputIO: WeakAsync[SQLOutputIO] =
-    sqloutput.WeakAsyncSQLOutputIO
-
-  /** @group Typeclass Instances */
-  implicit lazy val WeakAsyncStatementIO: WeakAsync[StatementIO] =
-    statement.WeakAsyncStatementIO
-
 }

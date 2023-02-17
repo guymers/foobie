@@ -10,7 +10,7 @@ import cats.syntax.all.*
 import doobie.FC
 import doobie.HC
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
+import doobie.syntax.all.*
 import doobie.util.transactor.Transactor
 import fs2.Stream
 

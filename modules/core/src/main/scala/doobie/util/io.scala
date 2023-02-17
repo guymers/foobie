@@ -5,7 +5,6 @@
 package doobie.util
 
 import cats.effect.implicits.monadCancelOps_
-import cats.effect.syntax.monadCancel.*
 import cats.syntax.applicative.*
 import cats.syntax.flatMap.*
 import cats.syntax.functor.*

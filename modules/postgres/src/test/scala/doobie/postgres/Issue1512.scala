@@ -7,7 +7,8 @@ package doobie.postgres
 import cats.effect.IO
 import cats.syntax.applicative.catsSyntaxApplicativeId
 import doobie.ConnectionIO
-import doobie.implicits.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.postgres.implicits.*
 import doobie.util.transactor.Transactor
 import munit.CatsEffectSuite

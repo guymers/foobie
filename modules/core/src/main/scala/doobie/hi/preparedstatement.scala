@@ -37,9 +37,7 @@ import java.sql.SQLWarning
  * functionality.
  * @group Modules
  */
-
 object preparedstatement {
-  import implicits.*
 
   // fs2 handler, not public
   private def unrolled[A: Read](rs: java.sql.ResultSet, chunkSize: Int): Stream[PreparedStatementIO, A] =

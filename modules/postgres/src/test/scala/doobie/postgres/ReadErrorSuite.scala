@@ -4,9 +4,10 @@
 
 package doobie.postgres
 
-import doobie.implicits.*
 import doobie.postgres.enums.*
 import doobie.postgres.implicits.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.invariant.*
 import doobie.util.meta.Meta
 

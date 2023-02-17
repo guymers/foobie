@@ -9,8 +9,9 @@ import doobie.FPS
 import doobie.HC
 import doobie.HPS
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
 import doobie.postgres.implicits.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import fs2.Stream
 import org.openjdk.jmh.annotations.*
 

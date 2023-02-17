@@ -8,7 +8,6 @@ import shapeless.*
 import shapeless.ops.hlist.IsHCons
 
 trait PutPlatform {
-  import doobie.util.compat.=:=
 
   /** @group Instances */
   implicit def unaryProductPut[A, L <: HList, H, T <: HList](

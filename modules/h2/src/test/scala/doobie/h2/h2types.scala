@@ -8,10 +8,11 @@ import cats.effect.IO
 import doobie.Update0
 import doobie.free.connection.ConnectionIO
 import doobie.h2.implicits.*
-import doobie.implicits.*
 import doobie.implicits.javasql.*
 import doobie.implicits.javatimedrivernative.{JavaTimeInstantMeta as NewJavaTimeInstantMeta, *}
 import doobie.implicits.legacy.instant.JavaTimeInstantMeta as LegacyJavaTimeInstantMeta
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.Get
 import doobie.util.Put
 import doobie.util.arbitraries.SQLArbitraries.*

@@ -10,7 +10,6 @@ import doobie.free.ConnectionIO
 import doobie.hi.HC
 import doobie.hi.HPS
 import doobie.hi.HRS
-import doobie.implicits.*
 import doobie.postgres.sqlstate.*
 import doobie.util.catchsql.exceptSomeSqlState
 import doobie.util.query.Query

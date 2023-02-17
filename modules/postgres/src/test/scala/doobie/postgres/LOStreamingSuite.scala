@@ -5,7 +5,7 @@
 package doobie.postgres
 
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
+import doobie.syntax.connectionio.*
 import fs2.Chunk
 import fs2.Pure
 import fs2.Stream

@@ -6,7 +6,7 @@ package doobie.postgres
 
 import cats.effect.Sync
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
+import doobie.syntax.connectionio.*
 
 import java.io.ByteArrayOutputStream
 

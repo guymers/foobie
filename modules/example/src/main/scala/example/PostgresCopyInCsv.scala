@@ -8,8 +8,8 @@ import cats.effect.IO
 import cats.effect.IOApp
 import cats.syntax.all.*
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
 import doobie.postgres.*
+import doobie.syntax.all.*
 import doobie.util.transactor.Transactor
 import fs2.*
 import fs2.text.utf8

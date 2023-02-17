@@ -7,7 +7,8 @@ package doobie.util
 import cats.effect.IO
 import doobie.Transactor
 import doobie.enumerated.JdbcType.{Array as _, *}
-import doobie.implicits.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 
 import scala.annotation.nowarn
 

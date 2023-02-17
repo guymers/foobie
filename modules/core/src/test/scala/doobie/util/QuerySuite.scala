@@ -5,7 +5,8 @@
 package doobie.util
 
 import cats.effect.IO
-import doobie.implicits.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.query.Query
 import doobie.util.query.Query0
 import doobie.util.transactor.Transactor

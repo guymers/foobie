@@ -6,7 +6,6 @@ package doobie.postgres.hi
 
 import cats.syntax.functor.*
 import doobie.ConnectionIO
-import doobie.implicits.*
 import fs2.Stream
 import org.postgresql.largeobject.LargeObject
 

@@ -7,7 +7,8 @@ package doobie.util
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
-import doobie.implicits.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.transactor.Transactor
 
 class FragmentsSuite extends munit.FunSuite {

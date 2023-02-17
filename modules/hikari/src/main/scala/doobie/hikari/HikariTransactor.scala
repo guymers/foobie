@@ -5,10 +5,10 @@
 package doobie
 package hikari
 
-import cats.effect.implicits.*
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
+import cats.effect.syntax.resource.*
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import com.zaxxer.hikari.metrics.MetricsTrackerFactory

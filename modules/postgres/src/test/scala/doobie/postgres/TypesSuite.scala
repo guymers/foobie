@@ -5,13 +5,13 @@
 package doobie.postgres
 
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
 import doobie.implicits.javasql.*
 import doobie.postgres.enums.*
 import doobie.postgres.implicits.*
 import doobie.postgres.pgisimplicits.*
 import doobie.postgres.util.arbitraries.SQLArbitraries.*
 import doobie.postgres.util.arbitraries.TimeArbitraries.*
+import doobie.syntax.connectionio.*
 import doobie.util.Get
 import doobie.util.Put
 import doobie.util.arbitraries.StringArbitraries.*

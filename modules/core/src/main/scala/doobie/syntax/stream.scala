@@ -8,7 +8,6 @@ import cats.data.Kleisli
 import cats.effect.kernel.Async
 import cats.effect.kernel.MonadCancelThrow
 import doobie.free.connection.ConnectionIO
-import doobie.util.compat.=:=
 import doobie.util.transactor.Transactor
 import fs2.Pipe
 import fs2.Stream

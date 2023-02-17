@@ -6,7 +6,7 @@ package doobie.syntax
 
 import cats.syntax.applicative.*
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
+import doobie.syntax.applicativeerror.*
 
 class CatchSqlSuite extends munit.FunSuite {
 

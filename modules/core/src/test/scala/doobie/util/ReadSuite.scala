@@ -6,6 +6,10 @@ package doobie
 package util
 
 import cats.effect.IO
+import cats.syntax.apply.*
+import cats.syntax.semigroupal.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 
 class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
 
@@ -71,9 +75,6 @@ class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
   }
 
   test("Read should select correct columns when combined with `ap`") {
-    import cats.syntax.all.*
-    import doobie.implicits.*
-
     val r = util.Read[Int]
 
     val c = (r, r, r, r, r).tupled
@@ -86,8 +87,6 @@ class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
   }
 
   test("Read should select correct columns when combined with `product`") {
-    import cats.syntax.all.*
-    import doobie.implicits.*
     val r = util.Read[Int].product(util.Read[Int].product(util.Read[Int]))
 
     val q = sql"SELECT 1, 2, 3".query(r).to[List]

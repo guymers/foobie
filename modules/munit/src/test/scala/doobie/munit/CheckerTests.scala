@@ -4,11 +4,8 @@
 
 package doobie.munit
 
-// Copyright (c) 2013-2020 Rob Norris and Contributors
-// This software is licensed under the MIT License (MIT).
-// For more information see LICENSE or https://opensource.org/licenses/MIT
-
 import cats.effect.IO
+import cats.syntax.apply.*
 import doobie.syntax.string.*
 import doobie.util.Read
 import doobie.util.transactor.Transactor
@@ -29,8 +26,6 @@ trait CheckerChecks[M[_]] extends FunSuite with Checker[M] {
   test("trivial case-class") { check(sql"select 1".query[CheckerChecks.Foo[cats.Id]]) }
 
   test("Read should select correct columns when combined with `product`") {
-    import cats.syntax.all.*
-    import doobie.implicits.*
 
     val ri = Read[Int]
     val rs = Read[String]

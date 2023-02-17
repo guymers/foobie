@@ -6,6 +6,7 @@ package doobie.weaver
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
+import cats.syntax.apply.*
 import doobie.syntax.string.*
 import doobie.util.Read
 import doobie.util.transactor.Transactor
@@ -39,9 +40,6 @@ object CheckerTests extends IOSuite with IOChecker {
   }
 
   test("Read should select correct columns when combined with `product`") { implicit transactor =>
-    import cats.syntax.all.*
-    import doobie.implicits.*
-
     val ri = Read[Int]
     val rs = Read[String]
 
