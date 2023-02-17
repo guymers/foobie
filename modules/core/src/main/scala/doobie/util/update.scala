@@ -4,7 +4,8 @@
 
 package doobie.util
 
-import cats.*
+import cats.Contravariant
+import cats.Foldable
 import cats.syntax.all.*
 import doobie.FPS
 import doobie.HC

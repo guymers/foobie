@@ -4,7 +4,9 @@
 
 package doobie.util
 
-import cats.*
+import cats.Alternative
+import cats.Contravariant
+import cats.Functor
 import cats.arrow.Profunctor
 import cats.data.NonEmptyList
 import cats.effect.kernel.syntax.monadCancel.*
