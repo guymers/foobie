@@ -5,7 +5,6 @@
 package doobie.postgres
 
 import doobie.free.connection.ConnectionIO
-import doobie.implicits.javasql.*
 import doobie.postgres.enums.*
 import doobie.postgres.implicits.*
 import doobie.postgres.util.arbitraries.SQLArbitraries.*
@@ -131,8 +130,11 @@ class TypesSuite extends munit.ScalaCheckSuite with PostgresInstanceCheckSuite {
   testInOut[java.sql.Time]("time")
   testInOut[java.time.LocalTime]("time")
 
-  skip("time with time zone")
+  testInOut[java.time.OffsetTime]("time with time zone")
+
   testInOut("interval", new PGInterval(1, 2, 3, 4, 5, 6.7))
+
+  testInOut[java.time.ZoneId]("text")
 
   // 8.6 Boolean Type
   testInOut[Boolean]("boolean")

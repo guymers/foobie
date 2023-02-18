@@ -12,9 +12,13 @@ services:
       - 5432:5432
     volumes:
       - ./init/postgres/:/docker-entrypoint-initdb.d/
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
 
   mysql:
-    image: mysql:5.7-debian
+    image: mysql:8-debian # 5.7 has memory issues running under docker
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: world
@@ -22,3 +26,7 @@ services:
       - 3306:3306
     volumes:
       - ./init/mysql/:/docker-entrypoint-initdb.d/
+    deploy:
+      resources:
+        limits:
+          memory: 1024M

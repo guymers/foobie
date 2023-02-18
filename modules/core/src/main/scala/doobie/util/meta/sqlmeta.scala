@@ -6,12 +6,6 @@ package doobie.util.meta
 
 import doobie.enumerated.JdbcType.*
 
-trait SqlMeta {
-
-  object javasql extends MetaConstructors with SqlMetaInstances
-
-}
-
 trait SqlMetaInstances { this: MetaConstructors =>
 
   /** @group Instances */

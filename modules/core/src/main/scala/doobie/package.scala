@@ -100,10 +100,6 @@ package object doobie {
 
   val ExecutionContexts = doobie.util.ExecutionContexts
 
-  object implicits
-    extends syntax.AllSyntax
-    with util.meta.SqlMeta
-    with util.meta.TimeMeta
-    with util.meta.LegacyMeta
+  object implicits extends syntax.AllSyntax
 
 }
