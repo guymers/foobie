@@ -22,11 +22,6 @@ object analysis {
 
   /** Metadata for the JDBC end of a column/parameter mapping. */
   final case class ColumnMeta(jdbcType: JdbcType, vendorTypeName: String, nullability: Nullability, name: String)
-  object ColumnMeta {
-    def apply(jdbcType: JdbcType, vendorTypeName: String, nullability: Nullability, name: String): ColumnMeta = {
-      new ColumnMeta(tweakJdbcType(jdbcType, vendorTypeName), vendorTypeName, nullability, name)
-    }
-  }
 
   /** Metadata for the JDBC end of a column/parameter mapping. */
   final case class ParameterMeta(
@@ -35,25 +30,6 @@ object analysis {
     nullability: Nullability,
     mode: ParameterMode,
   )
-  object ParameterMeta {
-    def apply(
-      jdbcType: JdbcType,
-      vendorTypeName: String,
-      nullability: Nullability,
-      mode: ParameterMode,
-    ): ParameterMeta = {
-      new ParameterMeta(tweakJdbcType(jdbcType, vendorTypeName), vendorTypeName, nullability, mode)
-    }
-  }
-
-  private def tweakJdbcType(jdbcType: JdbcType, vendorTypeName: String) = jdbcType match {
-    // the Postgres driver does not return *WithTimezone types but they are pretty much required for proper analysis
-    // https://github.com/pgjdbc/pgjdbc/issues/2485
-    // https://github.com/pgjdbc/pgjdbc/issues/1766
-    case JdbcType.Time if vendorTypeName.compareToIgnoreCase("timetz") == 0 => JdbcType.TimeWithTimezone
-    case JdbcType.Timestamp if vendorTypeName.compareToIgnoreCase("timestamptz") == 0 => JdbcType.TimestampWithTimezone
-    case t => t
-  }
 
   sealed trait AlignmentError extends Product with Serializable {
     def tag: String
@@ -163,31 +139,39 @@ object analysis {
 
   /** Compatibility analysis for the given statement and aligned mappings. */
   final case class Analysis(
+    driver: String,
     sql: String,
     parameterAlignment: List[Ior[(Put[?], NullabilityKnown), ParameterMeta]],
     columnAlignment: List[Ior[(Get[?], NullabilityKnown), ColumnMeta]],
   ) {
 
+    private val parameterAlignment_ = parameterAlignment.map(_.map { m =>
+      m.copy(jdbcType = tweakMetaJdbcType(driver, m.jdbcType, vendorTypeName = m.vendorTypeName))
+    })
+    private val columnAlignment_ = columnAlignment.map(_.map { m =>
+      m.copy(jdbcType = tweakMetaJdbcType(driver, m.jdbcType, vendorTypeName = m.vendorTypeName))
+    })
+
     def parameterMisalignments: List[ParameterMisalignment] =
-      parameterAlignment.zipWithIndex.collect {
+      parameterAlignment_.zipWithIndex.collect {
         case (Ior.Left(_), n) => ParameterMisalignment(n + 1, None)
         case (Ior.Right(p), n) => ParameterMisalignment(n + 1, Some(p))
       }
 
     def parameterTypeErrors: List[ParameterTypeError] =
-      parameterAlignment.zipWithIndex.collect {
+      parameterAlignment_.zipWithIndex.collect {
         case (Ior.Both((j, n1), p), n) if !j.jdbcTargets.contains_(p.jdbcType) =>
           ParameterTypeError(n + 1, j, n1, p.jdbcType, p.vendorTypeName)
       }
 
     def columnMisalignments: List[ColumnMisalignment] =
-      columnAlignment.zipWithIndex.collect {
+      columnAlignment_.zipWithIndex.collect {
         case (Ior.Left(j), n) => ColumnMisalignment(n + 1, Left(j))
         case (Ior.Right(p), n) => ColumnMisalignment(n + 1, Right(p))
       }
 
     def columnTypeErrors: List[ColumnTypeError] =
-      columnAlignment.zipWithIndex.collect {
+      columnAlignment_.zipWithIndex.collect {
         case (Ior.Both((j, n1), p), n)
             if !(j.jdbcSources.toList ++ j.fold(_.jdbcSourceSecondary.toList, _ => Nil)).contains_(p.jdbcType) =>
           ColumnTypeError(n + 1, j, n1, p)
@@ -200,13 +184,13 @@ object analysis {
       }
 
     def columnTypeWarnings: List[ColumnTypeWarning] =
-      columnAlignment.zipWithIndex.collect {
+      columnAlignment_.zipWithIndex.collect {
         case (Ior.Both((j, n1), p), n) if j.fold(_.jdbcSourceSecondary.toList, _ => Nil).contains_(p.jdbcType) =>
           ColumnTypeWarning(n + 1, j, n1, p)
       }
 
     def nullabilityMisalignments: List[NullabilityMisalignment] =
-      columnAlignment.zipWithIndex.collect {
+      columnAlignment_.zipWithIndex.collect {
         // We can't do anything helpful with NoNulls .. it means "might not be nullable"
         // case (Ior.Both((st, Nullable), ColumnMeta(_, _, NoNulls, col)), n) => NullabilityMisalignment(n + 1, col, st, NoNulls, Nullable)
         case (Ior.Both((st, NoNulls), ColumnMeta(_, _, Nullable, col)), n) =>
@@ -227,7 +211,7 @@ object analysis {
     /** Description of each parameter, paired with its errors. */
     lazy val paramDescriptions: List[(String, List[AlignmentError])] = {
       val params: Block =
-        parameterAlignment.zipWithIndex.map {
+        parameterAlignment_.zipWithIndex.map {
           case (Ior.Both((j1, n1), ParameterMeta(j2, s2, _, _)), i) =>
             List(f"P${i + 1}%02d", show"${typeName(j1.typeStack.last, n1)}", " → ", j2.show.toUpperCase, show"($s2)")
           case (Ior.Left((j1, n1)), i) => List(f"P${i + 1}%02d", show"${typeName(j1.typeStack.last, n1)}", " → ", "", "")
@@ -243,7 +227,7 @@ object analysis {
     lazy val columnDescriptions: List[(String, List[AlignmentError])] = {
       import pretty.*
       val cols: Block =
-        columnAlignment.zipWithIndex.map {
+        columnAlignment_.zipWithIndex.map {
           case (Ior.Both((j1, n1), ColumnMeta(j2, s2, n2, m)), i) => List(
               f"C${i + 1}%02d",
               m,
@@ -284,4 +268,21 @@ object analysis {
       case NullableUnknown => "NULL?"
     }
 
+  private val MySQLDriverName = "MySQL Connector/J"
+
+  // tweaks to the types returned by JDBC to improve analysis
+  private def tweakMetaJdbcType(driver: String, jdbcType: JdbcType, vendorTypeName: String) = jdbcType match {
+    // the Postgres driver does not return *WithTimezone JDBC types for *tz column types
+    // https://github.com/pgjdbc/pgjdbc/issues/2485
+    // https://github.com/pgjdbc/pgjdbc/issues/1766
+    case JdbcType.Time if vendorTypeName.compareToIgnoreCase("timetz") == 0 => JdbcType.TimeWithTimezone
+    case JdbcType.Timestamp if vendorTypeName.compareToIgnoreCase("timestamptz") == 0 => JdbcType.TimestampWithTimezone
+
+    // MySQL timestamp columns are returned as Timestamp
+    case JdbcType.Timestamp
+        if vendorTypeName.compareToIgnoreCase("timestamp") == 0 && driver == MySQLDriverName =>
+      JdbcType.TimestampWithTimezone
+
+    case t => t
+  }
 }

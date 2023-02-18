@@ -8,6 +8,7 @@ val fs2Version = "3.6.1"
 val h2Version = "2.1.214"
 val hikariVersion = "4.0.3"
 val munitVersion = "1.0.0-M7"
+val mysqlVersion = "8.0.32"
 val postgisVersion = "2021.1.0"
 val postgresVersion = "42.5.4"
 val refinedVersion = "0.10.1"
@@ -121,6 +122,7 @@ lazy val foobie = project.in(file("."))
   .aggregate(
     free, core,
     h2, `h2-circe`,
+    mysql,
     postgres, `postgres-circe`,
     hikari,
     refined,
@@ -231,6 +233,14 @@ lazy val `postgres-circe` = module("postgres-circe")
     )
   )
   .dependsOn(core, postgres)
+
+lazy val mysql = module("mysql")
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.mysql" % "mysql-connector-j" % mysqlVersion,
+    ),
+  )
+  .dependsOn(core % "compile->compile;test->test")
 
 lazy val h2 = module("h2")
   .settings(
