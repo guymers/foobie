@@ -4,7 +4,6 @@
 
 package example
 
-import doobie.implicits.javasql.*
 import doobie.syntax.all.*
 import doobie.util.Read
 import doobie.util.Write
