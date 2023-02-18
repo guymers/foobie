@@ -1,6 +1,5 @@
 @@@ index
 * [Infographic](infographic.md)
-* [Migration](migration.md)
 * [Book of Doobie](docs/index.md)
 @@@
 
@@ -118,34 +117,3 @@ sbt:docs> clean
 sbt:docs> makeSite
 sbt:doce> ghpagesPushSite
 ```
-
-
-## Adopters
-
-Here's a (non-exhaustive) list of companies that use doobie in production.
-Don't see yours? [You can add it in a PR!](https://github.com/tpolecat/doobie/edit/main/modules/docs/src/main/mdoc/index.md)
-
- - [Avast](https://avast.com)
- - [Banno at Jack Henry & Associates](https://banno.com/)
- - [Crunchbase](https://crunchbase.com)
- - [Doomoolmori](https://doomoolmori.com)
- - [eBay Inc.](https://www.ebay.com)
- - [Evolution](https://www.evolution.com/)
- - [FinDynamic](https://www.findynamic.com/en)
- - [Fivebox](https://fivebox.com/)
- - [HIFI](https://hi.fi)
- - [ITV](https://www.itv.com/)
- - [lences.io](https://lenses.io)
- - [Medidata](https://www.medidata.com/)
- - [NOIRLab](https://noirlab.edu)
- - [On Air Entertainment](https://onairentertainment.com/)
- - [RaiffeisenBank Russia](https://raiffeisen.ru)
- - [ReachFive](www.reachfive.com)
- - [Rudder](https://rudder.io)
- - [SecurityScorecard](https://securityscorecard.io)
- - [SoftwareMill](https://softwaremill.com)
- - [Unit](https://unit.co)
- - [CurrencyCloud](https://www.currencycloud.com)
- - [Lawfully](https://www.lawfully.com)
- - [The Guardian](https://www.theguardian.com)
-

@@ -329,8 +329,11 @@ lazy val docs = project.in(file("modules/docs"))
   .enablePlugins(ParadoxSitePlugin)
   .enablePlugins(MdocPlugin)
   .settings(
-    scalacOptions := Nil,
-
+    scalacOptions := (CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, _)) => Seq("-Xsource:3")
+      case Some((3, _)) => Seq("-Ykind-projector")
+      case _ => Seq.empty
+    }),
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-generic" % circeVersion,

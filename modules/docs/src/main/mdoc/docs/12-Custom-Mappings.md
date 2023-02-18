@@ -9,9 +9,14 @@ The most common kind of custom mapping operates on single column values, so we w
 In this chapter we're importing the essentials from Cats and **doobie**, as well as some other odds and ends we'll discuss below.
 
 ```scala mdoc:silent
-import cats._, cats.data._, cats.implicits.*
-import doobie._, doobie.implicits.*
-import io.circe._, io.circe.jawn._, io.circe.syntax.*
+import cats.*
+import cats.data.*
+import cats.implicits.*
+import doobie.*
+import doobie.implicits.*
+import io.circe.*
+import io.circe.jawn.*
+import io.circe.syntax.*
 import java.awt.Point
 import org.postgresql.util.PGobject
 ```

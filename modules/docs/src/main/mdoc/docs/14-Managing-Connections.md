@@ -123,19 +123,19 @@ HikariApp.main(Array())
 
 ### Using an existing DataSource
 
-If your application exposes an existing `javax.sql.DataSource` you can use it directly by wrapping it in a `DataSourceTransactor`. You still need to provide execution contexts.
+If your application exposes an existing `javax.sql.DataSource` you can use it directly by using `Transactor.fromDataSource`. You still need to provide execution contexts.
 
 ```scala mdoc:silent
 import javax.sql.DataSource
 
-// Resource yielding a DataSourceTransactor[IO] wrapping the given `DataSource`
-def transactor(ds: DataSource): Resource[IO, DataSourceTransactor[IO]] =
+// Resource yielding a Transactor[IO] wrapping the given `DataSource`
+def transactor(ds: DataSource): Resource[IO, Transactor[IO]] =
   for {
     ce <- ExecutionContexts.fixedThreadPool[IO](32) // our connect EC
   } yield Transactor.fromDataSource[IO](ds, ce)
 ```
 
-The `configure` method on `DataSourceTransactor` provides access to the underlying `DataSource` if additional configuration is required.
+The `configure` method on `Transactor` provides access to the underlying `DataSource` if additional configuration is required.
 
 
 ### Using an Existing JDBC Connection

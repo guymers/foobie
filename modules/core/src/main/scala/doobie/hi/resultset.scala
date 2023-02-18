@@ -207,7 +207,7 @@ object resultset {
   /**
    * Equivalent to `getNext`, but verifies that there is exactly one row
    * remaining.
-   * @throws UnexpectedCursorPosition
+   * @throws doobie.util.invariant.UnexpectedCursorPosition
    *   if there is not exactly one row remaining
    * @group Results
    */
@@ -221,7 +221,7 @@ object resultset {
   /**
    * Equivalent to `getNext`, but verifies that there is at most one row
    * remaining.
-   * @throws UnexpectedContinuation
+   * @throws doobie.util.invariant.UnexpectedContinuation
    *   if there is more than one row remaining
    * @group Results
    */
@@ -235,7 +235,7 @@ object resultset {
   /**
    * Consumes the remainder of the resultset, but verifies that there is at
    * least one row remaining.
-   * @throws UnexpectedEnd
+   * @throws doobie.util.invariant.UnexpectedEnd
    *   if there is not at least one row remaining
    * @group Results
    */

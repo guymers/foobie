@@ -17,7 +17,7 @@ import scala.language.implicitConversions
 /**
  * String interpolator for SQL literals. An expression of the form `sql".. \$a
  * ... \$b ..."` with interpolated values of type `A` and `B` (which must have
- * instances of `Put`) yields a value of type `[[Fragment]]`.
+ * instances of `Put`) yields a value of type [[Fragment]].
  */
 final class SqlInterpolator(private val sc: StringContext) extends AnyVal {
 

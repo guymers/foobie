@@ -189,15 +189,10 @@ It is expected that these will be mapped to application-specific types via `xmap
 
 **doobie** provides mappings for the top-level PostGIS geometric types provided by the `org.postgis` driver extension.
 
-Mappings for postgis are provided in the `pgistypes` module. Doobie expects postgis dependency to be provided, so if you use this module you should add postgis as a dependency.
-
-```scala
-libraryDependencies += "net.postgis" % "postgis-jdbc" % "2.3.0"
-```
+Mappings for postgis are provided in the `postgis` module.
 
 ```scala mdoc:silent
-// Not provided via doobie.postgres.imports._; you must import them explicitly.
-import doobie.postgres.pgisimplicits.*
+import doobie.postgis.instances.geometry.*
 ```
 
 - `PGgeometry`
@@ -217,10 +212,10 @@ In addition to the general types above, **doobie** provides mappings for the fol
 - `Polygon`
 - `Point`
 
-[Geographic types](http://postgis.net/workshops/postgis-intro/geography.html) mappings are defined in a different object (`pgisgeographyimplicits`), to allow geometric types using geodetic coordinates.
+[Geographic types](http://postgis.net/workshops/postgis-intro/geography.html) mappings are defined in a different object (`geography`), to allow geometric types using geodetic coordinates.
 
 ```
-import doobie.postgres.pgisgeographyimplicits.*
+import doobie.postgis.instances.geography.*
 
 // or define the implicit conversion manually
 

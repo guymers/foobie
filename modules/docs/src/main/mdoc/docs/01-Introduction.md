@@ -77,8 +77,6 @@ libraryDependencies ++= Seq(
 ```
 @@@
 
-The `-Ypartial-unification` compiler flag enables a bug fix that makes working with functional code significantly easier. See the Cats [Getting Started](https://github.com/typelevel/cats#getting-started) for more info on this if it interests you. **If you're using Scala 2.13+ the compiler no longer accepts that option**.
-
 If you are not using PostgreSQL you can omit `doobie-postgres` and will need to add the appropriate JDBC driver as a dependency. Note that there is a `doobie-h2` add-on if you happen to be using [H2](http://www.h2database.com/).
 
 ### Conventions
@@ -86,7 +84,9 @@ If you are not using PostgreSQL you can omit `doobie-postgres` and will need to 
 Each page begins with some imports, like this.
 
 ```scala mdoc:silent
-import cats._, cats.data._, cats.implicits.*
+import cats.*
+import cats.data.*
+import cats.implicits.*
 import doobie.*
 ```
 
@@ -108,7 +108,3 @@ Sometimes we demonstrate that something doesn't compile. In such cases it will b
 ```scala mdoc:fail
 woozle(nel) // doesn't compile
 ```
-
-### Feedback and Contributions
-
-Feedback on **doobie** or this book is genuinely welcome. Please feel free to file a [pull request](https://github.com/tpolecat/doobie) if you have a contribution, or file an [issue](https://github.com/tpolecat/doobie/issues), or chat with us on [Gitter](https://gitter.im/tpolecat/doobie).

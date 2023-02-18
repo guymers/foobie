@@ -20,7 +20,6 @@ import doobie.util.transactor.Transactor
 // Sketch of a program to run a query and get the output without knowing how many columns will
 // come back, or their types. This can be useful for building query tools, etc.
 object Dynamic extends IOApp.Simple {
-  import doobie.free.resultset.WeakAsyncResultSetIO
 
   type Headers = List[String]
   type Data = List[List[Object]]

@@ -11,7 +11,6 @@ import cats.effect.IOApp
 import cats.syntax.all.*
 import doobie.FC
 import doobie.free.connection.ConnectionIO
-import doobie.free.connection.WeakAsyncConnectionIO
 import doobie.syntax.all.*
 import doobie.util.query.Query0
 import doobie.util.transactor.Transactor

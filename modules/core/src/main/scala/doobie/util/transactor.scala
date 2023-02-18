@@ -32,15 +32,14 @@ import javax.sql.DataSource
 import scala.concurrent.ExecutionContext
 
 object transactor {
-  import doobie.free.connection.WeakAsyncConnectionIO
 
   /** @group Type Aliases */
   type Interpreter[M[_]] = ConnectionOp ~> Kleisli[M, Connection, *]
 
   /**
    * Data type representing the common setup, error-handling, and cleanup
-   * strategy associated with an SQL transaction. A `Transactor` uses a
-   * `Strategy` to wrap programs prior to execution.
+   * strategy associated with an SQL transaction. A [[Transactor]] uses a
+   * [[Strategy]] to wrap programs prior to execution.
    * @param before
    *   a program to prepare the connection for use
    * @param after
@@ -128,7 +127,7 @@ object transactor {
     /** A `Strategy` for running a program on a connection * */
     def strategy: Strategy
 
-    /** Construct a [[Yolo]] for REPL experimentation. */
+    /** Construct a [[doobie.util.yolo.Yolo]] for REPL experimentation. */
     def yolo(implicit ev: Async[M]): Yolo[M] = new Yolo(this)
 
     /**
@@ -349,9 +348,7 @@ object transactor {
 
     /**
      * Construct a constructor of `Transactor[M, D]` for some `D <: DataSource`
-     * by partial application of `M`, which cannot be inferred in general. This
-     * follows the pattern described
-     * [here](http://tpolecat.github.io/2015/07/30/infer.html).
+     * by partial application of `M`, which cannot be inferred in general.
      * @group Constructors
      */
     object fromDataSource {
@@ -380,12 +377,9 @@ object transactor {
     }
 
     /**
-     * Construct a `Transactor` that wraps an existing `Connection`. Closing the
-     * connection is the responsibility of the caller.
-     * @param connection
-     *   a raw JDBC `Connection` to wrap
-     * @param blocker
-     *   for blocking database operations
+     * Construct a [[Transactor]] that wraps an existing
+     * [[java.sql.Connection]]. Closing the connection is the responsibility of
+     * the caller.
      * @group Constructors
      */
     def fromConnection[M[_]]: FromConnectionUnapplied[M] = new FromConnectionUnapplied[M](None)
@@ -402,15 +396,16 @@ object transactor {
     }
 
     /**
-     * Module of constructors for `Transactor` that use the JDBC `DriverManager`
-     * to allocate connections. Note that `DriverManager` is unbounded and will
-     * happily allocate new connections until server resources are exhausted. It
-     * is usually preferable to use `DataSourceTransactor` with an underlying
-     * bounded connection pool (as with `H2Transactor` and `HikariTransactor`
-     * for instance). Blocking operations on `DriverManagerTransactor` are
-     * executed on an unbounded cached daemon thread pool by default, so you are
-     * also at risk of exhausting system threads. TL;DR this is fine for console
-     * apps but don't use it for a web application.
+     * Module of constructors for [[Transactor]] that use the JDBC
+     * [[java.sql.DriverManager]] to allocate connections. Note that
+     * [[java.sql.DriverManager]] is unbounded and will happily allocate new
+     * connections until server resources are exhausted. It is usually
+     * preferable to use a [[Transactor]] backed by a [[javax.sql.DataSource]]
+     * with an underlying bounded connection pool (as with `H2Transactor` and
+     * `HikariTransactor` for instance). Blocking operations are executed on an
+     * unbounded cached daemon thread pool by default, so you are also at risk
+     * of exhausting system threads. TL;DR this is fine for console apps but
+     * don't use it for a web application.
      * @group Constructors
      */
     def fromDriverManager[M[_]] = new FromDriverManagerUnapplied[M](maybeLogHandler = None)
@@ -434,8 +429,8 @@ object transactor {
         )
 
       /**
-       * Construct a new `Transactor` that uses the JDBC `DriverManager` to
-       * allocate connections.
+       * Construct a new [[Transactor]] that uses the JDBC
+       * [[java.sql.DriverManager]] to allocate connections.
        * @param driver
        *   the class name of the JDBC driver, like "org.h2.Driver"
        * @param url
@@ -445,8 +440,8 @@ object transactor {
         create(driver, () => DriverManager.getConnection(url), Strategy.default)
 
       /**
-       * Construct a new `Transactor` that uses the JDBC `DriverManager` to
-       * allocate connections.
+       * Construct a new [[Transactor]] that uses the JDBC
+       * [[java.sql.DriverManager]] to allocate connections.
        * @param driver
        *   the class name of the JDBC driver, like "org.h2.Driver"
        * @param url
@@ -465,15 +460,15 @@ object transactor {
         create(driver, () => DriverManager.getConnection(url, user, pass), Strategy.default)
 
       /**
-       * Construct a new `Transactor` that uses the JDBC `DriverManager` to
-       * allocate connections.
+       * Construct a new [[Transactor]] that uses the JDBC
+       * [[java.sql.DriverManager]] to allocate connections.
        * @param driver
        *   the class name of the JDBC driver, like "org.h2.Driver"
        * @param url
        *   a connection URL, specific to your driver
        * @param info
-       *   a `Properties` containing connection information (see
-       *   `DriverManager.getConnection`)
+       *   a [[java.util.Properties]] containing connection information (see
+       *   documentation for the JDBC driver being used)
        */
       def apply(
         driver: String,

@@ -180,7 +180,7 @@ Domains with check constraints will type check as DISTINCT. For Doobie later tha
 ```scala mdoc:silent
 import cats.data.NonEmptyList
 import doobie.*
-import doobie.enum.JdbcType
+import doobie.enumerated.JdbcType
 
 object distinct {
 

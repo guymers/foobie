@@ -11,7 +11,6 @@ import doobie.HC
 import doobie.enumerated.Nullability.*
 import doobie.free.connection.ConnectionIO
 import doobie.free.preparedstatement.PreparedStatementIO
-import doobie.free.preparedstatement.WeakAsyncPreparedStatementIO
 import doobie.util.log.LogHandler
 import doobie.util.pos.Pos
 import doobie.util.query.Query
