@@ -48,4 +48,17 @@ class WriteSuite extends munit.FunSuite with WriteSuitePlatform {
     assertEquals(util.Write[LenStr2].length, 1)
   }
 
+  case class Woozle(a: (String, Int), b: (Int, String), c: Boolean)
+
+  test("Write should exist for some fancy types") {
+    util.Write[Woozle]: Unit
+    util.Write[(Woozle, String)]: Unit
+    util.Write[(Int, (Woozle, Woozle, String))]: Unit
+  }
+
+  test("Write should exist for option of some fancy types") {
+    util.Write[Option[Woozle]]: Unit
+    util.Write[Option[(Woozle, String)]]: Unit
+    util.Write[Option[(Int, (Woozle, Woozle, String))]]: Unit
+  }
 }

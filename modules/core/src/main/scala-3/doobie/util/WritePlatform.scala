@@ -4,96 +4,57 @@
 
 package doobie.util
 
+import java.sql.PreparedStatement
+import java.sql.ResultSet
+import scala.collection.immutable.ArraySeq
+import scala.compiletime.erasedValue
+import scala.compiletime.summonInline
 import scala.deriving.Mirror
 
-trait WritePlatform {
+trait WritePlatform { this: Write.type =>
 
-  // Trivial write for empty tuple.
-  given Write[EmptyTuple] =
-    new Write(Nil, _ => Nil, (_, _, _) => (), (_, _, _) => ())
-
-  // Inductive write for writable head and tail.
-  given [H, T <: Tuple](using H: => Write[H], T: => Write[T]): Write[H *: T] =
-    new Write(
-      H.puts ++ T.puts,
-      { case h *: t => H.toList(h) ++ T.toList(t) },
-      { case (ps, n, h *: t) => H.unsafeSet(ps, n, h); T.unsafeSet(ps, n + H.length, t) },
-      { case (rs, n, h *: t) => H.unsafeUpdate(rs, n, h); T.unsafeUpdate(rs, n + H.length, t) },
-    )
-
-  // Generic write for products.
-  given derived[P <: Product, A](
-    using
-    m: Mirror.ProductOf[P],
-    i: m.MirroredElemTypes =:= A,
-    w: Write[A],
-  ): Write[P] =
-    w.contramap(p => i(Tuple.fromProductTyped(p)))
-
-  // Trivial write for option of empty tuple.
-  given woe: Write[Option[EmptyTuple]] =
-    new Write[Option[EmptyTuple]](Nil, _ => Nil, (_, _, _) => (), (_, _, _) => ())
-
-  // Trivial write for option of Unit.
-  given wou: Write[Option[Unit]] =
-    new Write[Option[Unit]](Nil, _ => Nil, (_, _, _) => (), (_, _, _) => ())
-
-  // Write[Option[H]], Write[Option[T]] implies Write[Option[H *: T]]
-  given cons1[H, T <: Tuple](
-    using
-    H: => Write[Option[H]],
-    T: => Write[Option[T]],
-    // N: H <:!< Option[_],
-  ): Write[Option[H *: T]] = {
-
-    def split[A](i: Option[H *: T])(f: (Option[H], Option[T]) => A): A =
-      i.fold(f(None, None)) { case h *: t => f(Some(h), Some(t)) }
-
-    new Write(
-      H.puts ++ T.puts,
-      split(_) { (h, t) => H.toList(h) ++ T.toList(t) },
-      (ps, n, i) =>
-        split(i) { (h, t) =>
-          H.unsafeSet(ps, n, h); T.unsafeSet(ps, n + H.length, t)
-        },
-      (rs, n, i) =>
-        split(i) { (h, t) =>
-          H.unsafeUpdate(rs, n, h); T.unsafeUpdate(rs, n + H.length, t)
-        },
-    )
+  inline def summonAll[T <: Tuple]: List[Write[?]] = {
+    inline erasedValue[T] match {
+      case _: EmptyTuple => Nil
+      case _: (t *: ts) => summonInline[Write[t]] :: summonAll[ts]
+    }
   }
 
-  // Write[Option[H]], Write[Option[T]] implies Write[Option[Option[H] *: T]]
-  given cons2[H, T <: Tuple](
-    using
-    H: => Write[Option[H]],
-    T: => Write[Option[T]],
-  ): Write[Option[Option[H] *: T]] = {
+  inline def derived[A](using m: Mirror.ProductOf[A]): Write[A] = {
+    lazy val typeclasses = summonAll[m.MirroredElemTypes]
 
-    def split[A](i: Option[Option[H] *: T])(f: (Option[H], Option[T]) => A): A =
-      i.fold(f(None, None)) { case oh *: t => f(oh, Some(t)) }
+    new Write[A] {
+      override val puts = typeclasses.to(ArraySeq).flatMap(_.puts)
+      override def values(a: A) = {
+        typeclasses.zipWithIndex.flatMap { case (typeclass: Write[a], i) =>
+          val v = a.asInstanceOf[Product].productElement(i).asInstanceOf[a]
+          typeclass.values(v)
+        }
+      }
+      override def unsafeSet(ps: PreparedStatement, i: Int, a: A) = {
+        var index = 0
+        var n = i
+        typeclasses.foreach { case (typeclass: Write[a]) =>
+          val v = a.asInstanceOf[Product].productElement(index).asInstanceOf[a]
+          typeclass.unsafeSet(ps, n, v)
 
-    new Write(
-      H.puts ++ T.puts,
-      split(_) { (h, t) => H.toList(h) ++ T.toList(t) },
-      (ps, n, i) =>
-        split(i) { (h, t) =>
-          H.unsafeSet(ps, n, h); T.unsafeSet(ps, n + H.length, t)
-        },
-      (rs, n, i) =>
-        split(i) { (h, t) =>
-          H.unsafeUpdate(rs, n, h); T.unsafeUpdate(rs, n + H.length, t)
-        },
-    )
+          index = index + 1
+          n = n + typeclass.length
+        }
+      }
+      override def unsafeUpdate(rs: ResultSet, i: Int, a: A) = {
+        var index = 0
+        var n = i
+        typeclasses.foreach { case (typeclass: Write[a]) =>
+          val v = a.asInstanceOf[Product].productElement(index).asInstanceOf[a]
+          typeclass.unsafeUpdate(rs, n, v)
+
+          index = index + 1
+          n = n + typeclass.length
+        }
+      }
+    }
   }
 
-  // Generic write for options of products.
-  given [P <: Product, A](
-    using
-    m: Mirror.ProductOf[P],
-    i: m.MirroredElemTypes =:= A,
-    w: Write[Option[A]],
-  ): Write[Option[P]] =
-    w.contramap(op => op.map(p => i(Tuple.fromProductTyped(p))))
-
+  inline implicit def gen[A](using m: Mirror.ProductOf[A]): Write[A] = derived[A]
 }

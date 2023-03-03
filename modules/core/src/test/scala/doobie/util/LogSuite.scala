@@ -72,6 +72,15 @@ class LogSuite extends munit.FunSuite {
     }
   }
 
+  test("[Query] n-arg success") {
+    val Sql = "select 1 where ? = ?"
+    val Arg = (1, 1)
+    eventForUniqueQuery(Sql, Arg) match {
+      case Success(Sql, List(1, 1), _, _) => ()
+      case a => fail(s"no match: $a")
+    }
+  }
+
   test("[Query] zero-arg execution failure".ignore) {
     ()
   }
@@ -84,6 +93,15 @@ class LogSuite extends munit.FunSuite {
     val Sql = "select 1 where 1 = 2"
     eventForUniqueQuery(Sql) match {
       case ProcessingFailure(Sql, Nil, _, _, _) => ()
+      case a => fail(s"no match: $a")
+    }
+  }
+
+  test("[Query] n-arg processing failure") {
+    val Sql = "select 1 where ? = ?"
+    val Arg = (1, 2)
+    eventForUniqueQuery(Sql, Arg) match {
+      case ProcessingFailure(Sql, List(1, 2), _, _, _) => ()
       case a => fail(s"no match: $a")
     }
   }
@@ -116,6 +134,15 @@ class LogSuite extends munit.FunSuite {
     }
   }
 
+  test("[Update] n-arg success") {
+    val Sql = "update foo set bar = ?"
+    val Arg = 42
+    eventForUniqueUpdate(Sql, Arg) match {
+      case Success(Sql, List(42), _, _) => ()
+      case a => fail(s"no match: $a")
+    }
+  }
+
   test("[Update] zero-arg execution failure".ignore) {
     ()
   }
@@ -123,5 +150,4 @@ class LogSuite extends munit.FunSuite {
   test("[Update] n-arg execution failure".ignore) {
     ()
   }
-
 }

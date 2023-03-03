@@ -129,7 +129,7 @@ object preparedstatement {
   def getColumnMappings[A](implicit
     A: Read[A],
   ): PreparedStatementIO[List[Ior[(Get[?], NullabilityKnown), ColumnMeta]]] =
-    getColumnJdbcMeta.map(m => A.gets.align(m))
+    getColumnJdbcMeta.map(m => A.gets.toList.align(m))
 
   /** @group Properties */
   val getFetchDirection: PreparedStatementIO[FetchDirection] =
@@ -173,7 +173,7 @@ object preparedstatement {
   def getParameterMappings[A](implicit
     A: Write[A],
   ): PreparedStatementIO[List[Ior[(Put[?], NullabilityKnown), ParameterMeta]]] =
-    getParameterJdbcMeta.map(m => A.puts.align(m))
+    getParameterJdbcMeta.map(m => A.puts.toList.align(m))
 
   /** @group Properties */
   val getMaxFieldSize: PreparedStatementIO[Int] =
@@ -212,18 +212,11 @@ object preparedstatement {
     FPS.getWarnings
 
   /**
-   * Set the given writable value, starting at column `n`.
-   * @group Parameters
-   */
-  def set[A](n: Int, a: A)(implicit A: Write[A]): PreparedStatementIO[Unit] =
-    A.set(n, a)
-
-  /**
-   * Set the given writable value, starting at column `1`.
+   * Set the given writable value.
    * @group Parameters
    */
   def set[A](a: A)(implicit A: Write[A]): PreparedStatementIO[Unit] =
-    A.set(1, a)
+    A.set(a)
 
   /** @group Properties */
   def setCursorName(name: String): PreparedStatementIO[Unit] =

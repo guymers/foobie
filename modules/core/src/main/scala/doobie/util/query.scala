@@ -57,7 +57,7 @@ object query {
 
     // Equivalent to HPS.executeQuery(k) but with logging
     private def executeQuery[T](a: A, k: ResultSetIO[T]): PreparedStatementIO[T] = {
-      val args = write.toList(a)
+      val args = write.values(a).toList
       def diff(a: Long, b: Long) = FiniteDuration((a - b).abs, NANOSECONDS)
       def log(e: LogEvent): PreparedStatementIO[Unit] =
         for {

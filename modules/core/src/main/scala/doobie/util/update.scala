@@ -52,8 +52,8 @@ object update {
       FPS.delay(System.nanoTime)
 
     // Equivalent to HPS.executeUpdate(k) but with logging if logHandler is defined
-    private def executeUpdate[T](a: A): PreparedStatementIO[Int] = {
-      val args = write.toList(a)
+    private def executeUpdate(a: A): PreparedStatementIO[Int] = {
+      val args = write.values(a).toList
       def diff(a: Long, b: Long) = FiniteDuration((a - b).abs, NANOSECONDS)
       def log(e: LogEvent): PreparedStatementIO[Unit] =
         for {

@@ -48,7 +48,6 @@ The current version is **$version$** for **Scala $scala-versions$** with
 
 - [**cats**](http://typelevel.org/cats/) $catsVersion$
 - [**fs2**](https://github.com/functional-streams-for-scala/fs2) $fs2Version$
-- [**shapeless**](https://github.com/milessabin/shapeless) $shapelessVersion$
 
 
 

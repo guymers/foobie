@@ -64,18 +64,11 @@ object resultset {
     FRS.first
 
   /**
-   * Read a value of type `A` starting at column `n`.
+   * Read a value of type `A`.
    * @group Results
    */
-  def get[A](n: Int)(implicit A: Read[A]): ResultSetIO[A] =
-    A.get(n)
-
-  /**
-   * Read a value of type `A` starting at column 1.
-   * @group Results
-   */
-  def get[A: Read]: ResultSetIO[A] =
-    get(1)
+  def get[A](implicit A: Read[A]): ResultSetIO[A] =
+    A.get
 
   /**
    * Consumes the remainder of the resultset, reading each row as a value of
@@ -147,18 +140,11 @@ object resultset {
     get[A].whileM(next)
 
   /**
-   * Updates a value of type `A` starting at column `n`.
-   * @group Updating
-   */
-  def update[A](n: Int, a: A)(implicit A: Write[A]): ResultSetIO[Unit] =
-    A.update(n, a)
-
-  /**
-   * Updates a value of type `A` starting at column 1.
+   * Updates a value of type `A`.
    * @group Updating
    */
   def update[A](a: A)(implicit A: Write[A]): ResultSetIO[Unit] =
-    A.update(1, a)
+    A.update(a)
 
   /**
    * Similar to `next >> get` but lifted into `Option`; returns `None` when no

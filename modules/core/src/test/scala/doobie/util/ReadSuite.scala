@@ -7,7 +7,6 @@ package util
 
 import cats.effect.IO
 import cats.syntax.apply.*
-import cats.syntax.semigroupal.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 
@@ -63,9 +62,21 @@ class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
     assertEquals(util.Read[LenStr2].length, 1)
   }
 
-  test(".product should product the correct ordering of gets") {
-    import cats.syntax.all.*
+  case class Woozle(a: (String, Int), b: (Int, String), c: Boolean)
 
+  test("Read should exist for some fancy types") {
+    util.Read[Woozle]: Unit
+    util.Read[(Woozle, String)]: Unit
+    util.Read[(Int, (Woozle, Woozle, String))]: Unit
+  }
+
+  test("Read should exist for option of some fancy types") {
+    util.Read[Option[Woozle]]: Unit
+    util.Read[Option[(Woozle, String)]]: Unit
+    util.Read[Option[(Int, (Woozle, Woozle, String))]]: Unit
+  }
+
+  test(".product should product the correct ordering of gets") {
     val readInt = util.Read[Int]
     val readString = util.Read[String]
 
@@ -76,11 +87,8 @@ class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
 
   test("Read should select correct columns when combined with `ap`") {
     val r = util.Read[Int]
-
     val c = (r, r, r, r, r).tupled
-
     val q = sql"SELECT 1, 2, 3, 4, 5".query(c).to[List]
-
     val o = q.transact(xa).unsafeRunSync()
 
     assertEquals(o, List((1, 2, 3, 4, 5)))
