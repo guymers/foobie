@@ -11,7 +11,7 @@ import scala.compiletime.erasedValue
 import scala.compiletime.summonInline
 import scala.deriving.Mirror
 
-trait WritePlatform { this: Write.type =>
+trait WritePlatform {
 
   inline def summonAll[T <: Tuple]: List[Write[?]] = {
     inline erasedValue[T] match {
@@ -55,6 +55,9 @@ trait WritePlatform { this: Write.type =>
       }
     }
   }
+}
 
-  inline implicit def gen[A](using m: Mirror.ProductOf[A]): Write[A] = derived[A]
+trait WriteAutoPlatform extends WritePlatform {
+
+  inline implicit def genWrite[A](using m: Mirror.ProductOf[A]): Write[A] = derived[A]
 }

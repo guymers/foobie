@@ -6,7 +6,6 @@ package example
 
 import doobie.postgres.implicits.*
 import doobie.syntax.all.*
-import doobie.util.meta.Meta
 import doobie.util.query.Query0
 import doobie.util.update.Update
 import doobie.util.update.Update0
@@ -14,6 +13,8 @@ import org.postgresql.geometric.*
 
 // Some queries to test using the AnalysisTestSpec in src/test
 object AnalysisTest {
+  import doobie.util.Read.Auto.*
+  import doobie.util.Write.Auto.*
 
   final case class Country(name: String, indepYear: Int)
 
@@ -46,7 +47,6 @@ object AnalysisTest {
     """.query[PGpoint]
 
   val pointTest2 = {
-    Meta[PostgresPoint.Point] // why not? ... irritating that it must be instantiated. what to do?
     sql"""
       SELECT '(1, 2)'::point test
     """.query[PGcircle]

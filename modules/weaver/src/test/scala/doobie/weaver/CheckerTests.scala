@@ -36,6 +36,8 @@ object CheckerTests extends IOSuite with IOChecker {
   final case class Foo[F[_]](x: Int)
 
   test("trivial case-class") { implicit transactor =>
+    import doobie.util.Read.Auto.*
+
     check(sql"select 1".query[Foo[cats.Id]])
   }
 
@@ -50,6 +52,8 @@ object CheckerTests extends IOSuite with IOChecker {
   }
 
   test("Read should select correct columns for checking when combined with `ap`") { implicit transactor =>
+    import doobie.util.Read.Auto.*
+
     val readInt = Read[(Int, Int)]
     val readIntToInt: Read[Tuple2[Int, Int] => String] =
       Read[(String, String)].map(i => k => s"$i,$k")

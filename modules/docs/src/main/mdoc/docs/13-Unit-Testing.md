@@ -9,6 +9,7 @@ As with earlier chapters we set up a `Transactor` and YOLO mode. We will also us
 ```scala mdoc:silent
 import doobie.*
 import doobie.implicits.*
+import doobie.util.Read.Auto.*
 import cats.*
 import cats.data.*
 import cats.effect.*

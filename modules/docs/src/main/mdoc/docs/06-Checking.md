@@ -10,6 +10,7 @@ Our setup here is the same as last chapter, so if you're still running from last
 import doobie.*
 import doobie.implicits.*
 import doobie.util.ExecutionContexts
+import doobie.util.Read.Auto.*
 import cats.*
 import cats.data.*
 import cats.effect.*

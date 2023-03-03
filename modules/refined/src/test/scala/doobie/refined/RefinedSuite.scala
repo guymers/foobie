@@ -10,7 +10,9 @@ import cats.syntax.all.*
 import doobie.refined.implicits.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
+import doobie.util.Read.Auto.*
 import doobie.util.Write
+import doobie.util.Write.Auto.*
 import doobie.util.invariant.*
 import doobie.util.meta.Meta
 import doobie.util.transactor.Transactor
@@ -21,7 +23,6 @@ import eu.timepit.refined.api.Validate
 import eu.timepit.refined.numeric.Positive
 
 class RefinedSuite extends munit.FunSuite {
-
   import cats.effect.unsafe.implicits.global
 
   val xa = Transactor.fromDriverManager[IO](
@@ -45,7 +46,7 @@ class RefinedSuite extends munit.FunSuite {
   type PointInQuadrant1 = Point Refined Quadrant1
 
   implicit val PointComposite: Write[Point] =
-    Write[(Int, Int)].contramap((p: Point) => (p.x, p.y))
+    Write.derived[(Int, Int)].contramap((p: Point) => (p.x, p.y))
 
   implicit val quadrant1Validate: Validate.Plain[Point, Quadrant1] =
     Validate.fromPredicate(p => p.x >= 0 && p.y >= 0, p => show"($p is in quadrant 1)", Quadrant1())

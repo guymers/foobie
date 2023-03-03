@@ -24,6 +24,7 @@ This can happen for a few reasons, but the most common case is that a data
 member somewhere within this type doesn't have a Get instance in scope. Here are
 some debugging hints:
 
+- For auto derivation ensure `doobie.util.Read.Auto.*` is being imported
 - For Option types, ensure that a Read instance is in scope for the non-Option version.
 - For types you expect to map to a single column ensure that a Get instance is in scope.
 - For case classes and tuples ensure that each element has a Read instance in scope.
@@ -69,6 +70,8 @@ trait Read[A] { self =>
 object Read extends Read1 {
 
   def apply[A](implicit ev: Read[A]): ev.type = ev
+
+  object Auto extends ReadAutoPlatform
 
   implicit val ReadApply: Apply[Read] = new Apply[Read] {
     override def map[A, B](fa: Read[A])(f: A => B) = fa.map(f)

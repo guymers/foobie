@@ -5,8 +5,10 @@
 package doobie.bench
 
 import cats.effect.IO
+import cats.syntax.apply.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
+import doobie.util.Read
 import doobie.util.transactor.Transactor
 import org.openjdk.jmh.annotations.*
 
@@ -49,6 +51,12 @@ class bench {
       co.close()
     }
   }
+
+  implicit val read3Strings: Read[(String, String, String)] = (
+    Read[String],
+    Read[String],
+    Read[String],
+  ).tupled
 
   // Reading via .stream, which adds a fair amount of overhead
   def doobieBenchP(n: Int): Int =

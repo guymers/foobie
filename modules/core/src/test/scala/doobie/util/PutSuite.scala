@@ -10,5 +10,4 @@ class PutSuite extends munit.FunSuite {
     Put[Int]: Unit
     Put[String]: Unit
   }
-
 }

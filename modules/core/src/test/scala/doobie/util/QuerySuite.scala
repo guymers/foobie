@@ -12,8 +12,8 @@ import doobie.util.query.Query0
 import doobie.util.transactor.Transactor
 
 class QuerySuite extends munit.FunSuite {
-
   import cats.effect.unsafe.implicits.global
+  import doobie.util.Read.Auto.*
 
   val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",

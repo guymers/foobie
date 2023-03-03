@@ -17,6 +17,7 @@ import fs2.Stream
 
 // JDBC program using the high-level API
 object HiUsage extends IOApp.Simple {
+  import doobie.util.Read.Auto.*
 
   // A very simple data type we will read
   final case class CountryCode(code: Option[String])

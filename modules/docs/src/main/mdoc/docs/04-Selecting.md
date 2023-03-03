@@ -1,6 +1,6 @@
 ## Selecting Data
 
-In this chapter we will write some some programs to read from the database, mapping rows to Scala types on the way. We also introduce YOLO mode for experimenting with **doobie** in the REPL.
+In this chapter we will write some programs to read from the database, mapping rows to Scala types on the way. We also introduce YOLO mode for experimenting with **doobie** in the REPL.
 
 ### Setting Up
 
@@ -10,6 +10,7 @@ First let's get our imports out of the way and set up a `Transactor` as we did b
 import doobie.*
 import doobie.implicits.*
 import doobie.util.ExecutionContexts
+import doobie.util.Read.Auto.*
 import cats.*
 import cats.data.*
 import cats.effect.*

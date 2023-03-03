@@ -9,6 +9,7 @@ import doobie.syntax.all.*
 import doobie.util.query.Query0
 
 object Join {
+  import doobie.util.Read.Auto.*
 
   final case class Country(code: String, name: String)
   final case class City(id: Int, name: String)

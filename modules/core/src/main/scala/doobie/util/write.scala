@@ -68,6 +68,8 @@ object Write extends Write1 {
 
   def apply[A](implicit A: Write[A]): Write[A] = A
 
+  object Auto extends WriteAutoPlatform
+
   implicit val WriteContravariantSemigroupal: ContravariantSemigroupal[Write] = new ContravariantSemigroupal[Write] {
     override def contramap[A, B](fa: Write[A])(f: B => A) = fa.contramap(f)
     override def product[A, B](fa: Write[A], fb: Write[B]) = fa.product(fb)

@@ -11,6 +11,8 @@ import cats.implicits.*
 import doobie.*
 import doobie.implicits.*
 import doobie.util.ExecutionContexts
+import doobie.util.Read.Auto.*
+import doobie.util.Write.Auto.*
 import java.awt.geom.Point2D
 import java.util.UUID
 

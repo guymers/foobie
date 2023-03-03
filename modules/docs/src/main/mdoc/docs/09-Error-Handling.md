@@ -8,6 +8,7 @@ In this chapter we examine a set of combinators that allow us to construct progr
 import doobie.*
 import doobie.implicits.*
 import doobie.util.ExecutionContexts
+import doobie.util.Read.Auto.*
 import cats.*
 import cats.data.*
 import cats.effect.*

@@ -20,6 +20,8 @@ import fs2.Stream
 
 // Example lifted from slick
 object FirstExample extends IOApp.Simple {
+  import doobie.util.Read.Auto.*
+  import doobie.util.Write.Auto.*
 
   // Our data model
   final case class Supplier(id: Int, name: String, street: String, city: String, state: String, zip: String)

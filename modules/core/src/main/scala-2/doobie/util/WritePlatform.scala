@@ -12,7 +12,7 @@ import java.sql.ResultSet
 import scala.collection.immutable.ArraySeq
 import scala.language.experimental.macros
 
-trait WritePlatform { this: Write.type =>
+trait WritePlatform {
 
   type Typeclass[A] = Write[A]
 
@@ -46,6 +46,9 @@ trait WritePlatform { this: Write.type =>
   }
 
   def derived[A]: Write[A] = macro Magnolia.gen[A]
+}
 
-  implicit def gen[A]: Write[A] = macro Magnolia.gen[A]
+trait WriteAutoPlatform extends WritePlatform {
+
+  implicit def genWrite[A]: Write[A] = macro Magnolia.gen[A]
 }

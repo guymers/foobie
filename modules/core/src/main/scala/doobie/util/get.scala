@@ -174,7 +174,7 @@ object Get extends GetInstances {
   }
 
   /** An implicit Meta[A] means we also have an implicit Get[A]. */
-  implicit def metaProjection[A](implicit m: Meta[A]): Get[A] = m.get
+  implicit def fromMeta[A](implicit m: Meta[A]): Get[A] = m.get
 
 }
 

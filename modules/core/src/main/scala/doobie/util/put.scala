@@ -169,7 +169,7 @@ object Put extends PutInstances {
   }
 
   /** An implicit Meta[A] means we also have an implicit Put[A]. */
-  implicit def metaProjectionWrite[A](implicit m: Meta[A]): Put[A] = m.put
+  implicit def fromMeta[A](implicit m: Meta[A]): Put[A] = m.put
 
 }
 

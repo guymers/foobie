@@ -13,6 +13,8 @@ import doobie.util.query.Query0
 import java.sql.Date
 
 object CustomReadWrite {
+  import Read.Auto.*
+  import Write.Auto.*
 
   final case class PosixTime(time: Long)
 

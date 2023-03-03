@@ -4,7 +4,9 @@
 
 package doobie.bench
 
-import cats.syntax.all.*
+import cats.syntax.apply.*
+import cats.syntax.foldable.*
+import cats.syntax.functor.*
 import doobie.FPS
 import doobie.HC
 import doobie.HPS
@@ -12,10 +14,14 @@ import doobie.free.connection.ConnectionIO
 import doobie.postgres.implicits.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
+import doobie.util.Write
 import fs2.Stream
 import org.openjdk.jmh.annotations.*
 
 final case class Person(name: String, age: Int)
+object Person {
+  implicit val write: Write[Person] = Write.derived
+}
 
 class text {
   import cats.effect.unsafe.implicits.global
@@ -39,7 +45,7 @@ class text {
         people(n).foreach { p =>
           ps.setString(1, p.name)
           ps.setInt(2, p.age)
-          ps.addBatch
+          ps.addBatch()
         }
         ps.executeBatch.sum
       },
