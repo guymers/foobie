@@ -24,8 +24,6 @@ import doobie.postgres.free.largeobjectmanager.LargeObjectManagerIO
 import doobie.postgres.free.largeobjectmanager.LargeObjectManagerOp
 import doobie.postgres.free.pgconnection.PGConnectionIO
 import doobie.postgres.free.pgconnection.PGConnectionOp
-import doobie.util.log.LogEvent
-import doobie.util.log.LogHandlerM
 import org.postgresql.PGConnection
 import org.postgresql.copy.CopyIn as PGCopyIn
 import org.postgresql.copy.CopyManager as PGCopyManager
@@ -44,13 +42,11 @@ import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object KleisliInterpreter {
-  def apply[M[_]: WeakAsync](logHandler: LogHandlerM[M]): KleisliInterpreter[M] =
-    new KleisliInterpreter[M](logHandler)
+  def apply[M[_]: WeakAsync]: KleisliInterpreter[M] = new KleisliInterpreter[M]
 }
 
 // Family of interpreters into Kleisli arrows for some monad M.
-class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: WeakAsync[M]) { outer =>
-  import WeakAsync.*
+class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
 
   // The 6 interpreters, with definitions below. These can be overridden to customize behavior.
   lazy val CopyInInterpreter: CopyInOp ~> Kleisli[M, PGCopyIn, *] = new CopyInInterpreter {}
@@ -130,8 +126,6 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def suspend[A](hint: Sync.Type)(thunk: => A) = outer.suspend(hint)(thunk)
     override def canceled = outer.canceled[PGCopyIn]
 
-    override def performLogging(event: LogEvent) = Kleisli(_ => logHandler.run(event))
-
     // for operations using CopyInIO we must call ourself recursively
     override def handleErrorWith[A](fa: CopyInIO[A])(f: Throwable => CopyInIO[A]) = outer.handleErrorWith(this)(fa)(f)
     override def forceR[A, B](fa: CopyInIO[A])(fb: CopyInIO[B]) = outer.forceR(this)(fa)(fb)
@@ -166,8 +160,6 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def delay[A](thunk: => A) = outer.delay(thunk)
     override def suspend[A](hint: Sync.Type)(thunk: => A) = outer.suspend(hint)(thunk)
     override def canceled = outer.canceled[PGCopyManager]
-
-    override def performLogging(event: LogEvent) = Kleisli(_ => logHandler.run(event))
 
     // for operations using CopyManagerIO we must call ourself recursively
     override def handleErrorWith[A](fa: CopyManagerIO[A])(f: Throwable => CopyManagerIO[A]) =
@@ -205,8 +197,6 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def suspend[A](hint: Sync.Type)(thunk: => A) = outer.suspend(hint)(thunk)
     override def canceled = outer.canceled[PGCopyOut]
 
-    override def performLogging(event: LogEvent) = Kleisli(_ => logHandler.run(event))
-
     // for operations using CopyOutIO we must call ourself recursively
     override def handleErrorWith[A](fa: CopyOutIO[A])(f: Throwable => CopyOutIO[A]) = outer.handleErrorWith(this)(fa)(f)
     override def forceR[A, B](fa: CopyOutIO[A])(fb: CopyOutIO[B]) = outer.forceR(this)(fa)(fb)
@@ -239,8 +229,6 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def delay[A](thunk: => A) = outer.delay(thunk)
     override def suspend[A](hint: Sync.Type)(thunk: => A) = outer.suspend(hint)(thunk)
     override def canceled = outer.canceled[LargeObject]
-
-    override def performLogging(event: LogEvent) = Kleisli(_ => logHandler.run(event))
 
     // for operations using LargeObjectIO we must call ourself recursively
     override def handleErrorWith[A](fa: LargeObjectIO[A])(f: Throwable => LargeObjectIO[A]) =
@@ -287,8 +275,6 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def suspend[A](hint: Sync.Type)(thunk: => A) = outer.suspend(hint)(thunk)
     override def canceled = outer.canceled[LargeObjectManager]
 
-    override def performLogging(event: LogEvent) = Kleisli(_ => logHandler.run(event))
-
     // for operations using LargeObjectManagerIO we must call ourself recursively
     override def handleErrorWith[A](fa: LargeObjectManagerIO[A])(f: Throwable => LargeObjectManagerIO[A]) =
       outer.handleErrorWith(this)(fa)(f)
@@ -325,8 +311,6 @@ class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: 
     override def delay[A](thunk: => A) = outer.delay(thunk)
     override def suspend[A](hint: Sync.Type)(thunk: => A) = outer.suspend(hint)(thunk)
     override def canceled = outer.canceled[PGConnection]
-
-    override def performLogging(event: LogEvent) = Kleisli(_ => logHandler.run(event))
 
     // for operations using PGConnectionIO we must call ourself recursively
     override def handleErrorWith[A](fa: PGConnectionIO[A])(f: Throwable => PGConnectionIO[A]) =

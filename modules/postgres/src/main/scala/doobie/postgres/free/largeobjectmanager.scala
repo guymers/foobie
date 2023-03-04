@@ -10,7 +10,6 @@ import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
-import doobie.util.log.LogEvent
 import org.postgresql.largeobject.LargeObject
 import org.postgresql.largeobject.LargeObjectManager
 
@@ -56,7 +55,6 @@ object largeobjectmanager { module =>
       def canceled: F[Unit]
       def onCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit]): F[A]
       def fromFuture[A](fut: LargeObjectManagerIO[Future[A]]): F[A]
-      def performLogging(event: LogEvent): F[Unit]
 
       // LargeObjectManager
       def createLO: F[Long]
@@ -113,9 +111,6 @@ object largeobjectmanager { module =>
     }
     case class FromFuture[A](fut: LargeObjectManagerIO[Future[A]]) extends LargeObjectManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
-    }
-    case class PerformLogging(event: LogEvent) extends LargeObjectManagerOp[Unit] {
-      def visit[F[_]](v: Visitor[F]) = v.performLogging(event)
     }
 
     // LargeObjectManager-specific operations.
@@ -178,7 +173,6 @@ object largeobjectmanager { module =>
   def onCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit]) =
     FF.liftF[LargeObjectManagerOp, A](OnCancel(fa, fin))
   def fromFuture[A](fut: LargeObjectManagerIO[Future[A]]) = FF.liftF[LargeObjectManagerOp, A](FromFuture(fut))
-  def performLogging(event: LogEvent) = FF.liftF[LargeObjectManagerOp, Unit](PerformLogging(event))
 
   // Smart constructors for LargeObjectManager-specific operations.
   val createLO: LargeObjectManagerIO[Long] = FF.liftF(CreateLO)

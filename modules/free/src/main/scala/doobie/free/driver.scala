@@ -10,7 +10,6 @@ import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
-import doobie.util.log.LogEvent
 
 import java.lang.String
 import java.sql.Connection
@@ -60,7 +59,6 @@ object driver { module =>
       def canceled: F[Unit]
       def onCancel[A](fa: DriverIO[A], fin: DriverIO[Unit]): F[A]
       def fromFuture[A](fut: DriverIO[Future[A]]): F[A]
-      def performLogging(event: LogEvent): F[Unit]
 
       // Driver
       def acceptsURL(a: String): F[Boolean]
@@ -113,9 +111,6 @@ object driver { module =>
     case class FromFuture[A](fut: DriverIO[Future[A]]) extends DriverOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
-    case class PerformLogging(event: LogEvent) extends DriverOp[Unit] {
-      def visit[F[_]](v: Visitor[F]) = v.performLogging(event)
-    }
 
     // Driver-specific operations.
     final case class AcceptsURL(a: String) extends DriverOp[Boolean] {
@@ -164,7 +159,6 @@ object driver { module =>
   val canceled = FF.liftF[DriverOp, Unit](Canceled)
   def onCancel[A](fa: DriverIO[A], fin: DriverIO[Unit]) = FF.liftF[DriverOp, A](OnCancel(fa, fin))
   def fromFuture[A](fut: DriverIO[Future[A]]) = FF.liftF[DriverOp, A](FromFuture(fut))
-  def performLogging(event: LogEvent) = FF.liftF[DriverOp, Unit](PerformLogging(event))
 
   // Smart constructors for Driver-specific operations.
   def acceptsURL(a: String): DriverIO[Boolean] = FF.liftF(AcceptsURL(a))

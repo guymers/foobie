@@ -9,7 +9,6 @@ import cats.syntax.apply.*
 import doobie.free.KleisliInterpreter
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
-import doobie.util.log.LogHandlerM
 import doobie.util.transactor.Transactor
 
 class StrategySuite extends munit.FunSuite {
@@ -25,7 +24,7 @@ class StrategySuite extends munit.FunSuite {
 
   // an instrumented interpreter
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  class Interp extends KleisliInterpreter[IO](LogHandlerM.noop) {
+  class Interp extends KleisliInterpreter[IO] {
 
     object Connection {
       var autoCommit: Option[Boolean] = None

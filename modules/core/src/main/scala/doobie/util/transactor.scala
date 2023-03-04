@@ -4,7 +4,6 @@
 
 package doobie.util
 
-import cats.Applicative
 import cats.Monad
 import cats.data.Kleisli
 import cats.effect.kernel.Async
@@ -21,7 +20,6 @@ import doobie.free.connection.rollback
 import doobie.free.connection.setAutoCommit
 import doobie.free.connection.unit
 import doobie.util.lens.*
-import doobie.util.log.LogHandlerM
 import doobie.util.yolo.Yolo
 import fs2.Pipe
 import fs2.Stream
@@ -352,24 +350,20 @@ object transactor {
      * @group Constructors
      */
     object fromDataSource {
-      def apply[M[_]] = new FromDataSourceUnapplied[M](None)
+      def apply[M[_]] = new FromDataSourceUnapplied[M]
 
       /**
        * Constructor of `Transactor[M, D]` fixed for `M`; see the `apply` method
        * for details.
        * @group Constructors (Partially Applied)
        */
-      class FromDataSourceUnapplied[M[_]](maybeLogHandler: Option[LogHandlerM[M]]) {
-        def withLogHandler(logHandler: LogHandlerM[M]): FromDataSourceUnapplied[M] =
-          new FromDataSourceUnapplied(Some(logHandler))
-        private def logHandler(implicit A: Applicative[M]): LogHandlerM[M] = maybeLogHandler.getOrElse(LogHandlerM.noop)
-
+      class FromDataSourceUnapplied[M[_]] {
         def apply[A <: DataSource](dataSource: A, connectEC: ExecutionContext)(implicit
           ev: Async[M],
         ): Transactor.Aux[M, A] = {
           val connect =
             (dataSource: A) => Resource.fromAutoCloseable(ev.evalOn(ev.delay(dataSource.getConnection()), connectEC))
-          val interp = KleisliInterpreter[M](logHandler).ConnectionInterpreter
+          val interp = KleisliInterpreter[M].ConnectionInterpreter
           Transactor(dataSource, connect, interp, Strategy.default)
         }
       }
@@ -382,15 +376,12 @@ object transactor {
      * the caller.
      * @group Constructors
      */
-    def fromConnection[M[_]]: FromConnectionUnapplied[M] = new FromConnectionUnapplied[M](None)
+    def fromConnection[M[_]]: FromConnectionUnapplied[M] = new FromConnectionUnapplied[M]
 
-    class FromConnectionUnapplied[M[_]](maybeLogHandler: Option[LogHandlerM[M]]) {
-      def withLogHandler(logHandler: LogHandlerM[M]) = new FromConnectionUnapplied(Some(logHandler))
-      private def logHandler(implicit A: Applicative[M]): LogHandlerM[M] = maybeLogHandler.getOrElse(LogHandlerM.noop)
-
+    class FromConnectionUnapplied[M[_]] {
       def apply(connection: Connection)(implicit async: Async[M]): Transactor.Aux[M, Connection] = {
         val connect = (c: Connection) => Resource.pure[M, Connection](c)
-        val interp = KleisliInterpreter[M](logHandler).ConnectionInterpreter
+        val interp = KleisliInterpreter[M].ConnectionInterpreter
         Transactor(connection, connect, interp, Strategy.default)
       }
     }
@@ -408,13 +399,10 @@ object transactor {
      * don't use it for a web application.
      * @group Constructors
      */
-    def fromDriverManager[M[_]] = new FromDriverManagerUnapplied[M](maybeLogHandler = None)
+    def fromDriverManager[M[_]] = new FromDriverManagerUnapplied[M]
 
     @SuppressWarnings(Array("org.wartremover.warts.Overloading"))
-    class FromDriverManagerUnapplied[M[_]](maybeLogHandler: Option[LogHandlerM[M]]) {
-      def withLogHandler(logHandler: LogHandlerM[M]) = new FromDriverManagerUnapplied(Some(logHandler))
-      private def logHandler(implicit A: Applicative[M]): LogHandlerM[M] = maybeLogHandler.getOrElse(LogHandlerM.noop)
-
+    class FromDriverManagerUnapplied[M[_]] {
       @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
       private def create(
         driver: String,
@@ -424,7 +412,7 @@ object transactor {
         Transactor(
           (),
           _ => Resource.fromAutoCloseable(ev.blocking { Class.forName(driver); conn() }),
-          KleisliInterpreter[M](logHandler).ConnectionInterpreter,
+          KleisliInterpreter[M].ConnectionInterpreter,
           strategy,
         )
 

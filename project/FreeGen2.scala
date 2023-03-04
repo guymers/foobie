@@ -2,7 +2,6 @@ import sbt.Keys._
 import sbt._
 
 import java.lang.reflect._
-import scala.Predef._
 import scala.reflect.ClassTag
 
 object FreeGen2 {
@@ -86,7 +85,7 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     // The case class constructor name, capitalized and with an index when needed
     def cname: String = {
       val s = mname(0).toUpper +: mname.drop(1)
-      (if (index == 0) s else s"$s$index")
+      if (index == 0) s else s"$s$index"
     }
 
     // Constructor parameter type names
@@ -130,10 +129,11 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
 
     // Case clause mapping this constructor to the corresponding primitive action
     def prim(sname: String): String =
-      (if (cargs.isEmpty)
-         s"case $cname => primitive(_.$mname)"
-       else
-         s"case $cname($args) => primitive(_.$mname($args))")
+      if (cargs.isEmpty) {
+        s"case $cname => primitive(_.$mname)"
+      } else {
+        s"case $cname($args) => primitive(_.$mname($args))"
+      }
 
     // Smart constructor
     def lifted(ioname: String): String =
@@ -179,7 +179,7 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
   // Ctor values for all methods in of A plus superclasses, interfaces, etc.
   def ctors[A](implicit ev: ClassTag[A]): List[Ctor] =
     methods(ev.runtimeClass).groupBy(_.getName).toList.flatMap { case (n, ms) =>
-      ms.toList.sortBy(_.getGenericParameterTypes.map(toScalaType).mkString(",")).zipWithIndex.map {
+      ms.sortBy(_.getGenericParameterTypes.map(toScalaType).mkString(",")).zipWithIndex.map {
         case (m, i) => Ctor(m, i)
       }
     }.sortBy(c => (c.mname, c.index))
@@ -189,7 +189,7 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     val sn = c.getSimpleName
     val an = renames.getOrElse(c, sn)
     if (sn == an) s"import ${c.getName}"
-    else s"import ${c.getPackage.getName}.{ $sn => $an }"
+    else s"import ${c.getPackage.getName}.$sn as $an"
   }
 
   // All types referenced by all methods on A, superclasses, interfaces, etc.
@@ -215,7 +215,6 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |import cats.~>
     |import cats.effect.kernel.{ CancelScope, Poll, Sync }
     |import cats.free.Free as FF // alias because some algebras have an op called Free
-    |import doobie.util.log.LogEvent
     |import doobie.WeakAsync
     |import scala.concurrent.Future
     |import scala.concurrent.duration.FiniteDuration
@@ -261,7 +260,6 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |      def canceled: F[Unit]
     |      def onCancel[A](fa: ${ioname}[A], fin: ${ioname}[Unit]): F[A]
     |      def fromFuture[A](fut: ${ioname}[Future[A]]): F[A]
-    |      def performLogging(event: LogEvent): F[Unit]
     |
     |      // $sname
           ${ctors[A].map(_.visitor).mkString("\n    ")}
@@ -308,9 +306,6 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |    case class FromFuture[A](fut: ${ioname}[Future[A]]) extends ${opname}[A] {
     |      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     |    }
-    |    case class PerformLogging(event: LogEvent) extends ${opname}[Unit] {
-    |      def visit[F[_]](v: Visitor[F]) = v.performLogging(event)
-    |    }
     |
     |    // $sname-specific operations.
     |    ${ctors[A].map(_.ctor(opname)).mkString("\n    ")}
@@ -337,7 +332,6 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |  val canceled = FF.liftF[${opname}, Unit](Canceled)
     |  def onCancel[A](fa: ${ioname}[A], fin: ${ioname}[Unit]) = FF.liftF[${opname}, A](OnCancel(fa, fin))
     |  def fromFuture[A](fut: ${ioname}[Future[A]]) = FF.liftF[${opname}, A](FromFuture(fut))
-    |  def performLogging(event: LogEvent) = FF.liftF[${opname}, Unit](PerformLogging(event))
     |
     |  // Smart constructors for $oname-specific operations.
     |  ${ctors[A].map(_.lifted(ioname)).mkString("\n  ")}
@@ -418,8 +412,6 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
        |    override def suspend[A](hint: Sync.Type)(thunk: => A) = outer.suspend(hint)(thunk)
        |    override def canceled = outer.canceled[${sname}]
        |
-       |    override def performLogging(event: LogEvent) = Kleisli(_ => logHandler.run(event))
-       |
        |    // for operations using ${ioname} we must call ourself recursively
        |    override def handleErrorWith[A](fa: ${ioname}[A])(f: Throwable => ${ioname}[A]) = outer.handleErrorWith(this)(fa)(f)
        |    override def forceR[A, B](fa: ${ioname}[A])(fb: ${ioname}[B]) = outer.forceR(this)(fa)(fb)
@@ -449,30 +441,24 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     s"""
       |package $pkg
       |
-      |// Library imports
       |import cats.~>
       |import cats.data.Kleisli
       |import cats.effect.kernel.{ Poll, Sync }
       |import cats.free.Free
       |import doobie.WeakAsync
-      |import doobie.util.log.{LogEvent, LogHandlerM}
       |import scala.concurrent.Future
       |import scala.concurrent.duration.FiniteDuration
       |
-      |// Types referenced in the JDBC API
       |${managed.map(ClassTag(_)).flatMap(imports(_)).distinct.sorted.mkString("\n")}
       |
-      |// Algebras and free monads thereof referenced by our interpreter.
       |${managed.map(_.getSimpleName).map(c => s"import ${pkg}.${c.toLowerCase}.{ ${c}IO, ${c}Op }").mkString("\n")}
       |
       |object KleisliInterpreter {
-      |  def apply[M[_]: WeakAsync](logHandler: LogHandlerM[M]): KleisliInterpreter[M] =
-      |    new KleisliInterpreter[M](logHandler)
+      |  def apply[M[_]: WeakAsync]: KleisliInterpreter[M] = new KleisliInterpreter[M]
       |}
       |
       |// Family of interpreters into Kleisli arrows for some monad M.
-      |class KleisliInterpreter[M[_]](logHandler: LogHandlerM[M])(implicit val asyncM: WeakAsync[M]) { outer =>
-      |  import WeakAsync._
+      |class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       |
       |  // The ${managed.length} interpreters, with definitions below. These can be overridden to customize behavior.
       |  ${managed.map(interpreterDef).mkString("\n  ")}

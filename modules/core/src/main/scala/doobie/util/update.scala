@@ -14,12 +14,8 @@ import doobie.free.connection.ConnectionIO
 import doobie.free.preparedstatement.PreparedStatementIO
 import doobie.util.analysis.Analysis
 import doobie.util.fragment.Fragment
-import doobie.util.log.*
 import doobie.util.pos.Pos
 import fs2.Stream
-
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.NANOSECONDS
 
 /** Module defining updates parameterized by input type. */
 object update {
@@ -44,31 +40,6 @@ object update {
 
     // Contravariant coyoneda trick for A
     protected implicit val write: Write[A]
-
-    // LogHandler is protected for now.
-    protected val logHandler: LogHandler
-
-    private val now: PreparedStatementIO[Long] =
-      FPS.delay(System.nanoTime)
-
-    // Equivalent to HPS.executeUpdate(k) but with logging if logHandler is defined
-    private def executeUpdate(a: A): PreparedStatementIO[Int] = {
-      val args = write.values(a).toList
-      def diff(a: Long, b: Long) = FiniteDuration((a - b).abs, NANOSECONDS)
-      def log(e: LogEvent): PreparedStatementIO[Unit] =
-        for {
-          _ <- FPS.delay(logHandler.unsafeRun(e))
-          _ <- FPS.performLogging(e)
-        } yield ()
-
-      for {
-        t0 <- now
-        en <- FPS.executeUpdate.attempt
-        t1 <- now
-        n <- en.liftTo[PreparedStatementIO].onError { case e => log(ExecFailure(sql, args, diff(t1, t0), e)) }
-        _ <- log(Success(sql, args, diff(t1, t0), FiniteDuration(0L, NANOSECONDS)))
-      } yield n
-    }
 
     /**
      * The SQL string.
@@ -120,7 +91,7 @@ object update {
      * @group Execution
      */
     def run(a: A): ConnectionIO[Int] =
-      HC.prepareStatement(sql)(HPS.set(a) *> executeUpdate(a))
+      HC.prepareStatement(sql)(HPS.set(a) *> FPS.executeUpdate)
 
     /**
      * Program to execute a batch update and yield a count of affected rows.
@@ -182,32 +153,29 @@ object update {
      * Update is a contravariant functor.
      * @group Transformations
      */
-    def contramap[C](f: C => A): Update[C] =
-      new Update[C] {
-        val write = u.write.contramap(f)
-        val sql = u.sql
-        val pos = u.pos
-        val logHandler = u.logHandler
-      }
+    def contramap[C](f: C => A): Update[C] = new Update[C] {
+      val write = u.write.contramap(f)
+      val sql = u.sql
+      val pos = u.pos
+    }
 
     /**
      * Apply an argument, yielding a residual [[Update0]].
      * @group Transformations
      */
-    def toUpdate0(a: A): Update0 =
-      new Update0 {
-        val sql = u.sql
-        val pos = u.pos
-        def toFragment: Fragment = u.toFragment(a)
-        def analysis = u.analysis
-        def outputAnalysis = u.outputAnalysis
-        def run = u.run(a)
-        def withGeneratedKeysWithChunkSize[K: Read](columns: String*)(chunkSize: Int) =
-          u.withGeneratedKeysWithChunkSize[K](columns*)(a, chunkSize)
-        def withUniqueGeneratedKeys[K: Read](columns: String*) =
-          u.withUniqueGeneratedKeys(columns*)(a)
-        def inspect[R](f: (String, PreparedStatementIO[Unit]) => ConnectionIO[R]) = u.inspect(a)(f)
-      }
+    def toUpdate0(a: A): Update0 = new Update0 {
+      val sql = u.sql
+      val pos = u.pos
+      def toFragment: Fragment = u.toFragment(a)
+      def analysis = u.analysis
+      def outputAnalysis = u.outputAnalysis
+      def run = u.run(a)
+      def withGeneratedKeysWithChunkSize[K: Read](columns: String*)(chunkSize: Int) =
+        u.withGeneratedKeysWithChunkSize[K](columns*)(a, chunkSize)
+      def withUniqueGeneratedKeys[K: Read](columns: String*) =
+        u.withUniqueGeneratedKeys(columns*)(a)
+      def inspect[R](f: (String, PreparedStatementIO[Unit]) => ConnectionIO[R]) = u.inspect(a)(f)
+    }
 
   }
 
@@ -215,31 +183,24 @@ object update {
 
     /**
      * Construct an `Update` for some writable parameter type `A` with the given
-     * SQL string, and optionally a `Pos` and/or `LogHandler` for diagnostics.
-     * The normal mechanism for construction is the `sql/fr/fr0` interpolators.
+     * SQL string, and optionally a `Pos` for diagnostics. The normal mechanism
+     * for construction is the `sql/fr/fr0` interpolators.
      * @group Constructors
      */
     @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
-    def apply[A](sql0: String, pos0: Option[Pos] = None)(
-      implicit
-      W: Write[A],
-      logHandler0: LogHandler = LogHandler.nop,
-    ): Update[A] =
-      new Update[A] {
-        val write = W
-        val sql = sql0
-        val logHandler = logHandler0
-        val pos = pos0
-      }
+    def apply[A](sql0: String, pos0: Option[Pos] = None)(implicit W: Write[A]): Update[A] = new Update[A] {
+      val write = W
+      val sql = sql0
+      val pos = pos0
+    }
 
     /**
      * Update is a contravariant functor.
      * @group Typeclass Instances
      */
-    implicit val updateContravariant: Contravariant[Update] =
-      new Contravariant[Update] {
-        def contramap[A, B](fa: Update[A])(f: B => A) = fa.contramap(f)
-      }
+    implicit val updateContravariant: Contravariant[Update] = new Contravariant[Update] {
+      override def contramap[A, B](fa: Update[A])(f: B => A) = fa.contramap(f)
+    }
 
   }
 
@@ -324,8 +285,8 @@ object update {
 
     /**
      * Construct an `Update0` with the given SQL string, and optionally a `Pos`
-     * and/or `LogHandler` for diagnostics. The normal mechanism for
-     * construction is the `sql/fr/fr0` interpolators.
+     * for diagnostics. The normal mechanism for construction is the
+     * `sql/fr/fr0` interpolators.
      * @group Constructors
      */
     def apply(sql0: String, pos0: Option[Pos]): Update0 =

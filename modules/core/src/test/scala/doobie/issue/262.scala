@@ -9,7 +9,6 @@ import doobie.HC
 import doobie.HPS
 import doobie.free.KleisliInterpreter
 import doobie.syntax.connectionio.*
-import doobie.util.log.LogHandlerM
 import doobie.util.transactor.Transactor
 
 class `262` extends munit.FunSuite {
@@ -17,7 +16,7 @@ class `262` extends munit.FunSuite {
   import cats.effect.unsafe.implicits.global
 
   // an interpreter that returns null when we ask for statement metadata
-  object Interp extends KleisliInterpreter[IO](LogHandlerM.noop) {
+  object Interp extends KleisliInterpreter[IO] {
     override lazy val PreparedStatementInterpreter =
       new PreparedStatementInterpreter {
         override def getMetaData = primitive(_ => null)
