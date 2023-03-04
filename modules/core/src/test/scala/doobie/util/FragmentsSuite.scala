@@ -9,8 +9,12 @@ import cats.effect.IO
 import cats.syntax.all.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
+import doobie.util.meta.Meta
 import doobie.util.transactor.Transactor
 
+import scala.annotation.nowarn
+
+@nowarn("cat=deprecation")
 class FragmentsSuite extends munit.FunSuite {
   import cats.effect.unsafe.implicits.global
   import doobie.util.fragments.*
@@ -22,9 +26,32 @@ class FragmentsSuite extends munit.FunSuite {
     "",
   )
 
-  val nel = List(1, 2, 3).toNel.getOrElse(sys.error("unpossible"))
+  val nel = NonEmptyList.of(1, 2, 3)
   val fs = List(1, 2, 3).map(n => fr"$n")
   val ofs = List(1, 2, 3).map(n => Some(fr"$n").filter(_ => n % 2 =!= 0))
+
+  implicit val arrayInt: Put[Array[Int]] = Meta.Advanced.array[Integer]("INT", "ARRAY").put
+    .contramap(arr => arr.map(i => i: Integer))
+
+  test("any") {
+    assertEquals(any(nel).query[Unit].sql, "ANY(?) ")
+  }
+
+  test("any iterable") {
+    assertEquals(anyIterable(nel.toList).query[Unit].sql, "ANY(?) ")
+  }
+
+  test("commas for one column") {
+    assertEquals(commas(NonEmptyList.of(1, 2)).query[Unit].sql, "?, ? ")
+  }
+
+  test("commas for two columns") {
+    assertEquals(commas(NonEmptyList.of((1, true), (2, false))).query[Unit].sql, "(?,?), (?,?) ")
+  }
+
+  test("values for two columns") {
+    assertEquals(values(NonEmptyList.of((1, true), (2, false))).query[Unit].sql, "VALUES (?,?), (?,?) ")
+  }
 
   test("values for one column") {
     assertEquals(values(nel).query[Unit].sql, "VALUES (?), (?), (?) ")
@@ -147,13 +174,13 @@ class FragmentsSuite extends munit.FunSuite {
 
   test("values (1)") {
     val c = Contact(Person("Bob", 42), Some("addr"))
-    val f = fr"select" ++ doobie.util.fragments.values(c)
+    val f = fr"select ${values(c)}"
     assertEquals(f.query[Contact].unique.transact(xa).unsafeRunSync(), c)
   }
 
   test("values (2)") {
     val c = Contact(Person("Bob", 42), None)
-    val f = fr"select" ++ doobie.util.fragments.values(c)
+    val f = fr"select ${values(c)}"
     assertEquals(f.query[Contact].unique.transact(xa).unsafeRunSync(), c)
   }
 
