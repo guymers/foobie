@@ -3,7 +3,7 @@ version: '3.1'
 services:
 
   postgres:
-    image: postgis/postgis:11-3.3
+    image: docker.io/postgis/postgis:11-3.3
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
@@ -18,7 +18,7 @@ services:
           memory: 1024M
 
   mysql:
-    image: mysql:8-debian # 5.7 has memory issues running under docker
+    image: docker.io/mysql:8-debian # 5.7 has memory issues running under docker
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: world
