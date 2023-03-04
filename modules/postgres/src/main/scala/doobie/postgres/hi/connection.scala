@@ -17,7 +17,6 @@ import doobie.postgres.free.KleisliInterpreter
 import doobie.postgres.free.copymanager.CopyManagerIO
 import doobie.postgres.free.largeobjectmanager.LargeObjectManagerIO
 import doobie.postgres.free.pgconnection.PGConnectionIO
-import doobie.util.log.LogHandlerM
 import org.postgresql.PGConnection
 import org.postgresql.PGNotification
 
@@ -26,7 +25,7 @@ object connection {
 
   // An intepreter for lifting PGConnectionIO into ConnectionIO
   val defaultInterpreter: PFPC.PGConnectionOp ~> Kleisli[ConnectionIO, PGConnection, *] =
-    KleisliInterpreter[ConnectionIO](LogHandlerM.noop).PGConnectionInterpreter
+    KleisliInterpreter[ConnectionIO].PGConnectionInterpreter
 
   val pgGetBackendPID: ConnectionIO[Int] =
     pgGetConnection(PFPC.getBackendPID)

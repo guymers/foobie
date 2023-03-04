@@ -10,7 +10,6 @@ import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
-import doobie.util.log.LogEvent
 
 import java.io.InputStream
 import java.io.OutputStream
@@ -57,7 +56,6 @@ object blob { module =>
       def canceled: F[Unit]
       def onCancel[A](fa: BlobIO[A], fin: BlobIO[Unit]): F[A]
       def fromFuture[A](fut: BlobIO[Future[A]]): F[A]
-      def performLogging(event: LogEvent): F[Unit]
 
       // Blob
       def free: F[Unit]
@@ -113,9 +111,6 @@ object blob { module =>
     }
     case class FromFuture[A](fut: BlobIO[Future[A]]) extends BlobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
-    }
-    case class PerformLogging(event: LogEvent) extends BlobOp[Unit] {
-      def visit[F[_]](v: Visitor[F]) = v.performLogging(event)
     }
 
     // Blob-specific operations.
@@ -177,7 +172,6 @@ object blob { module =>
   val canceled = FF.liftF[BlobOp, Unit](Canceled)
   def onCancel[A](fa: BlobIO[A], fin: BlobIO[Unit]) = FF.liftF[BlobOp, A](OnCancel(fa, fin))
   def fromFuture[A](fut: BlobIO[Future[A]]) = FF.liftF[BlobOp, A](FromFuture(fut))
-  def performLogging(event: LogEvent) = FF.liftF[BlobOp, Unit](PerformLogging(event))
 
   // Smart constructors for Blob-specific operations.
   val free: BlobIO[Unit] = FF.liftF(Free)

@@ -10,7 +10,6 @@ import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
-import doobie.util.log.LogEvent
 
 import java.lang.String
 import java.sql.SQLData
@@ -58,7 +57,6 @@ object sqldata { module =>
       def canceled: F[Unit]
       def onCancel[A](fa: SQLDataIO[A], fin: SQLDataIO[Unit]): F[A]
       def fromFuture[A](fut: SQLDataIO[Future[A]]): F[A]
-      def performLogging(event: LogEvent): F[Unit]
 
       // SQLData
       def getSQLTypeName: F[String]
@@ -107,9 +105,6 @@ object sqldata { module =>
     case class FromFuture[A](fut: SQLDataIO[Future[A]]) extends SQLDataOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
-    case class PerformLogging(event: LogEvent) extends SQLDataOp[Unit] {
-      def visit[F[_]](v: Visitor[F]) = v.performLogging(event)
-    }
 
     // SQLData-specific operations.
     case object GetSQLTypeName extends SQLDataOp[String] {
@@ -146,7 +141,6 @@ object sqldata { module =>
   val canceled = FF.liftF[SQLDataOp, Unit](Canceled)
   def onCancel[A](fa: SQLDataIO[A], fin: SQLDataIO[Unit]) = FF.liftF[SQLDataOp, A](OnCancel(fa, fin))
   def fromFuture[A](fut: SQLDataIO[Future[A]]) = FF.liftF[SQLDataOp, A](FromFuture(fut))
-  def performLogging(event: LogEvent) = FF.liftF[SQLDataOp, Unit](PerformLogging(event))
 
   // Smart constructors for SQLData-specific operations.
   val getSQLTypeName: SQLDataIO[String] = FF.liftF(GetSQLTypeName)

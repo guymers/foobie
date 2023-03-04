@@ -9,10 +9,7 @@ import cats.Contravariant
 import cats.Functor
 import cats.arrow.Profunctor
 import cats.data.NonEmptyList
-import cats.effect.kernel.syntax.monadCancel.*
 import cats.syntax.all.*
-import doobie.FPS
-import doobie.FRS
 import doobie.HC
 import doobie.HPS
 import doobie.HRS
@@ -21,17 +18,10 @@ import doobie.free.preparedstatement.PreparedStatementIO
 import doobie.free.resultset.ResultSetIO
 import doobie.util.analysis.Analysis
 import doobie.util.fragment.Fragment
-import doobie.util.log.ExecFailure
-import doobie.util.log.LogEvent
-import doobie.util.log.LogHandler
-import doobie.util.log.ProcessingFailure
-import doobie.util.log.Success
 import doobie.util.pos.Pos
 import fs2.Stream
 
 import scala.collection.Factory
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.NANOSECONDS
 
 /** Module defining queries parameterized by input and output types. */
 object query {
@@ -48,45 +38,6 @@ object query {
 
     protected implicit val write: Write[A]
     protected implicit val read: Read[B]
-
-    // LogHandler is protected for now.
-    protected val logHandler: LogHandler
-
-    private val now: PreparedStatementIO[Long] =
-      FPS.delay(System.nanoTime)
-
-    // Equivalent to HPS.executeQuery(k) but with logging
-    private def executeQuery[T](a: A, k: ResultSetIO[T]): PreparedStatementIO[T] = {
-      val args = write.toList(a)
-      def diff(a: Long, b: Long) = FiniteDuration((a - b).abs, NANOSECONDS)
-      def log(e: LogEvent): PreparedStatementIO[Unit] =
-        for {
-          _ <- FPS.delay(logHandler.unsafeRun(e))
-          _ <- FPS.performLogging(e)
-        } yield ()
-
-      for {
-        t0 <- now
-        eet <- FPS.executeQuery.flatMap(rs =>
-          (for {
-            t1 <- now
-            et <- FPS.embed(rs, k).attempt
-            t2 <- now
-          } yield (t1, et, t2)).guarantee(FPS.embed(rs, FRS.close)),
-        ).attempt
-        tuple <- eet.liftTo[PreparedStatementIO].onError { case e =>
-          for {
-            t1 <- now
-            _ <- log(ExecFailure(sql, args, diff(t1, t0), e))
-          } yield ()
-        }
-        (t1, et, t2) = tuple
-        t <- et.liftTo[PreparedStatementIO].onError { case e =>
-          log(ProcessingFailure(sql, args, diff(t1, t0), diff(t2, t1), e))
-        }
-        _ <- log(Success(sql, args, diff(t1, t0), diff(t2, t1)))
-      } yield t
-    }
 
     /**
      * The SQL string.
@@ -154,7 +105,7 @@ object query {
      * @group Results
      */
     def to[F[_]](a: A)(implicit f: Factory[B, F[B]]): ConnectionIO[F[B]] =
-      HC.prepareStatement(sql)(HPS.set(a) *> executeQuery(a, HRS.build[F, B]))
+      withPrepareStatement(a, HRS.build[F, B])
 
     /**
      * Apply the argument `a` to construct a program in [[ConnectionIO]]
@@ -164,7 +115,7 @@ object query {
      * @group Results
      */
     def toMap[K, V](a: A)(implicit ev: B =:= (K, V), f: Factory[(K, V), Map[K, V]]): ConnectionIO[Map[K, V]] =
-      HC.prepareStatement(sql)(HPS.set(a) *> executeQuery(a, HRS.buildPair[Map, K, V](f, read.map(ev))))
+      withPrepareStatement(a, HRS.buildPair[Map, K, V](f, read.map(ev)))
 
     /**
      * Apply the argument `a` to construct a program in [[ConnectionIO]]
@@ -173,7 +124,7 @@ object query {
      * @group Results
      */
     def accumulate[F[_]: Alternative](a: A): ConnectionIO[F[B]] =
-      HC.prepareStatement(sql)(HPS.set(a) *> executeQuery(a, HRS.accumulate[F, B]))
+      withPrepareStatement(a, HRS.accumulate[F, B])
 
     /**
      * Apply the argument `a` to construct a program in [[ConnectionIO]]
@@ -182,7 +133,7 @@ object query {
      * @group Results
      */
     def unique(a: A): ConnectionIO[B] =
-      HC.prepareStatement(sql)(HPS.set(a) *> executeQuery(a, HRS.getUnique[B]))
+      withPrepareStatement(a, HRS.getUnique[B])
 
     /**
      * Apply the argument `a` to construct a program in [[ConnectionIO]]
@@ -191,7 +142,7 @@ object query {
      * @group Results
      */
     def option(a: A): ConnectionIO[Option[B]] =
-      HC.prepareStatement(sql)(HPS.set(a) *> executeQuery(a, HRS.getOption[B]))
+      withPrepareStatement(a, HRS.getOption[B])
 
     /**
      * Apply the argument `a` to construct a program in [[ConnectionIO]]
@@ -200,7 +151,10 @@ object query {
      * @group Results
      */
     def nel(a: A): ConnectionIO[NonEmptyList[B]] =
-      HC.prepareStatement(sql)(HPS.set(a) *> executeQuery(a, HRS.nel[B]))
+      withPrepareStatement(a, HRS.nel[B])
+
+    private def withPrepareStatement[T](a: A, k: ResultSetIO[T]): ConnectionIO[T] =
+      HC.prepareStatement(sql)(HPS.set(a) *> HPS.executeQuery(k))
 
     /** @group Transformations */
     def map[C](f: B => C): Query[A, C] =
@@ -209,7 +163,6 @@ object query {
         val read = outer.read.map(f)
         def sql = outer.sql
         def pos = outer.pos
-        val logHandler = outer.logHandler
       }
 
     /** @group Transformations */
@@ -219,7 +172,6 @@ object query {
         val read = outer.read
         def sql = outer.sql
         def pos = outer.pos
-        val logHandler = outer.logHandler
       }
 
     /**
@@ -257,38 +209,30 @@ object query {
      * @group Constructors
      */
     @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
-    def apply[A, B](sql0: String, pos0: Option[Pos] = None, logHandler0: LogHandler = LogHandler.nop)(implicit
+    def apply[A, B](sql0: String, pos0: Option[Pos] = None)(implicit
       A: Write[A],
       B: Read[B],
-    ): Query[A, B] =
-      new Query[A, B] {
-        val write = A
-        val read = B
-        val sql = sql0
-        val pos = pos0
-        val logHandler = logHandler0
-      }
+    ): Query[A, B] = new Query[A, B] {
+      val write = A
+      val read = B
+      val sql = sql0
+      val pos = pos0
+    }
 
     /** @group Typeclass Instances */
-    implicit val queryProfunctor: Profunctor[Query] =
-      new Profunctor[Query] {
-        def dimap[A, B, C, D](fab: Query[A, B])(f: C => A)(g: B => D): Query[C, D] =
-          fab.contramap(f).map(g)
-      }
+    implicit val queryProfunctor: Profunctor[Query] = new Profunctor[Query] {
+      override def dimap[A, B, C, D](fab: Query[A, B])(f: C => A)(g: B => D) = fab.contramap(f).map(g)
+    }
 
     /** @group Typeclass Instances */
-    implicit def queryCovariant[A]: Functor[Query[A, *]] =
-      new Functor[Query[A, *]] {
-        def map[B, C](fa: Query[A, B])(f: B => C): Query[A, C] =
-          fa.map(f)
-      }
+    implicit def queryCovariant[A]: Functor[Query[A, *]] = new Functor[Query[A, *]] {
+      override def map[B, C](fa: Query[A, B])(f: B => C) = fa.map(f)
+    }
 
     /** @group Typeclass Instances */
-    implicit def queryContravariant[B]: Contravariant[Query[*, B]] =
-      new Contravariant[Query[*, B]] {
-        def contramap[A, C](fa: Query[A, B])(f: C => A): Query[C, B] =
-          fa.contramap(f)
-      }
+    implicit def queryContravariant[B]: Contravariant[Query[*, B]] = new Contravariant[Query[*, B]] {
+      override def contramap[A, C](fa: Query[A, B])(f: C => A) = fa.contramap(f)
+    }
 
   }
 
@@ -415,14 +359,13 @@ object query {
      * @group Constructors
      */
     @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
-    def apply[A: Read](sql: String, pos: Option[Pos] = None, logHandler: LogHandler = LogHandler.nop): Query0[A] =
-      Query[Unit, A](sql, pos, logHandler).toQuery0(())
+    def apply[A: Read](sql: String, pos: Option[Pos] = None): Query0[A] =
+      Query[Unit, A](sql, pos).toQuery0(())
 
     /** @group Typeclass Instances */
-    implicit val queryFunctor: Functor[Query0] =
-      new Functor[Query0] {
-        def map[A, B](fa: Query0[A])(f: A => B) = fa.map(f)
-      }
+    implicit val queryFunctor: Functor[Query0] = new Functor[Query0] {
+      override def map[A, B](fa: Query0[A])(f: A => B) = fa.map(f)
+    }
 
   }
 

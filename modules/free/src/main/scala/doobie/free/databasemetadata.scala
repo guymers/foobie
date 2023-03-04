@@ -10,7 +10,6 @@ import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
-import doobie.util.log.LogEvent
 
 import java.lang.Class
 import java.lang.String
@@ -60,7 +59,6 @@ object databasemetadata { module =>
       def canceled: F[Unit]
       def onCancel[A](fa: DatabaseMetaDataIO[A], fin: DatabaseMetaDataIO[Unit]): F[A]
       def fromFuture[A](fut: DatabaseMetaDataIO[Future[A]]): F[A]
-      def performLogging(event: LogEvent): F[Unit]
 
       // DatabaseMetaData
       def allProceduresAreCallable: F[Boolean]
@@ -284,9 +282,6 @@ object databasemetadata { module =>
     }
     case class FromFuture[A](fut: DatabaseMetaDataIO[Future[A]]) extends DatabaseMetaDataOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
-    }
-    case class PerformLogging(event: LogEvent) extends DatabaseMetaDataOp[Unit] {
-      def visit[F[_]](v: Visitor[F]) = v.performLogging(event)
     }
 
     // DatabaseMetaData-specific operations.
@@ -860,7 +855,6 @@ object databasemetadata { module =>
   def onCancel[A](fa: DatabaseMetaDataIO[A], fin: DatabaseMetaDataIO[Unit]) =
     FF.liftF[DatabaseMetaDataOp, A](OnCancel(fa, fin))
   def fromFuture[A](fut: DatabaseMetaDataIO[Future[A]]) = FF.liftF[DatabaseMetaDataOp, A](FromFuture(fut))
-  def performLogging(event: LogEvent) = FF.liftF[DatabaseMetaDataOp, Unit](PerformLogging(event))
 
   // Smart constructors for DatabaseMetaData-specific operations.
   val allProceduresAreCallable: DatabaseMetaDataIO[Boolean] = FF.liftF(AllProceduresAreCallable)

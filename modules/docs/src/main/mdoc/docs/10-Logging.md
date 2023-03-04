@@ -1,228 +1,32 @@
 ## Logging
 
-In this chapter we discuss how to log statement execution and timing.
-
-### Setting Up
-
-Once again we will set up our REPL with a transactor.
-
-```scala mdoc:silent
-import doobie.*
-import doobie.implicits.*
-import doobie.util.ExecutionContexts
-import cats.*
-import cats.data.*
-import cats.effect.*
-import cats.implicits.*
-
-// This is just for testing. Consider using cats.effect.IOApp instead of calling
-// unsafe methods directly.
-import cats.effect.unsafe.implicits.global
-
-// A transactor that gets connections from java.sql.DriverManager and executes blocking operations
-// on an our synchronous EC. See the chapter on connection handling for more info.
-val xa = Transactor.fromDriverManager[IO](
-  "org.postgresql.Driver",     // driver classname
-  "jdbc:postgresql:world",     // connect URL (driver-specific)
-  "postgres",                  // user
-  "password"                   // password
-)
-```
-
-We're still playing with the `country` table, shown here for reference.
-
-```sql
-CREATE TABLE country (
-  code       character(3)  NOT NULL,
-  name       text          NOT NULL,
-  population integer       NOT NULL,
-  gnp        numeric(10,2)
-  -- more columns, but we won't use them here
-)
-```
-
-```scala mdoc:invisible
-implicit val mdocColors: doobie.util.Colors = doobie.util.Colors.None
-```
-
-### Basic Statement Logging
-
-When we construct a `Query0` or `Update0` we can provide an optional `LogHandler` that will be given a `LogEvent` on completion and can perform an arbitrary side-effect to report the event as desired.
-
-**doobie** provides an example `LogHandler` that writes a summary to a JDK logger, so let's try that one. Instead of calling `.query` let's call `.queryWithLogHandler`.
-
-```scala mdoc:silent
-def byName(pat: String) = {
-  sql"select name, code from country where name like $pat"
-    .queryWithLogHandler[(String, String)](LogHandler.jdkLogHandler)
-    .to[List]
-    .transact(xa)
-}
-```
-
-When we run our program we get our result as expected.
-
-```scala mdoc
-byName("U%").unsafeRunSync()
-```
-
-But now on standard out we see:
-
-```
-Jan 07, 2017 7:07:43 AM doobie.util.log$LogHandler$ $anonfun$jdkLogHandler$1
-INFO: Successful Statement Execution:
-
-  select name, code from country where name like ?
-
- arguments = [U%]
-   elapsed = 9 ms exec + 6 ms processing (15 ms total)
-```
-
-Let's break down what we're seeing:
-
-- We see the SQL string that is sent to the JDBC driver.
-- We see the argument list (in this case just the pattern `U%`).
-- We see elapsed time: it took 9ms for the first row to become available, then 6ms to process the rows, for a total of 15ms.
-
-### Implicit Logging
-
-If you wish to turn on logging generally, you can introduce an implicit `LogHandler` that will get picked up and used by the `.query/.update` operations.
-
-```scala mdoc:silent
-implicit val han = LogHandler.jdkLogHandler
-
-def byName2(pat: String) = {
-  sql"select name, code from country where name like $pat"
-    .query[(String, String)] // handler will be picked up here
-    .to[List]
-    .transact(xa)
-}
-```
-
-### Writing Your Own `LogHandler`
-
-If you use the `jdkLogHandler` you will be warned that it's just an example, write your own! So let's do that. `LogHandler` is a very simple data type:
+If for some reason you want to log SQL you can extend `ConnectionInterpreter`.
 
 ```scala
-case class LogHandler(unsafeRun: LogEvent => Unit)
-```
+case class User(name: String)
+val currentUser = IOLocal[Option[User]](None).unsafeRunSync()
 
-`LogEvent` has three constructors, all of which provide the SQL string and argument list.
-
-- `Success` indicates successful execution and result processing, and provides timing information for both.
-- `ExecFailure` indicates that query execution failed, due to a key violation for example. This constructor provides timing information only for the (failed) execution as well as the raised exception.
-- `ProcessingFailure` indicates that execution was successful but resultset processing failed. This constructor provides timing information for both execution and (failed) processing, as well as the raised exception.
-
-See the Scaladoc for details on this data type.
-
-The simplest possible `LogHandler` does nothing at all, and this is what you get by default.
-
-```scala mdoc:silent
-val nop = LogHandler(_ => ())
-```
-
-But that's not interesting. Let's at least print the event out.
-
-```scala mdoc
-val trivial = LogHandler(e => Console.println("*** " + e))
-sql"select 42".queryWithLogHandler[Int](trivial).unique.transact(xa).unsafeRunSync()
-```
-
-The `jdkLogHandler` implementation is straightforward. You might use it as a template to write a logger to suit your particular logging back-end.
-
-```scala mdoc:silent
-import java.util.logging.Logger
-import doobie.util.log.{ Success, ProcessingFailure, ExecFailure }
-
-val jdkLogHandler: LogHandler = {
-  val jdkLogger = Logger.getLogger(getClass.getName)
-  LogHandler {
-
-    case Success(s, a, e1, e2) =>
-      jdkLogger.info(s"""Successful Statement Execution:
-        |
-        |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-        |
-        | arguments = [${a.mkString(", ")}]
-        |   elapsed = ${e1.toMillis} ms exec + ${e2.toMillis} ms processing (${(e1 + e2).toMillis} ms total)
-      """.stripMargin)
-
-    case ProcessingFailure(s, a, e1, e2, t) =>
-      jdkLogger.severe(s"""Failed Resultset Processing:
-        |
-        |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-        |
-        | arguments = [${a.mkString(", ")}]
-        |   elapsed = ${e1.toMillis} ms exec + ${e2.toMillis} ms processing (failed) (${(e1 + e2).toMillis} ms total)
-        |   failure = ${t.getMessage}
-      """.stripMargin)
-
-    case ExecFailure(s, a, e1, t) =>
-      jdkLogger.severe(s"""Failed Statement Execution:
-        |
-        |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-        |
-        | arguments = [${a.mkString(", ")}]
-        |   elapsed = ${e1.toMillis} ms exec (failed)
-        |   failure = ${t.getMessage}
-      """.stripMargin)
-
+def logSQL[T](sql: String, result: Kleisli[IO, Connection, T]): Kleisli[IO, Connection, T] = {
+  result.tapWithF { case (_, t) =>
+    for {
+      user <- currentUser.get
+      _ <- IO.delay {
+        println(s"user $user; sql: '$sql'")
+      }
+    } yield t
   }
 }
-```
 
-### Handle all `LogEvents`
+val i = KleisliInterpreter[IO]
+val LoggingConnectionInterpreter = new i.ConnectionInterpreter {
+  override def prepareStatement(a: String) = logSQL(a, super.prepareStatement(a))
+}
 
-You can also set up your `Transactor` with a handler for all `LogEvent`s produced while using it. 
-
-As opposed to the `LogHandler` type described above, in this case we need an instance of a similar but effectful type `LogHandlerM`.
-
-Since this effect runs in your chosen output monad, you have the ability to interact with the corresponding runtime system.
-Hopefully this example conveys how this mechanism can be used for structured logging, tracing and so on.
-
-```scala mdoc
-import cats.effect.{IOLocal, Ref}
-
-def users = List.range(0, 4).map(n => s"user-$n")
-
-def transactorWithLogging(logHandlerM: LogHandlerM[IO]): Transactor[IO] =
-  Transactor.fromDriverManager[IO]
-    .withLogHandler(logHandlerM)( // thread through the logHandler here
-      "org.h2.Driver",
-      "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-      "sa", ""
-    )
-
-def program: IO[List[String]] =
-  for {
-    // define an IOLocal where we store the user which caused the query to be run  
-    currentUser <- IOLocal("")
-    // store all successful sql here, for all users
-    successLogsRef <- Ref[IO].of(List.empty[String])
-    xa = transactorWithLogging {
-      case Success(sql, _, _, _) =>
-        // retrieve current user, compute a log message, and store it
-        currentUser.get.flatMap(user => successLogsRef.update(logs => s"sql for user $user: '$sql'" :: logs))
-      case _ => IO.unit
-    }
-    // run a bunch of queries
-    _ <- users.parTraverse(user =>
-      for {
-        _ <- currentUser.set(user)
-        _ <- sql"select 1".query[Int].unique.transact(xa)
-      } yield ()
-    )
-    // return computed log messages
-    logs <- successLogsRef.get
-  } yield logs
-
-program.unsafeRunSync().sorted
+val loggingDb = db.copy(interpret0 = LoggingConnectionInterpreter)
 ```
 
 ### Caveats
 
-Logging is not yet supported for streaming (`.stream` or YOLO mode's `.quick`).
-
-Note that the `LogHandler` invocation is part of your `ConnectionIO` program, and it is called synchronously. Most back-end loggers are asynchronous so this is unlikely to be an issue, but do take care not to spend too much time in your handler.
+Note that the invocation is part of your `ConnectionIO` program, and it is called synchronously. Most back-end loggers are asynchronous so this is unlikely to be an issue, but do take care not to spend too much time in your handler.
 
 Further note that the handler is not transactional; anything your logger does stays done, even if the transaction is rolled back. This is only for diagnostics, not for business logic.

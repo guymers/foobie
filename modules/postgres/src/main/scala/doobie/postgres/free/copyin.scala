@@ -10,7 +10,6 @@ import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
-import doobie.util.log.LogEvent
 import org.postgresql.copy.CopyIn as PGCopyIn
 import org.postgresql.util.ByteStreamWriter
 
@@ -56,7 +55,6 @@ object copyin { module =>
       def canceled: F[Unit]
       def onCancel[A](fa: CopyInIO[A], fin: CopyInIO[Unit]): F[A]
       def fromFuture[A](fut: CopyInIO[Future[A]]): F[A]
-      def performLogging(event: LogEvent): F[Unit]
 
       // PGCopyIn
       def cancelCopy: F[Unit]
@@ -111,9 +109,6 @@ object copyin { module =>
     }
     case class FromFuture[A](fut: CopyInIO[Future[A]]) extends CopyInOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
-    }
-    case class PerformLogging(event: LogEvent) extends CopyInOp[Unit] {
-      def visit[F[_]](v: Visitor[F]) = v.performLogging(event)
     }
 
     // PGCopyIn-specific operations.
@@ -172,7 +167,6 @@ object copyin { module =>
   val canceled = FF.liftF[CopyInOp, Unit](Canceled)
   def onCancel[A](fa: CopyInIO[A], fin: CopyInIO[Unit]) = FF.liftF[CopyInOp, A](OnCancel(fa, fin))
   def fromFuture[A](fut: CopyInIO[Future[A]]) = FF.liftF[CopyInOp, A](FromFuture(fut))
-  def performLogging(event: LogEvent) = FF.liftF[CopyInOp, Unit](PerformLogging(event))
 
   // Smart constructors for CopyIn-specific operations.
   val cancelCopy: CopyInIO[Unit] = FF.liftF(CancelCopy)

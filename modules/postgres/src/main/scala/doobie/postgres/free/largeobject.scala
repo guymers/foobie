@@ -10,7 +10,6 @@ import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
-import doobie.util.log.LogEvent
 import org.postgresql.largeobject.LargeObject
 
 import java.io.InputStream
@@ -57,7 +56,6 @@ object largeobject { module =>
       def canceled: F[Unit]
       def onCancel[A](fa: LargeObjectIO[A], fin: LargeObjectIO[Unit]): F[A]
       def fromFuture[A](fut: LargeObjectIO[Future[A]]): F[A]
-      def performLogging(event: LogEvent): F[Unit]
 
       // LargeObject
       def close: F[Unit]
@@ -121,9 +119,6 @@ object largeobject { module =>
     }
     case class FromFuture[A](fut: LargeObjectIO[Future[A]]) extends LargeObjectOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
-    }
-    case class PerformLogging(event: LogEvent) extends LargeObjectOp[Unit] {
-      def visit[F[_]](v: Visitor[F]) = v.performLogging(event)
     }
 
     // LargeObject-specific operations.
@@ -209,7 +204,6 @@ object largeobject { module =>
   val canceled = FF.liftF[LargeObjectOp, Unit](Canceled)
   def onCancel[A](fa: LargeObjectIO[A], fin: LargeObjectIO[Unit]) = FF.liftF[LargeObjectOp, A](OnCancel(fa, fin))
   def fromFuture[A](fut: LargeObjectIO[Future[A]]) = FF.liftF[LargeObjectOp, A](FromFuture(fut))
-  def performLogging(event: LogEvent) = FF.liftF[LargeObjectOp, Unit](PerformLogging(event))
 
   // Smart constructors for LargeObject-specific operations.
   val close: LargeObjectIO[Unit] = FF.liftF(Close)

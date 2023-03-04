@@ -11,7 +11,6 @@ import doobie.HC
 import doobie.enumerated.Nullability.*
 import doobie.free.connection.ConnectionIO
 import doobie.free.preparedstatement.PreparedStatementIO
-import doobie.util.log.LogHandler
 import doobie.util.pos.Pos
 import doobie.util.query.Query
 import doobie.util.query.Query0
@@ -108,27 +107,10 @@ object fragment {
     /**
      * Construct a [[Query0]] from this fragment, with asserted row type `B`.
      */
-    @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
-    def query[B](implicit R: Read[B], h: LogHandler = LogHandler.nop): Query0[B] =
-      queryWithLogHandler(h)
-
-    /**
-     * Construct a [[Query0]] from this fragment, with asserted row type `B` and
-     * the given `LogHandler`.
-     */
-    def queryWithLogHandler[B](h: LogHandler)(implicit cb: Read[B]): Query0[B] =
-      Query[elems.type, B](sql, pos, h).toQuery0(elems)
+    def query[B](implicit R: Read[B]): Query0[B] = Query[elems.type, B](sql, pos).toQuery0(elems)
 
     /** Construct an [[Update0]] from this fragment. */
-    @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
-    def update(implicit h: LogHandler = LogHandler.nop): Update0 =
-      updateWithLogHandler(h)
-
-    /**
-     * Construct an [[Update0]] from this fragment with the given `LogHandler`.
-     */
-    def updateWithLogHandler(h: LogHandler): Update0 =
-      Update[elems.type](sql, pos)(implicitly[Write[elems.type]], h).toUpdate0(elems)
+    def update: Update0 = Update[elems.type](sql, pos)(write).toUpdate0(elems)
 
     override def toString =
       s"""Fragment("$sql")"""

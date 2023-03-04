@@ -12,7 +12,6 @@ import cats.effect.IOApp
 import cats.free.Free
 import cats.syntax.all.*
 import cats.~>
-import doobie.LogHandlerM
 import doobie.free.KleisliInterpreter
 import doobie.free.connection.ConnectionOp
 import doobie.syntax.all.*
@@ -93,7 +92,7 @@ object Coproduct extends IOApp.Simple {
   // Our interpreter must be parameterized over a connection so we can add transaction boundaries
   // before and after.
   val interp: Cop ~> Kleisli[IO, Connection, *] = {
-    consoleInterp.liftK[Connection].or(KleisliInterpreter[IO](LogHandlerM.noop).ConnectionInterpreter)
+    consoleInterp.liftK[Connection].or(KleisliInterpreter[IO].ConnectionInterpreter)
   }
 
   // Our interpreted program
