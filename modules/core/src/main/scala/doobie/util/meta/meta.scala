@@ -42,25 +42,16 @@ final class Meta[A](val get: Get[A], val put: Put[A]) {
 
 }
 
-/** Module of constructors and instances for `Meta`. */
-object Meta extends MetaConstructors
-  with MetaInstances
-  with SqlMetaInstances
-  with TimeMetaInstances {
+object Meta {
+  import doobie.enumerated.JdbcType.{Boolean as JdbcBoolean, *}
 
   /** Summon the `Meta` instance if possible. */
   def apply[A](implicit ev: Meta[A]): ev.type = ev
 
   /** @group Typeclass Instances */
-  implicit val MetaInvariant: Invariant[Meta] =
-    new Invariant[Meta] {
-      def imap[A, B](fa: Meta[A])(f: A => B)(g: B => A) =
-        fa.imap(f)(g)
-    }
-
-}
-
-trait MetaConstructors {
+  implicit val MetaInvariant: Invariant[Meta] = new Invariant[Meta] {
+    override def imap[A, B](fa: Meta[A])(f: A => B)(g: B => A) = fa.imap(f)(g)
+  }
 
   /**
    * Module of constructors for "basic" JDBC types.
@@ -156,18 +147,6 @@ trait MetaConstructors {
       )
 
   }
-
-}
-
-trait MetaInstances { this: MetaConstructors =>
-  import doobie.enumerated.JdbcType.{Boolean as JdbcBoolean, *}
-
-  /** @group Instances */
-  implicit val GetPutInvariant: Invariant[Meta] =
-    new Invariant[Meta] {
-      def imap[A, B](fa: Meta[A])(f: A => B)(g: B => A): Meta[B] =
-        fa.imap(f)(g)
-    }
 
   /** @group Instances */
   implicit val ByteMeta: Meta[Byte] =
@@ -295,4 +274,75 @@ trait MetaInstances { this: MetaConstructors =>
   implicit val ScalaBigDecimalMeta: Meta[BigDecimal] =
     BigDecimalMeta.imap(BigDecimal.apply)(_.bigDecimal)
 
+  // SQL
+
+  /** @group Instances */
+  implicit val DateMeta: Meta[java.sql.Date] =
+    Basic.one[java.sql.Date](
+      Date,
+      List(Char, VarChar, LongVarChar, Timestamp),
+      _.getDate(_),
+      _.setDate(_, _),
+      _.updateDate(_, _),
+    )
+
+  /** @group Instances */
+  implicit val TimeMeta: Meta[java.sql.Time] =
+    Basic.one[java.sql.Time](
+      Time,
+      List(Char, VarChar, LongVarChar, Timestamp),
+      _.getTime(_),
+      _.setTime(_, _),
+      _.updateTime(_, _),
+    )
+
+  /** @group Instances */
+  implicit val TimestampMeta: Meta[java.sql.Timestamp] =
+    Basic.one[java.sql.Timestamp](
+      Timestamp,
+      List(Char, VarChar, LongVarChar, Date, Time),
+      _.getTimestamp(_),
+      _.setTimestamp(_, _),
+      _.updateTimestamp(_, _),
+    )
+
+  // Instances for Java time classes that follow the JDBC specification.
+
+  /** @group Instances */
+  implicit val JavaOffsetDateTimeMeta: Meta[java.time.OffsetDateTime] =
+    Basic.oneObject(TimestampWithTimezone, Nil, classOf[java.time.OffsetDateTime])
+
+  /** @group Instances */
+  implicit val JavaLocalDateMeta: Meta[java.time.LocalDate] =
+    Basic.oneObject(Date, Nil, classOf[java.time.LocalDate])
+
+  /** @group Instances */
+  implicit val JavaLocalTimeMeta: Meta[java.time.LocalTime] =
+    Basic.oneObject(Time, Nil, classOf[java.time.LocalTime])
+
+  /** @group Instances */
+  implicit val JavaLocalDateTimeMeta: Meta[java.time.LocalDateTime] =
+    Basic.oneObject(Timestamp, Nil, classOf[java.time.LocalDateTime])
+
+  /** @group Instances */
+  implicit val JavaOffsetTimeMeta: Meta[java.time.OffsetTime] =
+    Basic.oneObject(TimeWithTimezone, Nil, classOf[java.time.OffsetTime])
+
+  // extra instances not in the spec
+
+  /** @group Instances */
+  implicit val JavaInstantMeta: Meta[java.time.Instant] =
+    JavaOffsetDateTimeMeta.imap(_.toInstant)(_.atOffset(java.time.ZoneOffset.UTC))
+
+  /** @group Instances */
+  implicit val JavaTimeZoneId: Meta[java.time.ZoneId] = {
+    def parse(str: String) =
+      try {
+        Right(java.time.ZoneId.of(str))
+      } catch {
+        case e: java.time.DateTimeException => Left(e.getMessage)
+      }
+
+    Meta.StringMeta.tiemap(parse(_))(_.getId)
+  }
 }

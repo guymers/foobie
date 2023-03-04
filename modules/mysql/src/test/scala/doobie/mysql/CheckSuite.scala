@@ -1,11 +1,9 @@
 package doobie.mysql
 
-import doobie.mysql.implicits.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 import doobie.util.Read
 import doobie.util.analysis.ColumnTypeError
-import doobie.util.analysis.ColumnTypeWarning
 import doobie.util.fragment.Fragment
 
 import java.time.LocalDate
@@ -62,8 +60,7 @@ class CheckSuite extends munit.FunSuite {
   }
 
   test("OffsetTime Read typechecks") {
-    successRead[OffsetTime](sql"SELECT c_timestamp FROM test LIMIT 1")
-
+    warnRead[OffsetTime](sql"SELECT c_timestamp FROM test LIMIT 1")
     warnRead[OffsetTime](sql"SELECT '22:03:21'")
     warnRead[OffsetTime](sql"SELECT c_date FROM test LIMIT 1")
     warnRead[OffsetTime](sql"SELECT c_time FROM test LIMIT 1")
@@ -82,7 +79,7 @@ class CheckSuite extends munit.FunSuite {
   private def warnRead[A: Read](frag: Fragment): Unit = {
     val analysisResult = frag.query[A].analysis.transact(xa).unsafeRunSync()
     val errorClasses = analysisResult.columnAlignmentErrors.map(_.getClass)
-    assertEquals(errorClasses, List(classOf[ColumnTypeWarning]))
+    assertEquals(errorClasses, List(classOf[ColumnTypeError]))
 
     val result = frag.query[A].unique.transact(xa).attempt.unsafeRunSync()
     assert(result.isRight)

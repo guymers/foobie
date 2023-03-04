@@ -5,13 +5,11 @@
 package doobie.postgres
 
 import doobie.postgres.enums.*
-import doobie.postgres.implicits.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 import doobie.util.Put
 import doobie.util.Read
 import doobie.util.analysis.ColumnTypeError
-import doobie.util.analysis.ColumnTypeWarning
 import doobie.util.analysis.ParameterTypeError
 import doobie.util.fragment.Fragment
 
@@ -171,7 +169,7 @@ class CheckSuite extends munit.FunSuite {
   private def warnRead[A: Read](frag: Fragment): Unit = {
     val analysisResult = frag.query[A].analysis.transact(xa).unsafeRunSync()
     val errorClasses = analysisResult.columnAlignmentErrors.map(_.getClass)
-    assertEquals(errorClasses, List(classOf[ColumnTypeWarning]))
+    assertEquals(errorClasses, List(classOf[ColumnTypeError]))
 
     val result = frag.query[A].unique.transact(xa).attempt.unsafeRunSync()
     assert(result.isRight)
