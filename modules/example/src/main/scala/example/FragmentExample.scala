@@ -14,7 +14,7 @@ import doobie.util.transactor.Transactor
 object FragmentExample extends IOApp.Simple {
 
   // Import some convenience constructors.
-  import doobie.util.fragments.in
+  import doobie.util.fragments.commas
   import doobie.util.fragments.whereAndOpt
 
   // Country Info
@@ -26,13 +26,14 @@ object FragmentExample extends IOApp.Simple {
     // Three Option[Fragment] filter conditions.
     val f1 = name.map(s => fr"name LIKE $s")
     val f2 = pop.map(n => fr"population > $n")
-    val f3 = codes.toNel.map(cs => in(fr"code", cs))
+    val f3 = codes.toNel.map(cs => fr"code IN (${commas(cs)}")
 
     // Our final query
-    val q: Fragment =
-      fr"SELECT name, code, population FROM country" ++
-        whereAndOpt(f1, f2, f3) ++
-        fr"LIMIT $limit"
+    val q: Fragment = fr"""
+      SELECT name, code, population FROM country
+      ${whereAndOpt(f1, f2, f3)}
+      LIMIT $limit
+    """
 
     // Construct a Query0
     q.query[Info]
