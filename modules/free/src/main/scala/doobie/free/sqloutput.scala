@@ -10,7 +10,6 @@ import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
-import doobie.util.log.LogEvent
 
 import java.io.InputStream
 import java.io.Reader
@@ -73,7 +72,6 @@ object sqloutput { module =>
       def canceled: F[Unit]
       def onCancel[A](fa: SQLOutputIO[A], fin: SQLOutputIO[Unit]): F[A]
       def fromFuture[A](fut: SQLOutputIO[Future[A]]): F[A]
-      def performLogging(event: LogEvent): F[Unit]
 
       // SQLOutput
       def writeArray(a: SqlArray): F[Unit]
@@ -146,9 +144,6 @@ object sqloutput { module =>
     }
     case class FromFuture[A](fut: SQLOutputIO[Future[A]]) extends SQLOutputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
-    }
-    case class PerformLogging(event: LogEvent) extends SQLOutputOp[Unit] {
-      def visit[F[_]](v: Visitor[F]) = v.performLogging(event)
     }
 
     // SQLOutput-specific operations.
@@ -261,7 +256,6 @@ object sqloutput { module =>
   val canceled = FF.liftF[SQLOutputOp, Unit](Canceled)
   def onCancel[A](fa: SQLOutputIO[A], fin: SQLOutputIO[Unit]) = FF.liftF[SQLOutputOp, A](OnCancel(fa, fin))
   def fromFuture[A](fut: SQLOutputIO[Future[A]]) = FF.liftF[SQLOutputOp, A](FromFuture(fut))
-  def performLogging(event: LogEvent) = FF.liftF[SQLOutputOp, Unit](PerformLogging(event))
 
   // Smart constructors for SQLOutput-specific operations.
   def writeArray(a: SqlArray): SQLOutputIO[Unit] = FF.liftF(WriteArray(a))

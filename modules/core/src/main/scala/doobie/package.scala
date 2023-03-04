@@ -84,12 +84,6 @@ package object doobie {
   type Transactor[M[_]] = doobie.util.transactor.Transactor[M]
   val Transactor = doobie.util.transactor.Transactor
 
-  type LogHandler = doobie.util.log.LogHandler
-  val LogHandler = doobie.util.log.LogHandler
-
-  type LogHandlerM[M[_]] = doobie.util.log.LogHandlerM[M]
-  val LogHandlerM = doobie.util.log.LogHandlerM
-
   type Fragment = doobie.util.fragment.Fragment
   val Fragment = doobie.util.fragment.Fragment
 

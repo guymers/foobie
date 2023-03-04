@@ -10,7 +10,6 @@ import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
-import doobie.util.log.LogEvent
 
 import java.io.InputStream
 import java.io.OutputStream
@@ -61,7 +60,6 @@ object nclob { module =>
       def canceled: F[Unit]
       def onCancel[A](fa: NClobIO[A], fin: NClobIO[Unit]): F[A]
       def fromFuture[A](fut: NClobIO[Future[A]]): F[A]
-      def performLogging(event: LogEvent): F[Unit]
 
       // NClob
       def free: F[Unit]
@@ -119,9 +117,6 @@ object nclob { module =>
     }
     case class FromFuture[A](fut: NClobIO[Future[A]]) extends NClobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
-    }
-    case class PerformLogging(event: LogEvent) extends NClobOp[Unit] {
-      def visit[F[_]](v: Visitor[F]) = v.performLogging(event)
     }
 
     // NClob-specific operations.
@@ -189,7 +184,6 @@ object nclob { module =>
   val canceled = FF.liftF[NClobOp, Unit](Canceled)
   def onCancel[A](fa: NClobIO[A], fin: NClobIO[Unit]) = FF.liftF[NClobOp, A](OnCancel(fa, fin))
   def fromFuture[A](fut: NClobIO[Future[A]]) = FF.liftF[NClobOp, A](FromFuture(fut))
-  def performLogging(event: LogEvent) = FF.liftF[NClobOp, Unit](PerformLogging(event))
 
   // Smart constructors for NClob-specific operations.
   val free: NClobIO[Unit] = FF.liftF(Free)

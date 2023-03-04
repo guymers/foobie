@@ -10,7 +10,6 @@ import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
 import doobie.WeakAsync
-import doobie.util.log.LogEvent
 
 import java.io.InputStream
 import java.io.Reader
@@ -79,7 +78,6 @@ object callablestatement { module =>
       def canceled: F[Unit]
       def onCancel[A](fa: CallableStatementIO[A], fin: CallableStatementIO[Unit]): F[A]
       def fromFuture[A](fut: CallableStatementIO[Future[A]]): F[A]
-      def performLogging(event: LogEvent): F[Unit]
 
       // CallableStatement
       def addBatch: F[Unit]
@@ -354,9 +352,6 @@ object callablestatement { module =>
     }
     case class FromFuture[A](fut: CallableStatementIO[Future[A]]) extends CallableStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
-    }
-    case class PerformLogging(event: LogEvent) extends CallableStatementOp[Unit] {
-      def visit[F[_]](v: Visitor[F]) = v.performLogging(event)
     }
 
     // CallableStatement-specific operations.
@@ -1075,7 +1070,6 @@ object callablestatement { module =>
   def onCancel[A](fa: CallableStatementIO[A], fin: CallableStatementIO[Unit]) =
     FF.liftF[CallableStatementOp, A](OnCancel(fa, fin))
   def fromFuture[A](fut: CallableStatementIO[Future[A]]) = FF.liftF[CallableStatementOp, A](FromFuture(fut))
-  def performLogging(event: LogEvent) = FF.liftF[CallableStatementOp, Unit](PerformLogging(event))
 
   // Smart constructors for CallableStatement-specific operations.
   val addBatch: CallableStatementIO[Unit] = FF.liftF(AddBatch)
