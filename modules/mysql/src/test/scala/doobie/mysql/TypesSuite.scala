@@ -1,7 +1,6 @@
 package doobie.mysql
 
 import doobie.free.connection.ConnectionIO
-import doobie.mysql.implicits.*
 import doobie.mysql.util.arbitraries.SQLArbitraries.*
 import doobie.mysql.util.arbitraries.TimeArbitraries.*
 import doobie.syntax.connectionio.*

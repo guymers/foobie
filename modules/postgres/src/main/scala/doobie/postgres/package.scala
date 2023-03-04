@@ -28,7 +28,6 @@ package object postgres {
 
   object implicits
     extends Instances
-    with JavaTimeInstances
     with syntax.ToPostgresMonadErrorOps
     with syntax.ToFragmentOps
     with syntax.ToPostgresExplainOps
