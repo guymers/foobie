@@ -2,8 +2,8 @@
 import FreeGen2._
 
 val catsVersion = "2.9.0"
-val catsEffectVersion = "3.4.7"
-val circeVersion = "0.14.4"
+val catsEffectVersion = "3.4.8"
+val circeVersion = "0.14.5"
 val fs2Version = "3.6.1"
 val h2Version = "2.1.214"
 val hikariVersion = "4.0.3"
@@ -12,7 +12,7 @@ val munitVersion = "1.0.0-M7"
 val mysqlVersion = "8.0.32"
 val postgisVersion = "2021.1.0"
 val postgresVersion = "42.5.4"
-val refinedVersion = "0.10.1"
+val refinedVersion = "0.10.2"
 val scalatestVersion = "3.2.15"
 val shapelessVersion = "2.3.10"
 val specs2Version = "4.19.2"
@@ -89,7 +89,7 @@ lazy val commonSettings = Seq(
   Compile / doc / scalacOptions ++= Seq(
     "-groups",
     "-sourcepath", (LocalRootProject / baseDirectory).value.getAbsolutePath,
-    "-doc-source-url", "https://github.com/guymers/twoobie/blob/v" + version.value + "€{FILE_PATH}.scala"
+    "-doc-source-url", "https://github.com/guymers/foobie/blob/v" + version.value + "€{FILE_PATH}.scala"
   ),
 
   libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
@@ -101,7 +101,6 @@ lazy val commonSettings = Seq(
     "org.typelevel" %% "scalacheck-effect-munit" % "1.0.4" % Test,
     "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test,
   ),
-  testFrameworks += new TestFramework("munit.Framework"),
 
   // For some reason tests started hanging with docker-compose so let's disable parallelism.
   Test / parallelExecution := false,
