@@ -5,4 +5,10 @@
 package doobie
 package util
 
-trait WriteSuitePlatform { self: munit.FunSuite => }
+trait WriteSuitePlatform { self: munit.FunSuite =>
+  import WriteSuite.X
+
+  test("Write should exist for AnyVal") {
+    assertEquals(util.Write[X].length, 1)
+  }
+}

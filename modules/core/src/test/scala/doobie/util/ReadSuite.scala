@@ -10,17 +10,35 @@ import cats.syntax.apply.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 
-class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
+object ReadSuite {
 
-  import cats.effect.unsafe.implicits.global
+  case class X(x: Int) extends AnyVal
 
   case class LenStr1(n: Int, s: String)
 
   case class LenStr2(n: Int, s: String)
   object LenStr2 {
-    implicit val LenStrMeta: Meta[LenStr2] =
-      Meta[String].timap(s => LenStr2(s.length, s))(_.s)
+    implicit val meta: Meta[LenStr2] = Meta[String].timap(s => LenStr2(s.length, s))(_.s)
   }
+
+  case class Nested(a: String, b: Option[NoneOptional], c: Boolean, d: Option[AllOptional])
+  object Nested {
+    implicit val read: Read[Nested] = Read.derived
+  }
+
+  case class NoneOptional(a: String, b: Int)
+  object NoneOptional {
+    implicit val read: Read[NoneOptional] = Read.derived
+  }
+
+  case class AllOptional(a: Option[String], b: Option[Int])
+  object AllOptional {
+    implicit val read: Read[AllOptional] = Read.derived
+  }
+}
+class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
+  import ReadSuite.*
+  import cats.effect.unsafe.implicits.global
 
   val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
@@ -101,6 +119,20 @@ class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
     val o = q.transact(xa).unsafeRunSync()
 
     assertEquals(o, List((1, (2, 3))))
+  }
+
+  test("handles optional nested types") {
+    val a = sql"SELECT 'a', 'a1', 1, false, 'a2', 2".query[Nested].unique.transact(xa).unsafeRunSync()
+    assertEquals(a, Nested("a", Some(NoneOptional("a1", 1)), false, Some(AllOptional(Some("a2"), Some(2)))))
+
+    val b = sql"SELECT 'a', 'a1', 1, false, NULL, NULL".query[Nested].unique.transact(xa).unsafeRunSync()
+    assertEquals(b, Nested("a", Some(NoneOptional("a1", 1)), false, None))
+
+    val c = sql"SELECT 'a', NULL, 1, false, NULL, NULL".query[Nested].unique.transact(xa).unsafeRunSync()
+    assertEquals(c, Nested("a", None, false, None))
+
+    val d = sql"SELECT 'a', 'a1', NULL, false, NULL, 2".query[Nested].unique.transact(xa).unsafeRunSync()
+    assertEquals(d, Nested("a", None, false, Some(AllOptional(None, Some(2)))))
   }
 
 }

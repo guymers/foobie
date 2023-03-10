@@ -5,4 +5,10 @@
 package doobie
 package util
 
-trait ReadSuitePlatform { self: munit.FunSuite => }
+trait ReadSuitePlatform { self: munit.FunSuite =>
+  import ReadSuite.X
+
+  test("Read should exist for AnyVal") {
+    assertEquals(util.Read[X].length, 1)
+  }
+}

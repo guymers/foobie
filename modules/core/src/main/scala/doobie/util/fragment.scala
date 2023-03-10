@@ -57,8 +57,7 @@ object fragment {
           var index = i
           val it = es.iterator
           while (it.hasNext) {
-            val e = it.next()
-            e match {
+            it.next() match {
               case Arg(a, p) => p.unsafeSetNonNullable(ps, index, a)
               case Opt(a, p) => p.unsafeSetNullable(ps, index, a)
             }
@@ -70,8 +69,7 @@ object fragment {
           var index = i
           val it = es.iterator
           while (it.hasNext) {
-            val e = it.next()
-            e match {
+            it.next() match {
               case Arg(a, p) => p.unsafeUpdateNonNullable(rs, index, a)
               case Opt(a, p) => p.unsafeUpdateNullable(rs, index, a)
             }
