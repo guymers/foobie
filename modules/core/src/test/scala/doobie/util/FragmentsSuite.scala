@@ -17,6 +17,7 @@ import scala.annotation.nowarn
 @nowarn("cat=deprecation")
 class FragmentsSuite extends munit.FunSuite {
   import cats.effect.unsafe.implicits.global
+  import doobie.util.Write.Auto.*
   import doobie.util.fragments.*
 
   val xa = Transactor.fromDriverManager[IO](
@@ -170,7 +171,14 @@ class FragmentsSuite extends munit.FunSuite {
   }
 
   case class Person(name: String, age: Int)
+  object Person {
+    implicit val read: Read[Person] = Read.derived
+  }
+
   case class Contact(person: Person, address: Option[String])
+  object Contact {
+    implicit val read: Read[Contact] = Read.derived
+  }
 
   test("values (1)") {
     val c = Contact(Person("Bob", 42), Some("addr"))

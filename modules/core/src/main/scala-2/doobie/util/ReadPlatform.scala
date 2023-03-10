@@ -11,7 +11,7 @@ import java.sql.ResultSet
 import scala.collection.immutable.ArraySeq
 import scala.language.experimental.macros
 
-trait ReadPlatform { this: Read.type =>
+trait ReadPlatform {
 
   type Typeclass[T] = Read[T]
 
@@ -28,6 +28,9 @@ trait ReadPlatform { this: Read.type =>
   }
 
   def derived[A]: Read[A] = macro Magnolia.gen[A]
+}
 
-  implicit def gen[A]: Read[A] = macro Magnolia.gen[A]
+trait ReadAutoPlatform extends ReadPlatform {
+
+  implicit def genRead[A]: Read[A] = macro Magnolia.gen[A]
 }

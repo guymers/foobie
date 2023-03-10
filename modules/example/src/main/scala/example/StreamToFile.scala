@@ -8,6 +8,7 @@ import cats.effect.IO
 import cats.effect.IOApp
 import cats.syntax.all.*
 import doobie.syntax.all.*
+import doobie.util.Read.Auto.*
 import doobie.util.transactor.Transactor
 import fs2.io.file.Files
 import fs2.io.file.Path

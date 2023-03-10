@@ -11,6 +11,7 @@ import doobie.postgres.implicits.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.stream.*
 import doobie.syntax.string.*
+import doobie.util.Read
 import doobie.util.fragment.Fragment
 import fs2.Stream
 import org.scalacheck.Arbitrary.arbitrary
@@ -116,5 +117,8 @@ object TextSuite {
     j: Option[List[String]],
     k: Option[List[Int]],
   )
+  object Row {
+    implicit val read: Read[Row] = Read.derived
+  }
 
 }

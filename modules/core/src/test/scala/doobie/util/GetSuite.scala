@@ -6,9 +6,7 @@ package doobie.util
 
 import cats.effect.IO
 import doobie.Transactor
-import doobie.enumerated.JdbcType.{Array as _, *}
-import doobie.syntax.connectionio.*
-import doobie.syntax.string.*
+import doobie.enumerated.JdbcType
 
 class GetSuite extends munit.FunSuite {
 
@@ -22,8 +20,8 @@ final case class Foo(s: String)
 final case class Bar(n: Int)
 
 class GetDBSuite extends munit.FunSuite {
-
   import cats.effect.unsafe.implicits.global
+  import doobie.syntax.all.*
 
   lazy val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
@@ -49,7 +47,7 @@ class GetDBSuite extends munit.FunSuite {
 
   test("Get should error when reading a NULL into an unlifted Scala type (AnyRef)") {
     def x = sql"select null".query[Foo].unique.transact(xa).attempt.unsafeRunSync()
-    assertEquals(x, Left(doobie.util.invariant.NonNullableColumnRead(1, Char)))
+    assertEquals(x, Left(doobie.util.invariant.NonNullableColumnRead(1, JdbcType.Char)))
   }
 
   test("Get should not allow map to observe null on the read side (AnyVal)") {
@@ -64,7 +62,7 @@ class GetDBSuite extends munit.FunSuite {
 
   test("Get should error when reading a NULL into an unlifted Scala type (AnyVal)") {
     def x = sql"select null".query[Bar].unique.transact(xa).attempt.unsafeRunSync()
-    assertEquals(x, Left(doobie.util.invariant.NonNullableColumnRead(1, Integer)))
+    assertEquals(x, Left(doobie.util.invariant.NonNullableColumnRead(1, JdbcType.Integer)))
   }
 
   test("Get should error when reading an incorrect value") {

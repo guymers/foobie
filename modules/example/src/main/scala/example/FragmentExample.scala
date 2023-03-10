@@ -8,6 +8,7 @@ import cats.effect.IO
 import cats.effect.IOApp
 import cats.syntax.all.*
 import doobie.syntax.all.*
+import doobie.util.Read
 import doobie.util.fragment.Fragment
 import doobie.util.transactor.Transactor
 
@@ -19,6 +20,9 @@ object FragmentExample extends IOApp.Simple {
 
   // Country Info
   final case class Info(name: String, code: String, population: Int)
+  object Info {
+    implicit val read: Read[Info] = Read.derived
+  }
 
   // Construct a Query0 with some optional filter conditions and a configurable LIMIT.
   def select(name: Option[String], pop: Option[Int], codes: List[String], limit: Long) = {

@@ -10,7 +10,7 @@ import scala.compiletime.erasedValue
 import scala.compiletime.summonInline
 import scala.deriving.Mirror
 
-trait ReadPlatform { this: Read.type =>
+trait ReadPlatform {
 
   inline def summonAll[T <: Tuple]: List[Read[?]] = {
     inline erasedValue[T] match {
@@ -30,6 +30,9 @@ trait ReadPlatform { this: Read.type =>
       }
     }
   }
+}
 
-  inline implicit def gen[A](using m: Mirror.ProductOf[A]): Read[A] = derived[A]
+trait ReadAutoPlatform extends ReadPlatform {
+
+  inline implicit def genRead[A](using m: Mirror.ProductOf[A]): Read[A] = derived[A]
 }

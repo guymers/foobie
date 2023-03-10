@@ -2,12 +2,18 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-package doobie
-package util
+package doobie.util
 
 trait ReadSuitePlatform { self: munit.FunSuite =>
 
   test("derives") {
-    case class Foo(a: String, b: Int) derives util.Read
+    case class Foo(a: String, b: Int) derives Read
+  }
+
+  test("does not auto derive") {
+    val _ = compileErrors("""
+      case class Foo(a: String, b: Int)
+      case class Bar(a: String, foo: Foo) derives Read
+    """)
   }
 }

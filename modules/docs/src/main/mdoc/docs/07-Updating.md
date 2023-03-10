@@ -10,6 +10,8 @@ Again we set up a transactor and pull in YOLO mode, but this time we're not usin
 import doobie.*
 import doobie.implicits.*
 import doobie.util.ExecutionContexts
+import doobie.util.Read.Auto.*
+import doobie.util.Write.Auto.*
 import cats.*
 import cats.data.*
 import cats.effect.*

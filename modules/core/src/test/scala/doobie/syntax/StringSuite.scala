@@ -7,6 +7,7 @@ package doobie.syntax
 import doobie.syntax.string.*
 
 class StringSuite extends munit.FunSuite {
+  import doobie.util.Write.Auto.*
 
   test("sql interpolator should support no-param queries") {
     val q = sql"foo bar baz".query[Int]

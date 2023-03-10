@@ -14,6 +14,8 @@ import cats.data.*
 import cats.implicits.*
 import doobie.*
 import doobie.implicits.*
+import doobie.util.Read.Auto.*
+import doobie.util.Write.Auto.*
 import io.circe.*
 import io.circe.jawn.*
 import io.circe.syntax.*

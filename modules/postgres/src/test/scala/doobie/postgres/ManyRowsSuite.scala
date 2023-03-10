@@ -10,6 +10,7 @@ import doobie.syntax.string.*
 class ManyRowsSuite extends munit.FunSuite {
   import PostgresTestTransactor.xa
   import cats.effect.unsafe.implicits.global
+  import doobie.util.Read.Auto.*
 
   test("select should take consistent memory") {
     val q = sql"""select a.name, b.name from city a, city b""".query[(String, String)]

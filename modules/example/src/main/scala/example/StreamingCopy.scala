@@ -11,6 +11,7 @@ import doobie.FC
 import doobie.HC
 import doobie.free.connection.ConnectionIO
 import doobie.syntax.all.*
+import doobie.util.Read
 import doobie.util.transactor.Transactor
 import fs2.Stream
 
@@ -110,6 +111,9 @@ object StreamingCopy extends IOApp.Simple {
 
   // A data type to move.
   final case class City(id: Int, name: String, countrycode: String, district: String, population: Int)
+  object City {
+    implicit val read: Read[City] = Read.derived
+  }
 
   // A producer of cities, to be run on database 1
   def read: Stream[ConnectionIO, City] =

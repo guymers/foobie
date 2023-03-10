@@ -12,6 +12,7 @@ import doobie.implicits.*
 import doobie.postgres.*
 import doobie.postgres.implicits.*
 import doobie.util.ExecutionContexts
+import doobie.util.Read.Auto.*
 import cats.*
 import cats.data.*
 import cats.effect.*
