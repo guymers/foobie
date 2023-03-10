@@ -7,21 +7,38 @@ package util
 
 import cats.effect.IO
 import cats.syntax.apply.*
-import cats.syntax.semigroupal.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 
-class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
+object ReadSuite {
 
-  import cats.effect.unsafe.implicits.global
+  case class X(x: Int) extends AnyVal
 
   case class LenStr1(n: Int, s: String)
 
   case class LenStr2(n: Int, s: String)
   object LenStr2 {
-    implicit val LenStrMeta: Meta[LenStr2] =
-      Meta[String].timap(s => LenStr2(s.length, s))(_.s)
+    implicit val meta: Meta[LenStr2] = Meta[String].timap(s => LenStr2(s.length, s))(_.s)
   }
+
+  case class Nested(a: String, b: Option[NoneOptional], c: Boolean, d: Option[AllOptional])
+  object Nested {
+    implicit val read: Read[Nested] = Read.derived
+  }
+
+  case class NoneOptional(a: String, b: Int)
+  object NoneOptional {
+    implicit val read: Read[NoneOptional] = Read.derived
+  }
+
+  case class AllOptional(a: Option[String], b: Option[Int])
+  object AllOptional {
+    implicit val read: Read[AllOptional] = Read.derived
+  }
+}
+class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
+  import ReadSuite.*
+  import cats.effect.unsafe.implicits.global
 
   val xa = Transactor.fromDriverManager[IO](
     "org.h2.Driver",
@@ -63,9 +80,21 @@ class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
     assertEquals(util.Read[LenStr2].length, 1)
   }
 
-  test(".product should product the correct ordering of gets") {
-    import cats.syntax.all.*
+  case class Woozle(a: (String, Int), b: (Int, String), c: Boolean)
 
+  test("Read should exist for some fancy types") {
+    util.Read[Woozle]: Unit
+    util.Read[(Woozle, String)]: Unit
+    util.Read[(Int, (Woozle, Woozle, String))]: Unit
+  }
+
+  test("Read should exist for option of some fancy types") {
+    util.Read[Option[Woozle]]: Unit
+    util.Read[Option[(Woozle, String)]]: Unit
+    util.Read[Option[(Int, (Woozle, Woozle, String))]]: Unit
+  }
+
+  test(".product should product the correct ordering of gets") {
     val readInt = util.Read[Int]
     val readString = util.Read[String]
 
@@ -76,11 +105,8 @@ class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
 
   test("Read should select correct columns when combined with `ap`") {
     val r = util.Read[Int]
-
     val c = (r, r, r, r, r).tupled
-
     val q = sql"SELECT 1, 2, 3, 4, 5".query(c).to[List]
-
     val o = q.transact(xa).unsafeRunSync()
 
     assertEquals(o, List((1, 2, 3, 4, 5)))
@@ -93,6 +119,20 @@ class ReadSuite extends munit.FunSuite with ReadSuitePlatform {
     val o = q.transact(xa).unsafeRunSync()
 
     assertEquals(o, List((1, (2, 3))))
+  }
+
+  test("handles optional nested types") {
+    val a = sql"SELECT 'a', 'a1', 1, false, 'a2', 2".query[Nested].unique.transact(xa).unsafeRunSync()
+    assertEquals(a, Nested("a", Some(NoneOptional("a1", 1)), false, Some(AllOptional(Some("a2"), Some(2)))))
+
+    val b = sql"SELECT 'a', 'a1', 1, false, NULL, NULL".query[Nested].unique.transact(xa).unsafeRunSync()
+    assertEquals(b, Nested("a", Some(NoneOptional("a1", 1)), false, None))
+
+    val c = sql"SELECT 'a', NULL, 1, false, NULL, NULL".query[Nested].unique.transact(xa).unsafeRunSync()
+    assertEquals(c, Nested("a", None, false, None))
+
+    val d = sql"SELECT 'a', 'a1', NULL, false, NULL, 2".query[Nested].unique.transact(xa).unsafeRunSync()
+    assertEquals(d, Nested("a", None, false, Some(AllOptional(None, Some(2)))))
   }
 
 }

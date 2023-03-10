@@ -192,14 +192,12 @@ The `Get` and `Put` typeclasses described above define mappings between Scala ty
 
 As `Read` and `Write` instances are [logically] built from vectors of `Get` and `Put` instances we can construct them automatically in almost all cases. The base cases are:
 
-- We can `Read` and `Write` the zero-width types `Unit` and `HNil`.
+- We can `Read` and `Write` the zero-width types `Unit`.
 - We can `Read` or `Write` single-column types that have `Get` or `Put` instance, respectively; as well as `Option`s thereof.
 
 The inductive cases that build on the base cases above are:
 
-- We can `Read` or `Write` a shapeless `HList` if its elements can be read or written, respectively.
-- We can `Read` or `Write` a shapeless record if its values can be read or written, respectively.
-- We can `Read` or `Write` a product type (case class or tuple) if its shapeless `Generic` representation (i.e., its fields as an `HList`) can be read or written, respectively.
+- We can `Read` or `Write` a product type (case class or tuple) if its tuple representation can be read or written, respectively.
 
 In addition, **doobie** provides `Read[Option[A]]` and `Write[Option[A]]` in the three cases above, mapping all columns to *nullable* schema types. This allows you to map the columns from an `OUTER JOIN` to an *optional* data type. For instance, reading parent/child pairs we might map output rows to the type `(Parent, Option[Child])`.
 

@@ -169,21 +169,16 @@ object Put extends PutInstances {
   }
 
   /** An implicit Meta[A] means we also have an implicit Put[A]. */
-  implicit def metaProjectionWrite[A](
-    implicit m: Meta[A],
-  ): Put[A] =
-    m.put
+  implicit def metaProjectionWrite[A](implicit m: Meta[A]): Put[A] = m.put
 
 }
 
-trait PutInstances extends PutPlatform {
+trait PutInstances {
 
   /** @group Instances */
-  implicit val ContravariantPut: Contravariant[Put] =
-    new Contravariant[Put] {
-      def contramap[A, B](fa: Put[A])(f: B => A): Put[B] =
-        fa.contramap(f)
-    }
+  implicit val ContravariantPut: Contravariant[Put] = new Contravariant[Put] {
+    override def contramap[A, B](fa: Put[A])(f: B => A) = fa.contramap(f)
+  }
 
   /** @group Instances */
   implicit def ArrayTypeAsListPut[A: ClassTag](implicit ev: Put[Array[A]]): Put[List[A]] =

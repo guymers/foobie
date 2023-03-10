@@ -5,15 +5,19 @@
 package doobie
 package util
 
-class WriteSuite extends munit.FunSuite with WriteSuitePlatform {
+object WriteSuite {
+
+  case class X(x: Int) extends AnyVal
 
   case class LenStr1(n: Int, s: String)
 
   case class LenStr2(n: Int, s: String)
   object LenStr2 {
-    implicit val LenStrMeta: Meta[LenStr2] =
-      Meta[String].timap(s => LenStr2(s.length, s))(_.s)
+    implicit val meta: Meta[LenStr2] = Meta[String].timap(s => LenStr2(s.length, s))(_.s)
   }
+}
+class WriteSuite extends munit.FunSuite with WriteSuitePlatform {
+  import WriteSuite.*
 
   test("Write should exist for some fancy types") {
     util.Write[Int]: Unit
@@ -48,4 +52,17 @@ class WriteSuite extends munit.FunSuite with WriteSuitePlatform {
     assertEquals(util.Write[LenStr2].length, 1)
   }
 
+  case class Woozle(a: (String, Int), b: (Int, String), c: Boolean)
+
+  test("Write should exist for some fancy types") {
+    util.Write[Woozle]: Unit
+    util.Write[(Woozle, String)]: Unit
+    util.Write[(Int, (Woozle, Woozle, String))]: Unit
+  }
+
+  test("Write should exist for option of some fancy types") {
+    util.Write[Option[Woozle]]: Unit
+    util.Write[Option[(Woozle, String)]]: Unit
+    util.Write[Option[(Int, (Woozle, Woozle, String))]]: Unit
+  }
 }

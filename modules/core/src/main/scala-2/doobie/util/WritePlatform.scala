@@ -4,113 +4,48 @@
 
 package doobie.util
 
-import shapeless.::
-import shapeless.<:!<
-import shapeless.Generic
-import shapeless.HList
-import shapeless.HNil
-import shapeless.Lazy
-import shapeless.labelled.FieldType
+import magnolia1.Magnolia
+import magnolia1.ReadOnlyCaseClass
 
-trait WritePlatform extends LowerPriorityWrite {
+import java.sql.PreparedStatement
+import java.sql.ResultSet
+import scala.collection.immutable.ArraySeq
+import scala.language.experimental.macros
 
-  implicit def recordWrite[K <: Symbol, H, T <: HList](
-    implicit
-    H: Lazy[Write[H]],
-    T: Lazy[Write[T]],
-  ): Write[FieldType[K, H] :: T] = {
-    new Write(
-      H.value.puts ++ T.value.puts,
-      { case h :: t => H.value.toList(h) ++ T.value.toList(t) },
-      { case (ps, n, h :: t) => H.value.unsafeSet(ps, n, h); T.value.unsafeSet(ps, n + H.value.length, t) },
-      { case (rs, n, h :: t) => H.value.unsafeUpdate(rs, n, h); T.value.unsafeUpdate(rs, n + H.value.length, t) },
-    )
+trait WritePlatform { this: Write.type =>
+
+  type Typeclass[A] = Write[A]
+
+  def join[A](ctx: ReadOnlyCaseClass[Write, A]): Write[A] = {
+    lazy val typeclasses = ctx.parameters.map(_.typeclass)
+
+    new Write[A] {
+      override val puts = typeclasses.to(ArraySeq).flatMap(_.puts)
+      override def values(a: A) = {
+        ctx.parameters.flatMap(param => param.typeclass.values(param.dereference(a)))
+      }
+      override def unsafeSet(ps: PreparedStatement, i: Int, a: A) = {
+        var n = i
+        val it = ctx.parameters.iterator
+        while (it.hasNext) {
+          val param = it.next()
+          param.typeclass.unsafeSet(ps, n, param.dereference(a))
+          n = n + param.typeclass.length
+        }
+      }
+      override def unsafeUpdate(rs: ResultSet, i: Int, a: A) = {
+        var n = i
+        val it = ctx.parameters.iterator
+        while (it.hasNext) {
+          val param = it.next()
+          param.typeclass.unsafeUpdate(rs, n, param.dereference(a))
+          n = n + param.typeclass.length
+        }
+      }
+    }
   }
 
-}
+  def derived[A]: Write[A] = macro Magnolia.gen[A]
 
-trait LowerPriorityWrite extends EvenLowerPriorityWrite {
-
-  implicit def product[H, T <: HList](
-    implicit
-    H: Lazy[Write[H]],
-    T: Lazy[Write[T]],
-  ): Write[H :: T] =
-    new Write(
-      H.value.puts ++ T.value.puts,
-      { case h :: t => H.value.toList(h) ++ T.value.toList(t) },
-      { case (ps, n, h :: t) => H.value.unsafeSet(ps, n, h); T.value.unsafeSet(ps, n + H.value.length, t) },
-      { case (rs, n, h :: t) => H.value.unsafeUpdate(rs, n, h); T.value.unsafeUpdate(rs, n + H.value.length, t) },
-    )
-
-  implicit def emptyProduct: Write[HNil] =
-    new Write[HNil](Nil, _ => Nil, (_, _, _) => (), (_, _, _) => ())
-
-  implicit def generic[B, A](implicit gen: Generic.Aux[B, A], A: Lazy[Write[A]]): Write[B] =
-    new Write[B](
-      A.value.puts,
-      b => A.value.toList(gen.to(b)),
-      (ps, n, b) => A.value.unsafeSet(ps, n, gen.to(b)),
-      (rs, n, b) => A.value.unsafeUpdate(rs, n, gen.to(b)),
-    )
-
-}
-
-trait EvenLowerPriorityWrite {
-
-  implicit val ohnil: Write[Option[HNil]] =
-    new Write[Option[HNil]](Nil, _ => Nil, (_, _, _) => (), (_, _, _) => ())
-
-  implicit def ohcons1[H, T <: HList](
-    implicit
-    H: Lazy[Write[Option[H]]],
-    T: Lazy[Write[Option[T]]],
-    N: H <:!< Option[α] forSome { type α },
-  ): Write[Option[H :: T]] = {
-    void(N)
-
-    def split[A](i: Option[H :: T])(f: (Option[H], Option[T]) => A): A =
-      i.fold(f(None, None)) { case h :: t => f(Some(h), Some(t)) }
-
-    new Write(
-      H.value.puts ++ T.value.puts,
-      split(_) { (h, t) => H.value.toList(h) ++ T.value.toList(t) },
-      (ps, n, i) => split(i) { (h, t) => H.value.unsafeSet(ps, n, h); T.value.unsafeSet(ps, n + H.value.length, t) },
-      (rs, n, i) =>
-        split(i) { (h, t) => H.value.unsafeUpdate(rs, n, h); T.value.unsafeUpdate(rs, n + H.value.length, t) },
-    )
-
-  }
-
-  implicit def ohcons2[H, T <: HList](
-    implicit
-    H: Lazy[Write[Option[H]]],
-    T: Lazy[Write[Option[T]]],
-  ): Write[Option[Option[H] :: T]] = {
-
-    def split[A](i: Option[Option[H] :: T])(f: (Option[H], Option[T]) => A): A =
-      i.fold(f(None, None)) { case oh :: t => f(oh, Some(t)) }
-
-    new Write(
-      H.value.puts ++ T.value.puts,
-      split(_) { (h, t) => H.value.toList(h) ++ T.value.toList(t) },
-      (ps, n, i) => split(i) { (h, t) => H.value.unsafeSet(ps, n, h); T.value.unsafeSet(ps, n + H.value.length, t) },
-      (rs, n, i) =>
-        split(i) { (h, t) => H.value.unsafeUpdate(rs, n, h); T.value.unsafeUpdate(rs, n + H.value.length, t) },
-    )
-
-  }
-
-  implicit def ogeneric[B, A <: HList](
-    implicit
-    G: Generic.Aux[B, A],
-    A: Lazy[Write[Option[A]]],
-  ): Write[Option[B]] =
-    new Write(
-      A.value.puts,
-      b => A.value.toList(b.map(G.to)),
-      (rs, n, a) => A.value.unsafeSet(rs, n, a.map(G.to)),
-      (rs, n, a) => A.value.unsafeUpdate(rs, n, a.map(G.to)),
-    )
-
+  implicit def gen[A]: Write[A] = macro Magnolia.gen[A]
 }

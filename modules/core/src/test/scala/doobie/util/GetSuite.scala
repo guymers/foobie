@@ -10,30 +10,12 @@ import doobie.enumerated.JdbcType.{Array as _, *}
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 
-class GetSuite extends munit.FunSuite with GetSuitePlatform {
-
-  case class X(x: Int)
-  case class Q(x: String)
-
-  case class Z(i: Int, s: String)
-  object S
+class GetSuite extends munit.FunSuite {
 
   test("Get should exist for primitive types") {
     Get[Int]: Unit
     Get[String]: Unit
   }
-
-  test("Get should be derived for unary products") {
-    Get[X]: Unit
-    Get[Q]: Unit
-  }
-
-  test("Get should not be derived for non-unary products") {
-    val _ = compileErrors("Get[Z]")
-    val _ = compileErrors("Get[(Int, Int)]")
-    val _ = compileErrors("Get[S.type]")
-  }
-
 }
 
 final case class Foo(s: String)

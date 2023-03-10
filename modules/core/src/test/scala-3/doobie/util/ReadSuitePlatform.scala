@@ -7,20 +7,6 @@ package util
 
 trait ReadSuitePlatform { self: munit.FunSuite =>
 
-  case class Woozle(a: (String, Int), b: Int *: String *: EmptyTuple, c: Boolean)
-
-  test("Read should exist for some fancy types") {
-    util.Read[Woozle]
-    util.Read[(Woozle, String)]
-    util.Read[(Int, Woozle *: Woozle *: String *: EmptyTuple)]
-  }
-
-  test("Read should exist for option of some fancy types") {
-    util.Read[Option[Woozle]]
-    util.Read[Option[(Woozle, String)]]
-    util.Read[Option[(Int, Woozle *: Woozle *: String *: EmptyTuple)]]
-  }
-
   test("derives") {
     case class Foo(a: String, b: Int) derives util.Read
   }

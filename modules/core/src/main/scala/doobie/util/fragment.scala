@@ -19,6 +19,7 @@ import doobie.util.update.Update0
 
 import java.sql.PreparedStatement
 import java.sql.ResultSet
+import scala.collection.immutable.ArraySeq
 
 /** Module defining the `Fragment` data type. */
 object fragment {
@@ -41,47 +42,41 @@ object fragment {
     private implicit lazy val write: Write[elems.type] = {
       import Elem.*
 
-      val puts: List[(Put[?], NullabilityKnown)] =
-        elems.map {
+      new Write[elems.type] {
+        override val puts = elems.map {
           case Arg(_, p) => (p, NoNulls)
           case Opt(_, p) => (p, Nullable)
-        }.toList
+        }.toList.to(ArraySeq)
 
-      val toList: elems.type => List[Any] = elems =>
-        elems.map {
+        override def values(es: elems.type) = es.map {
           case Arg(a, _) => a
           case Opt(a, _) => a
         }.toList
 
-      @SuppressWarnings(Array("org.wartremover.warts.Var"))
-      val unsafeSet: (PreparedStatement, Int, elems.type) => Unit = { (ps, n, elems) =>
-        var index = n
-        val it = elems.iterator
-        while (it.hasNext) {
-          val e = it.next()
-          e match {
-            case Arg(a, p) => p.unsafeSetNonNullable(ps, index, a)
-            case Opt(a, p) => p.unsafeSetNullable(ps, index, a)
+        override def unsafeSet(ps: PreparedStatement, i: Int, es: elems.type) = {
+          var index = i
+          val it = es.iterator
+          while (it.hasNext) {
+            it.next() match {
+              case Arg(a, p) => p.unsafeSetNonNullable(ps, index, a)
+              case Opt(a, p) => p.unsafeSetNullable(ps, index, a)
+            }
+            index += 1
           }
-          index += 1
+        }
+
+        override def unsafeUpdate(rs: ResultSet, i: Int, es: elems.type) = {
+          var index = i
+          val it = es.iterator
+          while (it.hasNext) {
+            it.next() match {
+              case Arg(a, p) => p.unsafeUpdateNonNullable(rs, index, a)
+              case Opt(a, p) => p.unsafeUpdateNullable(rs, index, a)
+            }
+            index += 1
+          }
         }
       }
-
-      @SuppressWarnings(Array("org.wartremover.warts.Var"))
-      val unsafeUpdate: (ResultSet, Int, elems.type) => Unit = { (ps, n, elems) =>
-        var index = n
-        val it = elems.iterator
-        while (it.hasNext) {
-          val e = it.next()
-          e match {
-            case Arg(a, p) => p.unsafeUpdateNonNullable(ps, index, a)
-            case Opt(a, p) => p.unsafeUpdateNullable(ps, index, a)
-          }
-          index += 1
-        }
-      }
-
-      new Write(puts, toList, unsafeSet, unsafeUpdate)
 
     }
 
@@ -91,7 +86,7 @@ object fragment {
      * program.
      */
     def execWith[B](fa: PreparedStatementIO[B]): ConnectionIO[B] =
-      HC.prepareStatement(sql)(write.set(1, elems) *> fa)
+      HC.prepareStatement(sql)(write.set(elems) *> fa)
 
     /** Concatenate this fragment with another, yielding a larger fragment. */
     def ++(fb: Fragment): Fragment =

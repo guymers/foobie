@@ -13,7 +13,6 @@ import doobie.implicits.*
 import doobie.util.ExecutionContexts
 import java.awt.geom.Point2D
 import java.util.UUID
-import shapeless.*
 
 // This is just for testing. Consider using cats.effect.IOApp instead of calling
 // unsafe methods directly.

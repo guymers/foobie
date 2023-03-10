@@ -29,8 +29,7 @@ sealed abstract class Get[A](
   @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   final def unsafeGetNonNullable(rs: ResultSet, n: Int): A = {
     val i = get.fi(rs, n)
-    if (rs.wasNull)
-      throw NonNullableColumnRead(n, jdbcSources.head)
+    if (rs.wasNull) throw NonNullableColumnRead(n, jdbcSources.head)
     get.k(i)
   }
 
@@ -175,21 +174,16 @@ object Get extends GetInstances {
   }
 
   /** An implicit Meta[A] means we also have an implicit Get[A]. */
-  implicit def metaProjection[A](
-    implicit m: Meta[A],
-  ): Get[A] =
-    m.get
+  implicit def metaProjection[A](implicit m: Meta[A]): Get[A] = m.get
 
 }
 
-trait GetInstances extends GetPlatform {
+trait GetInstances {
 
   /** @group Instances */
-  implicit val FunctorGet: Functor[Get] =
-    new Functor[Get] {
-      def map[A, B](fa: Get[A])(f: A => B): Get[B] =
-        fa.map(f)
-    }
+  implicit val FunctorGet: Functor[Get] = new Functor[Get] {
+    override def map[A, B](fa: Get[A])(f: A => B) = fa.map(f)
+  }
 
   /** @group Instances */
   implicit def ArrayTypeAsListGet[A](implicit ev: Get[Array[A]]): Get[List[A]] =
