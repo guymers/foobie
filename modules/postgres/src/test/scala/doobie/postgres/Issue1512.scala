@@ -10,24 +10,12 @@ import doobie.ConnectionIO
 import doobie.postgres.implicits.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
-import doobie.util.transactor.Transactor
-import munit.CatsEffectSuite
-import org.postgresql.ds.PGSimpleDataSource
 
-import javax.sql.DataSource
-
-class Issue1512 extends CatsEffectSuite {
+class Issue1512 extends munit.FunSuite {
+  import PostgresTestTransactor.xa
+  import cats.effect.unsafe.implicits.global
 
   val minChunkSize = 200
-
-  val datasource: DataSource = {
-    val ds = new PGSimpleDataSource
-    ds.setUser("postgres")
-    ds.setPassword("password")
-    ds
-  }
-  val xa: Transactor[IO] =
-    Transactor.fromDataSource[IO](datasource, scala.concurrent.ExecutionContext.global)
 
   val setup: IO[Int] =
     sql"""

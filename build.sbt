@@ -97,11 +97,6 @@ lazy val commonSettings = Seq(
     case _ => Seq.empty
   }),
 
-  libraryDependencies ++= Seq(
-    "org.typelevel" %% "scalacheck-effect-munit" % "1.0.4" % Test,
-    "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test,
-  ),
-
   // For some reason tests started hanging with docker-compose so let's disable parallelism.
   Test / parallelExecution := false,
 )
@@ -123,7 +118,7 @@ lazy val foobie = project.in(file("."))
     free, core,
     h2, `h2-circe`,
     mysql,
-    postgres, `postgres-circe`,
+    postgres, `postgres-circe`, postgis,
     hikari,
     refined,
     munit, scalatest, specs2, weaver,
@@ -135,10 +130,9 @@ lazy val free = module("free")
   .settings(freeGen2Settings)
   .settings(
     libraryDependencies ++= Seq(
-      "co.fs2" %% "fs2-core" % fs2Version,
       "org.typelevel" %% "cats-core" % catsVersion,
       "org.typelevel" %% "cats-free" % catsVersion,
-      "org.typelevel" %% "cats-effect" % catsEffectVersion,
+      "org.typelevel" %% "cats-effect-std" % catsEffectVersion,
     ),
     libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, _)) => Seq(scalaOrganization.value %  "scala-reflect" % scalaVersion.value) // for macros
@@ -167,27 +161,34 @@ lazy val free = module("free")
 lazy val core = module("core")
   .dependsOn(free)
   .settings(
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-core" % catsVersion,
+      "org.typelevel" %% "cats-effect-kernel" % catsEffectVersion,
+      "co.fs2" %% "fs2-core" % fs2Version,
+      "org.tpolecat" %% "typename" % "1.0.0",
+      "com.h2database" % "h2" % h2Version % Test,
+      "org.scalameta" %% "munit" % munitVersion % Test,
+      "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
+    ),
     libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, _)) => Seq("com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaVersion)
       case _ => Seq.empty
     }),
-    libraryDependencies ++= Seq(
-      "org.tpolecat" %% "typename" % "1.0.0",
-      "com.h2database" % "h2" % h2Version % "test",
-    ),
   )
 
 lazy val postgres = module("postgres")
   .settings(freeGen2Settings)
   .settings(
+    libraryDependencies ++= Seq(
+      "co.fs2" %% "fs2-io" % fs2Version,
+      "org.postgresql" % "postgresql" % postgresVersion,
+      "org.scalameta" %% "munit" % munitVersion % Test,
+      "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
+    ),
     libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, _)) => Seq("com.chuusai" %% "shapeless" % shapelessVersion)
       case _ => Seq.empty
     }),
-    libraryDependencies ++= Seq(
-      "co.fs2" %% "fs2-io" % fs2Version,
-      "org.postgresql" % "postgresql" % postgresVersion,
-    ),
     freeGen2Dir := (Compile / scalaSource).value / "doobie" / "postgres" / "free",
     freeGen2Package := "doobie.postgres.free",
     freeGen2Classes := List[Class[_]](
@@ -226,8 +227,7 @@ lazy val postgis = module("postgis")
       "net.postgis" % "postgis-jdbc" % postgisVersion,
     ),
   )
-  .dependsOn(core)
-  .dependsOn(postgres % "test->test")
+  .dependsOn(core, postgres % "test->test")
 
 lazy val `postgres-circe` = module("postgres-circe")
   .settings(
@@ -236,7 +236,7 @@ lazy val `postgres-circe` = module("postgres-circe")
       "io.circe" %% "circe-parser" % circeVersion,
     )
   )
-  .dependsOn(core, postgres)
+  .dependsOn(core, postgres % "compile->compile;test->test")
 
 lazy val mysql = module("mysql")
   .settings(
@@ -248,7 +248,11 @@ lazy val mysql = module("mysql")
 
 lazy val h2 = module("h2")
   .settings(
-    libraryDependencies += "com.h2database" % "h2" % h2Version,
+    libraryDependencies ++= Seq(
+      "com.h2database" % "h2" % h2Version,
+      "org.scalameta" %% "munit" % munitVersion % Test,
+      "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
+    )
   )
   .dependsOn(core % "compile->compile;test->test")
 
@@ -257,6 +261,7 @@ lazy val `h2-circe` = module("h2-circe")
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-parser" % circeVersion,
+      "org.scalameta" %% "munit" % munitVersion % Test,
     )
   )
   .dependsOn(core, h2)
@@ -266,17 +271,19 @@ lazy val hikari = module("hikari")
     libraryDependencies ++= Seq(
       "com.zaxxer" % "HikariCP" % hikariVersion,
       "org.slf4j" % "slf4j-api" % slf4jVersion,
-      "org.slf4j" % "slf4j-nop" % slf4jVersion % "test",
-      "com.h2database" % "h2" % h2Version % "test",
+      "org.slf4j" % "slf4j-nop" % slf4jVersion % Test,
+      "org.scalameta" %% "munit" % munitVersion % Test,
+      "com.h2database" % "h2" % h2Version % Test,
     )
   )
-  .dependsOn(core, postgres % "test")
+  .dependsOn(core, postgres % "test->test")
 
 lazy val refined = module("refined")
   .settings(
     libraryDependencies ++= Seq(
       "eu.timepit" %% "refined" % refinedVersion,
-      "com.h2database" % "h2" % h2Version % "test",
+      "org.scalameta" %% "munit" % munitVersion % Test,
+      "com.h2database" % "h2" % h2Version % Test,
     )
   )
   .dependsOn(core)
@@ -285,7 +292,7 @@ lazy val munit = module("munit")
   .settings(
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit" % munitVersion,
-      "com.h2database" % "h2" % h2Version % "test",
+      "com.h2database" % "h2" % h2Version % Test,
     )
   )
   .dependsOn(core)
@@ -294,7 +301,7 @@ lazy val scalatest = module("scalatest")
   .settings(
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion,
-      "com.h2database" % "h2" % h2Version % "test",
+      "com.h2database" % "h2" % h2Version % Test,
     )
   )
   .dependsOn(core)
@@ -303,7 +310,7 @@ lazy val specs2 = module("specs2")
   .settings(
     libraryDependencies ++= Seq(
       "org.specs2" %% "specs2-core" % specs2Version,
-      "com.h2database" % "h2" % h2Version % "test",
+      "com.h2database" % "h2" % h2Version % Test,
     )
   )
   .dependsOn(core)
@@ -312,7 +319,7 @@ lazy val weaver = module("weaver")
   .settings(
     libraryDependencies ++= Seq(
       "com.disneystreaming" %% "weaver-cats" % weaverVersion,
-      "com.h2database" % "h2" % h2Version % "test",
+      "com.h2database" % "h2" % h2Version % Test,
     ),
     testFrameworks += new TestFramework("weaver.framework.CatsEffect"),
   )
