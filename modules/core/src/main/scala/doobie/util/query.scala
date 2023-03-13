@@ -9,7 +9,7 @@ import cats.Contravariant
 import cats.Functor
 import cats.arrow.Profunctor
 import cats.data.NonEmptyList
-import cats.syntax.all.*
+import cats.syntax.apply.*
 import doobie.HC
 import doobie.HPS
 import doobie.HRS

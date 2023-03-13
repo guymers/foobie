@@ -4,6 +4,10 @@
 
 package doobie
 
+import cats.effect.kernel.Async
+import cats.effect.kernel.Resource
+import doobie.util.transactor.Strategy
+import doobie.util.transactor.Transactor
 import org.h2.jdbcx.JdbcConnectionPool
 
 package object h2 {
@@ -13,5 +17,10 @@ package object h2 {
   object implicits
     extends Instances
     with syntax.ToH2TransactorOps
+
+  def inMemory[M[_]](
+    database: String,
+    strategy: Strategy = Strategy.default,
+  )(implicit M: Async[M]): Resource[M, Transactor[M]] = H2Helper.inMemory(database, strategy)
 
 }

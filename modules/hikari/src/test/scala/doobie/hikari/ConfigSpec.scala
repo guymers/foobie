@@ -4,16 +4,14 @@
 
 package doobie.hikari
 
-import cats.effect.IO
+import cats.effect.SyncIO
 import com.zaxxer.hikari.HikariConfig
 
 class ConfigSpec extends munit.FunSuite {
 
   test("Default should be the same as unmodified HikariConfig") {
 
-    import cats.effect.unsafe.implicits.global
-
-    val actual = Config.makeHikariConfig[IO](Config("jdbcUrl", poolName = Some("poolName"))).unsafeRunSync()
+    val actual = Config.makeHikariConfig[SyncIO](Config("jdbcUrl", poolName = Some("poolName"))).unsafeRunSync()
     val expected = {
       val c = new HikariConfig()
       c.setJdbcUrl("jdbcUrl") // mandatory argument

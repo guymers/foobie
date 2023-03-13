@@ -10,18 +10,12 @@ import cats.syntax.apply.*
 import doobie.syntax.string.*
 import doobie.util.Read
 import doobie.util.transactor.Transactor
-import weaver.*
+import weaver.IOSuite
 
 object CheckerTests extends IOSuite with IOChecker {
 
   override type Res = Transactor[IO]
-  override def sharedResource: Resource[IO, Res] =
-    Resource.pure(Transactor.fromDriverManager[IO](
-      "org.h2.Driver",
-      "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-      "sa",
-      "",
-    ))
+  override def sharedResource: Resource[IO, Res] = doobie.h2.inMemory("queryspec")
 
   test("trivial") { implicit transactor =>
     check(sql"select 1".query[Int])

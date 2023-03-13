@@ -7,7 +7,10 @@ package doobie.hi
 import cats.Alternative
 import cats.Monad
 import cats.data.NonEmptyList
-import cats.syntax.all.*
+import cats.syntax.apply.*
+import cats.syntax.flatMap.*
+import cats.syntax.functor.*
+import cats.syntax.monad.*
 import doobie.FRS
 import doobie.enumerated.FetchDirection
 import doobie.enumerated.Holdability

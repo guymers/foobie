@@ -6,7 +6,8 @@ package doobie.util
 
 import cats.Contravariant
 import cats.Foldable
-import cats.syntax.all.*
+import cats.syntax.apply.*
+import cats.syntax.foldable.*
 import doobie.FPS
 import doobie.HC
 import doobie.HPS

@@ -6,8 +6,10 @@ package doobie.util
 
 import cats.data.State
 import doobie.util.lens.*
+import zio.test.ZIOSpecDefault
+import zio.test.assertTrue
 
-class LensSuite extends munit.FunSuite {
+object LensSuite extends ZIOSpecDefault {
 
   case class Name(first: String, last: String)
   object Name {
@@ -23,31 +25,27 @@ class LensSuite extends munit.FunSuite {
     val last: Address @> String = name >=> Name.last
   }
 
-  val bob = Address(Name("Bob", "Dole"), "123 Foo St.")
+  private val bob = Address(Name("Bob", "Dole"), "123 Foo St.")
 
-  def exec[S](st: State[S, ?], s: S): S =
-    st.runS(s).value
+  private def exec[S](st: State[S, ?], s: S): S = st.runS(s).value
 
-  import Address.*
-
-  test("Lens should modify ok") {
-    val prog: State[Address, Unit] =
-      for {
-        _ <- first %= (_.toUpperCase)
-        _ <- last %= (_.toLowerCase)
-        _ <- street %= (_.replace('o', '*'))
+  override val spec = suite("Lens")(
+    test("modify") {
+      val prog: State[Address, Unit] = for {
+        _ <- Address.first %= (_.toUpperCase)
+        _ <- Address.last %= (_.toLowerCase)
+        _ <- Address.street %= (_.replace('o', '*'))
       } yield ()
-    assertEquals(exec(prog, bob), Address(Name("BOB", "dole"), "123 F** St."))
-  }
-
-  test("Lens should set ok") {
-    val prog: State[Address, Unit] =
-      for {
-        _ <- first := "Jimmy"
-        _ <- last := "Carter"
-        _ <- street := "12 Peanut Dr."
+      assertTrue(exec(prog, bob) == Address(Name("BOB", "dole"), "123 F** St."))
+    },
+    test("set") {
+      val prog: State[Address, Unit] = for {
+        _ <- Address.first := "Jimmy"
+        _ <- Address.last := "Carter"
+        _ <- Address.street := "12 Peanut Dr."
       } yield ()
-    assertEquals(exec(prog, bob), Address(Name("Jimmy", "Carter"), "12 Peanut Dr."))
-  }
+      assertTrue(exec(prog, bob) == Address(Name("Jimmy", "Carter"), "12 Peanut Dr."))
+    },
+  )
 
 }

@@ -2,10 +2,11 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-package doobie
-package h2
+package doobie.h2
 
-import cats.effect.kernel.*
+import cats.effect.kernel.Async
+import cats.effect.kernel.Resource
+import doobie.util.transactor.Transactor
 import org.h2.jdbcx.JdbcConnectionPool
 
 import scala.concurrent.ExecutionContext

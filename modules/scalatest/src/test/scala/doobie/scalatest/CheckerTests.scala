@@ -9,7 +9,7 @@ import doobie.syntax.string.*
 import doobie.util.transactor.Transactor
 import org.scalatest.*
 
-trait CheckerChecks[M[_]] extends funsuite.AnyFunSuite with matchers.should.Matchers with Checker[M] {
+trait CheckerChecks[M[_]] extends funsuite.AnyFunSuite with Checker[M] {
 
   lazy val transactor = Transactor.fromDriverManager[M](
     "org.h2.Driver",

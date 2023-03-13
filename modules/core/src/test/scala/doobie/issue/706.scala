@@ -5,39 +5,41 @@
 package doobie.issue
 
 import cats.Foldable
-import cats.effect.IO
-import cats.syntax.all.*
+import cats.syntax.functor.*
+import doobie.Fragment
+import doobie.H2DatabaseSpec
 import doobie.free.connection.ConnectionIO
-import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 import doobie.util.Write
-import doobie.util.transactor.Transactor
 import doobie.util.update.Update
-import org.scalacheck.Prop.forAll
+import zio.test.Gen
+import zio.test.Live
+import zio.test.assertTrue
+import zio.test.check
 
-class `706` extends munit.ScalaCheckSuite {
+object `706` extends H2DatabaseSpec {
 
-  import cats.effect.unsafe.implicits.global
+  override val spec = suite("706")(
+    test("updateMany should work correctly for valid inputs") {
+      withTable.flatMap { table =>
+        def insert[F[_]: Foldable, A: Write](as: F[A]): ConnectionIO[Int] =
+          Update[A](fr"INSERT INTO $table VALUES (?)".update.sql).updateMany(as)
 
-  val xa = Transactor.fromDriverManager[IO](
-    "org.h2.Driver",
-    "jdbc:h2:mem:issue-706;DB_CLOSE_DELAY=-1",
-    "sa",
-    "",
+        check(Gen.listOfBounded(0, 10)(Gen.int)) { ns =>
+          insert(ns).transact.map { result =>
+            assertTrue(result == ns.length)
+          }
+        }
+      }
+    },
   )
 
-  val setup: ConnectionIO[Unit] =
-    sql"CREATE TABLE IF NOT EXISTS test (v INTEGER)".update.run.void
-
-  def insert[F[_]: Foldable, A: Write](as: F[A]): ConnectionIO[Int] =
-    Update[A]("INSERT INTO test VALUES (?)").updateMany(as)
-
-  test("updateMany should work correctly for valid inputs") {
-    forAll { (ns: List[Int]) =>
-      val prog = setup *> insert(ns)
-      assertEquals(prog.transact(xa).unsafeRunSync(), ns.length)
-    }
-  }
+  private def withTable = for {
+    tableName <- Live.live(zio.Random.nextUUID).map(_.toString.replaceAll("-", ""))
+    table = Fragment.const(s"test_$tableName")
+    _ <- fr"CREATE TABLE IF NOT EXISTS $table (v INTEGER)".update.run.void.transact
+      .withFinalizer(_ => fr"DROP TABLE IF NOT EXISTS $table".update.run.transact.ignoreLogged)
+  } yield table
 
   // TODO: add a case for invalid inputs if we can find one that doesn't cause an
   // exception to be thrown.
