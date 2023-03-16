@@ -4,125 +4,119 @@
 
 package doobie.util
 
-import cats.effect.IO
-import cats.syntax.all.*
-import doobie.syntax.connectionio.*
+import cats.syntax.foldable.*
+import doobie.H2DatabaseSpec
 import doobie.syntax.string.*
 import doobie.util.fragment.Fragment
-import doobie.util.transactor.Transactor
+import zio.test.assertCompletes
+import zio.test.assertTrue
 
-class FragmentSuite extends munit.FunSuite {
-  import cats.effect.unsafe.implicits.global
+object FragmentSuite extends H2DatabaseSpec {
   import doobie.util.Read.Auto.*
 
-  val xa = Transactor.fromDriverManager[IO](
-    "org.h2.Driver",
-    "jdbc:h2:mem:fragmentspec;DB_CLOSE_DELAY=-1",
-    "sa",
-    "",
+  private val a = 1
+  private val b = "two"
+  private val c = true
+
+  private val fra = fr"$a"
+  private val frb = fr"$b"
+  private val frc = fr"$c"
+
+  override val spec = suite("Fragment")(
+    test("substitute placeholders") {
+      assertTrue(fr"foo $a $b bar".query[Unit].sql == "foo ? ? bar ")
+    },
+    test("concatenate") {
+      assertTrue((fr"foo" ++ fr"bar $a baz").query[Unit].sql == "foo bar ? baz ")
+    },
+    test("interpolate") {
+      assertTrue(fr"foo ${fr0"bar $a baz"}".query[Unit].sql == "foo bar ? baz ")
+    },
+    // https://github.com/tpolecat/doobie/issues/1186
+    test("interpolate an expression `Option(1).getOrElse(2)`") {
+      sql"${Option(1).getOrElse(2)} ${false} ${"xx"}": Unit
+      fr"${Option(1).getOrElse(2)}": Unit
+      fr0"${Option(1).getOrElse(2)}": Unit
+      assertCompletes
+    },
+    test("maintain parameter indexing (in-order)") {
+      val s = fr"select" ++ List(fra, frb, frc).intercalate(fr",")
+      s.query[(Int, String, Boolean)].unique.transact.map { result =>
+        assertTrue(result == (a, b, c))
+      }
+    },
+    test("maintain parameter indexing (out-of-order)") {
+      val s = fr"select" ++ List(frb, frc, fra).intercalate(fr",")
+      s.query[(String, Boolean, Int)].unique.transact.map { result =>
+        assertTrue(result == (b, c, a))
+      }
+    },
+    test("maintain associativity (left)") {
+      val s = fr"select" ++ List(fra, fr",", frb, fr",", frc).foldLeft(Fragment.empty)(_ ++ _)
+      s.query[(Int, String, Boolean)].unique.transact.map { result =>
+        assertTrue(result == (a, b, c))
+      }
+    },
+    test("maintain associativity (right)") {
+      val s = fr"select" ++ List(fra, fr",", frb, fr",", frc).foldRight(Fragment.empty)(_ ++ _)
+      s.query[(Int, String, Boolean)].unique.transact.map { result =>
+        assertTrue(result == (a, b, c))
+      }
+    },
+    test("add a trailing space when constructed with .const") {
+      assertTrue(Fragment.const("foo").query[Int].sql == "foo ")
+    },
+    test("not add a trailing space when constructed with .const0") {
+      assertTrue(Fragment.const0("foo").query[Int].sql == "foo")
+    },
+    suite("margin stripping")(
+      test("default") {
+        val s =
+          fr"""select foo
+            |  from bar
+            |  where a = $a and b = $b and c = $c
+            |""".stripMargin
+        assertTrue(s.query[Int].sql == "select foo\n  from bar\n  where a = ? and b = ? and c = ?\n ")
+      },
+      test("custom margin") {
+        val s =
+          fr"""select foo
+            !  from bar
+            !""".stripMargin('!')
+        assertTrue(s.query[Int].sql == "select foo\n  from bar\n ")
+      },
+      test("ignore margin characters outside of margin position") {
+        val s =
+          fr"""select foo || baz
+            |  from bar
+            |""".stripMargin
+        assertTrue(s.query[Int].sql == "select foo || baz\n  from bar\n ")
+      },
+    ),
+    suite("stacksafe")({
+
+      // A fragment composed of this many sub-fragments would not be stacksafe without special
+      // handling, which we test below.
+      val STACK_UNSAFE_SIZE = 20000
+
+      test("left-associative") {
+        val frag =
+          fr0"SELECT 1 WHERE 1 IN (" ++
+            List.fill(STACK_UNSAFE_SIZE)(1).foldLeft(Fragment.empty)((f, n) => f ++ fr"$n,") ++
+            fr0"1)"
+        frag.query[Int].unique.transact.map { result =>
+          assertTrue(result == 1)
+        }
+      } ::
+      test("right-associative") {
+        val frag =
+          fr0"SELECT 1 WHERE 1 IN (" ++
+            List.fill(STACK_UNSAFE_SIZE)(1).foldRight(Fragment.empty)((n, f) => f ++ fr"$n,") ++
+            fr0"1)"
+        frag.query[Int].unique.transact.map { result =>
+          assertTrue(result == 1)
+        }
+      } :: Nil
+    }),
   )
-
-  val a = 1
-  val b = "two"
-  val c = true
-
-  val fra = fr"$a"
-  val frb = fr"$b"
-  val frc = fr"$c"
-
-  test("Fragment must substitute placeholders properly") {
-    assertEquals(fr"foo $a $b bar".query[Unit].sql, "foo ? ? bar ")
-  }
-
-  test("Fragment must concatenate properly") {
-    assertEquals((fr"foo" ++ fr"bar $a baz").query[Unit].sql, "foo bar ? baz ")
-  }
-
-  test("Fragment must interpolate fragments properly") {
-    assertEquals(fr"foo ${fr0"bar $a baz"}".query[Unit].sql, "foo bar ? baz ")
-  }
-
-  // https://github.com/tpolecat/doobie/issues/1186
-  test("Fragment must interpolate an expression `Option(1).getOrElse(2)` properly") {
-    sql"${Option(1).getOrElse(2)} ${false} ${"xx"}": Unit
-    fr"${Option(1).getOrElse(2)}": Unit
-    fr0"${Option(1).getOrElse(2)}": Unit
-  }
-
-  test("Fragment must maintain parameter indexing (in-order)") {
-    val s = fr"select" ++ List(fra, frb, frc).intercalate(fr",")
-    assertEquals(s.query[(Int, String, Boolean)].unique.transact(xa).unsafeRunSync(), ((a, b, c)))
-  }
-
-  test("Fragment must maintain parameter indexing (out-of-order)") {
-    val s = fr"select" ++ List(frb, frc, fra).intercalate(fr",")
-    assertEquals(s.query[(String, Boolean, Int)].unique.transact(xa).unsafeRunSync(), ((b, c, a)))
-  }
-
-  test("Fragment must maintain associativity (left)") {
-    val s = fr"select" ++ List(fra, fr",", frb, fr",", frc).foldLeft(Fragment.empty)(_ ++ _)
-    assertEquals(s.query[(Int, String, Boolean)].unique.transact(xa).unsafeRunSync(), ((a, b, c)))
-  }
-
-  test("Fragment must maintain associativity (right)") {
-    val s = fr"select" ++ List(fra, fr",", frb, fr",", frc).foldRight(Fragment.empty)(_ ++ _)
-    assertEquals(s.query[(Int, String, Boolean)].unique.transact(xa).unsafeRunSync(), ((a, b, c)))
-  }
-
-  test("Fragment must Add a trailing space when constructed with .const") {
-    assertEquals(Fragment.const("foo").query[Int].sql, "foo ")
-  }
-
-  test("Fragment must Not add a trailing space when constructed with .const0") {
-    assertEquals(Fragment.const0("foo").query[Int].sql, "foo")
-  }
-
-  test("Fragment must allow margin stripping") {
-    assertEquals(
-      fr"""select foo
-        |  from bar
-        |  where a = $a and b = $b and c = $c
-        |""".stripMargin.query[Int].sql,
-      "select foo\n  from bar\n  where a = ? and b = ? and c = ?\n ",
-    )
-  }
-
-  test("Fragment must allow margin stripping with custom margin") {
-    assertEquals(
-      fr"""select foo
-        !  from bar
-        !""".stripMargin('!').query[Int].sql,
-      "select foo\n  from bar\n ",
-    )
-  }
-
-  test("Fragment must not affect margin characters in middle outside of margin position") {
-    assertEquals(
-      fr"""select foo || baz
-        |  from bar
-        |""".stripMargin.query[Int].sql,
-      "select foo || baz\n  from bar\n ",
-    )
-  }
-
-  // A fragment composed of this many sub-fragments would not be stacksafe without special
-  // handling, which we test below.
-  val STACK_UNSAFE_SIZE = 20000
-
-  test("Fragment must be stacksafe (left-associative)") {
-    val frag =
-      fr0"SELECT 1 WHERE 1 IN (" ++
-        List.fill(STACK_UNSAFE_SIZE)(1).foldLeft(Fragment.empty)((f, n) => f ++ fr"$n,") ++
-        fr0"1)"
-    assertEquals(frag.query[Int].unique.transact(xa).unsafeRunSync(), 1)
-  }
-
-  test("Fragment must be stacksafe (right-associative)") {
-    val frag =
-      fr0"SELECT 1 WHERE 1 IN (" ++
-        List.fill(STACK_UNSAFE_SIZE)(1).foldRight(Fragment.empty)((n, f) => f ++ fr"$n,") ++
-        fr0"1)"
-    assertEquals(frag.query[Int].unique.transact(xa).unsafeRunSync(), 1)
-  }
-
 }

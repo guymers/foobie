@@ -4,12 +4,15 @@
 
 package doobie.util
 
-trait WriteSuitePlatform { self: munit.FunSuite =>
-  import WriteSuite.X
+import zio.test.assertTrue
 
-  test("Write should exist for AnyVal") {
-    import doobie.util.Write.Auto.*
+trait WriteSuitePlatform { self: WriteSuite.type =>
 
-    assertEquals(Write[X].length, 1)
-  }
+  protected def platformTests = List(
+    test("exist for AnyVal") {
+      import doobie.util.Write.Auto.*
+
+      assertTrue(Write[X].length == 1)
+    },
+  )
 }

@@ -4,40 +4,36 @@
 
 package doobie.issue
 
-import cats.effect.IO
+import doobie.H2DatabaseSpec
 import doobie.HC
 import doobie.HPS
 import doobie.free.KleisliInterpreter
-import doobie.syntax.connectionio.*
 import doobie.util.transactor.Transactor
+import zio.Task
+import zio.ZIO
+import zio.test.assertTrue
 
-class `262` extends munit.FunSuite {
-
-  import cats.effect.unsafe.implicits.global
+object `262` extends H2DatabaseSpec {
 
   // an interpreter that returns null when we ask for statement metadata
-  object Interp extends KleisliInterpreter[IO] {
+  object Interp extends KleisliInterpreter[Task] {
     override lazy val PreparedStatementInterpreter =
       new PreparedStatementInterpreter {
         override def getMetaData = primitive(_ => null)
       }
-
   }
 
-  val baseXa = Transactor.fromDriverManager[IO](
-    "org.h2.Driver",
-    "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-    "sa",
-    "",
+  override val spec = suite("262")(
+    test("getColumnJdbcMeta should handle null metadata") {
+      for {
+        transactor <- ZIO.service[Transactor[Task]]
+        xa = Transactor.interpret.set(transactor, Interp.ConnectionInterpreter)
+        prog = HC.prepareStatement("select 1")(HPS.getColumnJdbcMeta)
+        result <- xa.trans(instance)(prog)
+      } yield {
+        assertTrue(result == Nil)
+      }
+    },
   )
-
-  // A transactor that uses our interpreter above
-  val xa: Transactor[IO] =
-    Transactor.interpret.set(baseXa, Interp.ConnectionInterpreter)
-
-  test("getColumnJdbcMeta should handle null metadata") {
-    val prog = HC.prepareStatement("select 1")(HPS.getColumnJdbcMeta)
-    assertEquals(prog.transact(xa).unsafeRunSync(), Nil)
-  }
 
 }

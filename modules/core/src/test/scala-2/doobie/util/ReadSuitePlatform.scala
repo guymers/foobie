@@ -4,12 +4,15 @@
 
 package doobie.util
 
-trait ReadSuitePlatform { self: munit.FunSuite =>
-  import ReadSuite.X
+import zio.test.assertTrue
 
-  test("Read should exist for AnyVal") {
-    import doobie.util.Read.Auto.*
+trait ReadSuitePlatform { self: ReadSuite.type =>
 
-    assertEquals(Read[X].length, 1)
-  }
+  protected def platformTests = List(
+    test("Read should exist for AnyVal") {
+      import doobie.util.Read.Auto.*
+
+      assertTrue(Read[X].length == 1)
+    },
+  )
 }

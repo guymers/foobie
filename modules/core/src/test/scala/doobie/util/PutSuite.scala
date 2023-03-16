@@ -4,10 +4,16 @@
 
 package doobie.util
 
-class PutSuite extends munit.FunSuite {
+import doobie.h2.H2DatabaseSpec
+import zio.test.assertCompletes
 
-  test("Put should exist for primitive types") {
-    Put[Int]: Unit
-    Put[String]: Unit
-  }
+object PutSuite extends H2DatabaseSpec {
+
+  override val spec = suite("Put")(
+    test("Put should exist for primitive types") {
+      Put[Int]: Unit
+      Put[String]: Unit
+      assertCompletes
+    },
+  )
 }

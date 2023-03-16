@@ -18,6 +18,8 @@ val shapelessVersion = "2.3.10"
 val specs2Version = "4.19.2"
 val slf4jVersion = "2.0.6"
 val weaverVersion = "0.8.1"
+val zioInteropCats = "23.0.0.2"
+val zioVersion = "2.0.10"
 
 val Scala213 = "2.13.10"
 val Scala3 = "3.2.2"
@@ -96,9 +98,6 @@ lazy val commonSettings = Seq(
     case Some((2, _)) => Seq(compilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full))
     case _ => Seq.empty
   }),
-
-  // For some reason tests started hanging with docker-compose so let's disable parallelism.
-  Test / parallelExecution := false,
 )
 
 def filterScalacConsoleOpts(options: Seq[String]) = {
@@ -159,7 +158,6 @@ lazy val free = module("free")
   )
 
 lazy val core = module("core")
-  .dependsOn(free)
   .settings(
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % catsVersion,
@@ -167,14 +165,20 @@ lazy val core = module("core")
       "co.fs2" %% "fs2-core" % fs2Version,
       "org.tpolecat" %% "typename" % "1.0.0",
       "com.h2database" % "h2" % h2Version % Test,
-      "org.scalameta" %% "munit" % munitVersion % Test,
-      "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
+      "dev.zio" %% "zio-interop-cats" % zioInteropCats % Test,
+      "dev.zio" %% "zio-test" % zioVersion % Test,
+      "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+      "org.scalacheck" %% "scalacheck" % "1.17.0" % Test,
     ),
     libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, _)) => Seq("com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaVersion)
+      case Some((2, _)) => Seq(
+        "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaVersion,
+        "com.chuusai" %% "shapeless" % shapelessVersion % Test,
+      )
       case _ => Seq.empty
     }),
   )
+  .dependsOn(free)
 
 lazy val postgres = module("postgres")
   .settings(freeGen2Settings)
@@ -218,6 +222,9 @@ lazy val postgres = module("postgres")
       import org.postgresql.geometric._
     """,
     consoleQuick / initialCommands := "",
+
+    // For some reason tests started hanging with docker-compose so let's disable parallelism.
+    Test / parallelExecution := false,
   )
   .dependsOn(core % "compile->compile;test->test")
 
@@ -226,6 +233,9 @@ lazy val postgis = module("postgis")
     libraryDependencies ++= Seq(
       "net.postgis" % "postgis-jdbc" % postgisVersion,
     ),
+
+    // For some reason tests started hanging with docker-compose so let's disable parallelism.
+    Test / parallelExecution := false,
   )
   .dependsOn(core, postgres % "test->test")
 
@@ -234,7 +244,10 @@ lazy val `postgres-circe` = module("postgres-circe")
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-parser" % circeVersion,
-    )
+    ),
+
+    // For some reason tests started hanging with docker-compose so let's disable parallelism.
+    Test / parallelExecution := false,
   )
   .dependsOn(core, postgres % "compile->compile;test->test")
 
@@ -242,7 +255,12 @@ lazy val mysql = module("mysql")
   .settings(
     libraryDependencies ++= Seq(
       "com.mysql" % "mysql-connector-j" % mysqlVersion,
+      "org.scalameta" %% "munit" % munitVersion % Test,
+      "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
     ),
+
+    // For some reason tests started hanging with docker-compose so let's disable parallelism.
+    Test / parallelExecution := false,
   )
   .dependsOn(core % "compile->compile;test->test")
 
@@ -250,21 +268,21 @@ lazy val h2 = module("h2")
   .settings(
     libraryDependencies ++= Seq(
       "com.h2database" % "h2" % h2Version,
-      "org.scalameta" %% "munit" % munitVersion % Test,
-      "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
+      "dev.zio" %% "zio-interop-cats" % zioInteropCats % Test,
+      "dev.zio" %% "zio-test" % zioVersion % Test,
+      "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
     )
   )
-  .dependsOn(core % "compile->compile;test->test")
+  .dependsOn(core)
 
 lazy val `h2-circe` = module("h2-circe")
   .settings(
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-parser" % circeVersion,
-      "org.scalameta" %% "munit" % munitVersion % Test,
     )
   )
-  .dependsOn(core, h2)
+  .dependsOn(core, h2 % "compile->compile;test->test")
 
 lazy val hikari = module("hikari")
   .settings(
@@ -282,11 +300,11 @@ lazy val refined = module("refined")
   .settings(
     libraryDependencies ++= Seq(
       "eu.timepit" %% "refined" % refinedVersion,
-      "org.scalameta" %% "munit" % munitVersion % Test,
-      "com.h2database" % "h2" % h2Version % Test,
+      "dev.zio" %% "zio-test" % zioVersion % Test,
+      "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
     )
   )
-  .dependsOn(core)
+  .dependsOn(core, h2 % "test->test")
 
 lazy val munit = module("munit")
   .settings(
@@ -319,11 +337,10 @@ lazy val weaver = module("weaver")
   .settings(
     libraryDependencies ++= Seq(
       "com.disneystreaming" %% "weaver-cats" % weaverVersion,
-      "com.h2database" % "h2" % h2Version % Test,
     ),
     testFrameworks += new TestFramework("weaver.framework.CatsEffect"),
   )
-  .dependsOn(core)
+  .dependsOn(core, h2 % "test->test")
 
 lazy val example = project.in(file("modules/example"))
   .settings(commonSettings)
