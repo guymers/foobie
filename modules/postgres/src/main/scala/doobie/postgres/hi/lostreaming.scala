@@ -28,17 +28,17 @@ object lostreaming {
       .flatMap(lo => fs2.io.readInputStream(getInputStream(lo), chunkSize))
 
   private val createLO: ConnectionIO[Long] =
-    PHC.pgGetLargeObjectAPI(PFLOM.createLO)
+    connection.pgGetLargeObjectAPI(PFLOM.createLO)
 
   private def openLO(oid: Long): ConnectionIO[LargeObject] =
-    PHC.pgGetLargeObjectAPI(PFLOM.open(oid))
+    connection.pgGetLargeObjectAPI(PFLOM.open(oid))
 
   private def closeLO(lo: LargeObject): ConnectionIO[Unit] =
-    PHC.pgGetLargeObjectAPI(PFLOM.embed(lo, PFLO.close))
+    connection.pgGetLargeObjectAPI(PFLOM.embed(lo, PFLO.close))
 
   private def getOutputStream(lo: LargeObject): ConnectionIO[OutputStream] =
-    PHC.pgGetLargeObjectAPI(PFLOM.embed(lo, PFLO.getOutputStream))
+    connection.pgGetLargeObjectAPI(PFLOM.embed(lo, PFLO.getOutputStream))
 
   private def getInputStream(lo: LargeObject): ConnectionIO[InputStream] =
-    PHC.pgGetLargeObjectAPI(PFLOM.embed(lo, PFLO.getInputStream))
+    connection.pgGetLargeObjectAPI(PFLOM.embed(lo, PFLO.getInputStream))
 }

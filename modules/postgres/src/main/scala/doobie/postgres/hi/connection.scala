@@ -37,19 +37,19 @@ object connection {
     pgGetConnection(PFPC.embed(j, op))
 
   def pgGetCopyAPI[A](k: CopyManagerIO[A]): ConnectionIO[A] =
-    pgGetConnection(PHPC.getCopyAPI(k))
+    pgGetConnection(pgconnection.getCopyAPI(k))
 
   def pgGetLargeObjectAPI[A](k: LargeObjectManagerIO[A]): ConnectionIO[A] =
-    pgGetConnection(PHPC.getLargeObjectAPI(k))
+    pgGetConnection(pgconnection.getLargeObjectAPI(k))
 
   val pgGetNotifications: ConnectionIO[List[PGNotification]] =
-    pgGetConnection(PHPC.getNotifications)
+    pgGetConnection(pgconnection.getNotifications)
 
   val pgGetPrepareThreshold: ConnectionIO[Int] =
-    pgGetConnection(PHPC.getPrepareThreshold)
+    pgGetConnection(pgconnection.getPrepareThreshold)
 
   def pgSetPrepareThreshold(threshold: Int): ConnectionIO[Unit] =
-    pgGetConnection(PHPC.setPrepareThreshold(threshold))
+    pgGetConnection(pgconnection.setPrepareThreshold(threshold))
 
   /**
    * Construct a program that notifies on the given channel. Note that the

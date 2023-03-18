@@ -38,16 +38,16 @@ object largeobjectmanager {
     PFLOM.unlink(a)
 
   def createLOFromFile(blockSize: Int, file: File): LargeObjectManagerIO[Long] =
-    createLO >>= { oid => open(oid)(PHLO.copyFromFile(blockSize, file)).as(oid) }
+    createLO >>= { oid => open(oid)(largeobject.copyFromFile(blockSize, file)).as(oid) }
 
   def createFileFromLO(blockSize: Int, oid: Long, file: File): LargeObjectManagerIO[Unit] =
-    open(oid)(PHLO.copyToFile(blockSize, file))
+    open(oid)(largeobject.copyToFile(blockSize, file))
 
   def createLOFromStream(blockSize: Int, is: InputStream): LargeObjectManagerIO[Long] =
-    PHLOM.createLO >>= { oid =>
-      PHLOM.open(oid)(PHLO.copyFromStream(blockSize, is)).as(oid)
+    largeobjectmanager.createLO >>= { oid =>
+      largeobjectmanager.open(oid)(largeobject.copyFromStream(blockSize, is)).as(oid)
     }
 
   def createStreamFromLO(blockSize: Int, oid: Long, os: OutputStream): LargeObjectManagerIO[Unit] =
-    open(oid)(PHLO.copyToStream(blockSize, os))
+    open(oid)(largeobject.copyToStream(blockSize, os))
 }

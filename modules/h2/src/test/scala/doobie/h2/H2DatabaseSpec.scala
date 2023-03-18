@@ -11,8 +11,8 @@ import zio.durationInt
 import zio.test.TestAspect
 import zio.test.ZIOSpec
 
-abstract class BaseH2DatabaseSpec(database: String) extends ZIOSpec[Transactor[Task]] { self =>
-  protected implicit val instance: Async[Task] = zio.interop.catz.asyncInstance[Any]
+abstract class BaseH2DatabaseSpec extends ZIOSpec[Transactor[Task]] { self =>
+  protected implicit val instance: Async[Task] = H2DatabaseSpec.instance
 
   def transact[A](io: ConnectionIO[A]): ZIO[Transactor[Task], Throwable, A] = {
     ZIO.serviceWithZIO[Transactor[Task]](_.trans(instance)(io))
@@ -22,15 +22,29 @@ abstract class BaseH2DatabaseSpec(database: String) extends ZIOSpec[Transactor[T
     def transact: ZIO[Transactor[Task], Throwable, A] = self.transact(c)
   }
 
-  override val bootstrap = ZLayer.scoped {
-    import zio.interop.catz.zioResourceSyntax
-    H2Helper.inMemory(database)(instance).toScopedZIO
-  }
+  override val bootstrap = H2DatabaseSpec.layer
 
-  override val aspects = super.aspects ++ Chunk(
-    TestAspect.timeout(30.seconds),
+  override def aspects = super.aspects ++ Chunk(
+    TestAspect.samples(50), // default is 200
+    TestAspect.timed,
+    TestAspect.timeout(45.seconds),
     TestAspect.withLiveEnvironment,
   )
 }
 
-abstract class H2DatabaseSpec extends BaseH2DatabaseSpec("test_h2")
+abstract class H2DatabaseSpec extends BaseH2DatabaseSpec {
+  override val bootstrap = H2DatabaseSpec.layer
+}
+object H2DatabaseSpec {
+  private[h2] val instance: Async[Task] = zio.interop.catz.asyncInstance[Any]
+
+  private val availableProcessors = Runtime.getRuntime.availableProcessors
+  private[h2] val maxConnections = (availableProcessors * 2).max(4)
+
+  val layer = ZLayer.scoped(create("test_h2"))
+
+  def create(database: String) = {
+    import zio.interop.catz.zioResourceSyntax
+    H2Helper.inMemoryPooled(database, maxConnections = H2DatabaseSpec.maxConnections)(instance).toScopedZIO
+  }
+}

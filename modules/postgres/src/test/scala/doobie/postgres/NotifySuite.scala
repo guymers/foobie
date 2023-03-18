@@ -4,49 +4,80 @@
 
 package doobie.postgres
 
-import cats.effect.IO
-import cats.effect.Sync
-import cats.syntax.all.*
+import cats.syntax.apply.*
+import cats.syntax.show.*
+import cats.syntax.traverse.*
+import cats.~>
 import doobie.FC
 import doobie.free.connection.ConnectionIO
-import doobie.syntax.connectionio.*
-import org.postgresql.PGNotification
+import doobie.util.transactor.Transactor
+import zio.Promise
+import zio.Task
+import zio.ZIO
+import zio.test.Live
+import zio.test.assertTrue
 
-class NotifySuite extends munit.FunSuite {
-  import FC.commit
-  import FC.delay
-  import PostgresTestTransactor.xa
-  import cats.effect.unsafe.implicits.global
+import java.sql.Connection
 
-  // Listen on the given channel, notify on another connection
-  def listen[A](channel: String, notify: ConnectionIO[A]): IO[List[PGNotification]] =
-    (PHC.pgListen(channel) *> commit *>
-      delay { Thread.sleep(50) } *>
-      Sync[ConnectionIO].delay(notify.transact(xa).unsafeRunSync()) *>
-      delay { Thread.sleep(50) } *>
-      PHC.pgGetNotifications).transact(xa)
+object NotifySuite extends PostgresDatabaseSpec {
+  import zio.interop.catz.zioResourceSyntax
 
-  test("LISTEN/NOTIFY should allow cross-connection notification") {
-    val channel = "cha" + System.nanoTime.toString
-    val notify = PHC.pgNotify(channel)
-    val test = listen(channel, notify).map(_.length)
-    assertEquals(test.unsafeRunSync(), 1)
+  override val spec = suite("Notify")(
+    test("LISTEN/NOTIFY should allow cross-connection notification") {
+      for {
+        channel <- randomChannelName
+        result <- listen(channel, PHC.pgNotify(channel))
+      } yield {
+        assertTrue(result.length == 1)
+      }
+    },
+    test("LISTEN/NOTIFY should allow cross-connection notification with parameter") {
+      for {
+        channel <- randomChannelName
+        messages = List("foo", "bar", "baz", "qux")
+        notify = messages.traverse(PHC.pgNotify(channel, _))
+        result <- listen(channel, notify)
+      } yield {
+        assertTrue(result.map(_.getParameter) == messages)
+      }
+    },
+    test("LISTEN/NOTIFY should collapse identical notifications") {
+      for {
+        channel <- randomChannelName
+        messages = List("foo", "bar", "bar", "baz", "qux", "foo")
+        notify = messages.traverse(PHC.pgNotify(channel, _))
+        result <- listen(channel, notify)
+      } yield {
+        assertTrue(result.map(_.getParameter) == messages.distinct)
+      }
+    },
+  )
+
+  private def listen[A](channel: String, notify: ConnectionIO[A]) = for {
+    transactor <- ZIO.service[Transactor[Task]]
+    listenConfigured <- Promise.make[Nothing, Unit]
+    notifySent <- Promise.make[Nothing, Unit]
+
+    fiber <- ZIO.scoped[Any](for {
+      conn <- transactor.connect(transactor.kernel).toScopedZIO
+      run = runWithConn(transactor, conn)
+      _ <- run(FC.setAutoCommit(false) *> PHC.pgListen(channel) *> FC.commit)
+      _ <- listenConfigured.succeed(())
+      _ <- notifySent.await
+      result <- run(PHC.pgGetNotifications)
+    } yield result).fork
+
+    _ <- listenConfigured.await
+    _ <- notify.transact
+    _ <- notifySent.succeed(())
+    result <- fiber.join
+  } yield result
+
+  private def randomChannelName = Live.live(zio.Random.nextUUID).map { uuid =>
+    show"cha_${uuid.toString.replaceAll("-", "")}"
   }
 
-  test("LISTEN/NOTIFY should allow cross-connection notification with parameter") {
-    val channel = "chb" + System.nanoTime.toString
-    val messages = List("foo", "bar", "baz", "qux")
-    val notify = messages.traverse(PHC.pgNotify(channel, _))
-    val test = listen(channel, notify).map(_.map(_.getParameter))
-    assertEquals(test.unsafeRunSync(), messages)
+  private def runWithConn(transactor: Transactor[Task], c: Connection) = new (ConnectionIO ~> Task) {
+    override def apply[T](f: ConnectionIO[T]) = f.foldMap(transactor.interpret).run(c)
   }
-
-  test("LISTEN/NOTIFY should collapse identical notifications") {
-    val channel = "chc" + System.nanoTime.toString
-    val messages = List("foo", "bar", "bar", "baz", "qux", "foo")
-    val notify = messages.traverse(PHC.pgNotify(channel, _))
-    val test = listen(channel, notify).map(_.map(_.getParameter))
-    assertEquals(test.unsafeRunSync(), messages.distinct)
-  }
-
 }
