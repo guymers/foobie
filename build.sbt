@@ -129,6 +129,9 @@ def filterScalacConsoleOpts(options: Seq[String]) = {
 def module(name: String) = Project(name, file(s"modules/$name"))
   .settings(moduleName := s"foobie-$name")
   .settings(commonSettings)
+  .settings(
+    mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet
+  )
 
 lazy val foobie = project.in(file("."))
   .settings(commonSettings)
