@@ -27,6 +27,7 @@ object largeobject { module =>
   type LargeObjectIO[A] = FF[LargeObjectOp, A]
 
   // Module of instances and constructors of LargeObjectOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object LargeObjectOp {
 
     // Given a LargeObject we can embed a LargeObjectIO program in any algebra that understands embedding.
@@ -97,22 +98,22 @@ object largeobject { module =>
     case object Realtime extends LargeObjectOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends LargeObjectOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends LargeObjectOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: LargeObjectIO[A], fb: LargeObjectIO[B]) extends LargeObjectOp[B] {
+    final case class ForceR[A, B](fa: LargeObjectIO[A], fb: LargeObjectIO[B]) extends LargeObjectOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[LargeObjectIO] => LargeObjectIO[A]) extends LargeObjectOp[A] {
+    final case class Uncancelable[A](body: Poll[LargeObjectIO] => LargeObjectIO[A]) extends LargeObjectOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: LargeObjectIO[A]) extends LargeObjectOp[A] {
+    final case class Poll1[A](poll: Any, fa: LargeObjectIO[A]) extends LargeObjectOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends LargeObjectOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: LargeObjectIO[A], fin: LargeObjectIO[Unit]) extends LargeObjectOp[A] {
+    final case class OnCancel[A](fa: LargeObjectIO[A], fin: LargeObjectIO[Unit]) extends LargeObjectOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
 

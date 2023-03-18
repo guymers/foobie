@@ -68,7 +68,7 @@ object analysisspec {
   }
 
   object Checker {
-    case class ErrorItems(errors: List[AnalysisReport.Item]) extends Exception
+    final case class ErrorItems(errors: List[AnalysisReport.Item]) extends Exception
   }
 
   /** Implementation of Checker[IO] */

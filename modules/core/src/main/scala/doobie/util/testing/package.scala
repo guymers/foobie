@@ -60,7 +60,7 @@ package object testing {
     val sql = args.cleanedSql
       .wrap(68)
       // SQL should use the default color
-      .padLeft(colors.RESET.toString)
+      .padLeft(colors.RESET)
     val items = report.items.foldMap(formatItem(colors))
     Block.fromString(args.header)
       .above(sql)

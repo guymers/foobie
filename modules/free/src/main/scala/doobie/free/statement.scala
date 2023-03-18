@@ -28,6 +28,7 @@ object statement { module =>
   type StatementIO[A] = FF[StatementOp, A]
 
   // Module of instances and constructors of StatementOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object StatementOp {
 
     // Given a Statement we can embed a StatementIO program in any algebra that understands embedding.
@@ -131,22 +132,22 @@ object statement { module =>
     case object Realtime extends StatementOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends StatementOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends StatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: StatementIO[A], fb: StatementIO[B]) extends StatementOp[B] {
+    final case class ForceR[A, B](fa: StatementIO[A], fb: StatementIO[B]) extends StatementOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[StatementIO] => StatementIO[A]) extends StatementOp[A] {
+    final case class Uncancelable[A](body: Poll[StatementIO] => StatementIO[A]) extends StatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: StatementIO[A]) extends StatementOp[A] {
+    final case class Poll1[A](poll: Any, fa: StatementIO[A]) extends StatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends StatementOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: StatementIO[A], fin: StatementIO[Unit]) extends StatementOp[A] {
+    final case class OnCancel[A](fa: StatementIO[A], fin: StatementIO[Unit]) extends StatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
 

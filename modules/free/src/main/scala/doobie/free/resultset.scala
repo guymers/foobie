@@ -45,6 +45,7 @@ object resultset { module =>
   type ResultSetIO[A] = FF[ResultSetOp, A]
 
   // Module of instances and constructors of ResultSetOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object ResultSetOp {
 
     // Given a ResultSet we can embed a ResultSetIO program in any algebra that understands embedding.
@@ -287,22 +288,22 @@ object resultset { module =>
     case object Realtime extends ResultSetOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends ResultSetOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends ResultSetOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: ResultSetIO[A], fb: ResultSetIO[B]) extends ResultSetOp[B] {
+    final case class ForceR[A, B](fa: ResultSetIO[A], fb: ResultSetIO[B]) extends ResultSetOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[ResultSetIO] => ResultSetIO[A]) extends ResultSetOp[A] {
+    final case class Uncancelable[A](body: Poll[ResultSetIO] => ResultSetIO[A]) extends ResultSetOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: ResultSetIO[A]) extends ResultSetOp[A] {
+    final case class Poll1[A](poll: Any, fa: ResultSetIO[A]) extends ResultSetOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends ResultSetOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: ResultSetIO[A], fin: ResultSetIO[Unit]) extends ResultSetOp[A] {
+    final case class OnCancel[A](fa: ResultSetIO[A], fin: ResultSetIO[Unit]) extends ResultSetOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
 

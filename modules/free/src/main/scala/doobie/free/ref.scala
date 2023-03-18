@@ -26,6 +26,7 @@ object ref { module =>
   type RefIO[A] = FF[RefOp, A]
 
   // Module of instances and constructors of RefOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object RefOp {
 
     // Given a Ref we can embed a RefIO program in any algebra that understands embedding.
@@ -81,22 +82,22 @@ object ref { module =>
     case object Realtime extends RefOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends RefOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends RefOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: RefIO[A], fb: RefIO[B]) extends RefOp[B] {
+    final case class ForceR[A, B](fa: RefIO[A], fb: RefIO[B]) extends RefOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[RefIO] => RefIO[A]) extends RefOp[A] {
+    final case class Uncancelable[A](body: Poll[RefIO] => RefIO[A]) extends RefOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: RefIO[A]) extends RefOp[A] {
+    final case class Poll1[A](poll: Any, fa: RefIO[A]) extends RefOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends RefOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: RefIO[A], fin: RefIO[Unit]) extends RefOp[A] {
+    final case class OnCancel[A](fa: RefIO[A], fin: RefIO[Unit]) extends RefOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
 

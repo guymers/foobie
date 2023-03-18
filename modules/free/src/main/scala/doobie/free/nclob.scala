@@ -30,6 +30,7 @@ object nclob { module =>
   type NClobIO[A] = FF[NClobOp, A]
 
   // Module of instances and constructors of NClobOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object NClobOp {
 
     // Given a NClob we can embed a NClobIO program in any algebra that understands embedding.
@@ -94,22 +95,22 @@ object nclob { module =>
     case object Realtime extends NClobOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends NClobOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends NClobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: NClobIO[A], fb: NClobIO[B]) extends NClobOp[B] {
+    final case class ForceR[A, B](fa: NClobIO[A], fb: NClobIO[B]) extends NClobOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[NClobIO] => NClobIO[A]) extends NClobOp[A] {
+    final case class Uncancelable[A](body: Poll[NClobIO] => NClobIO[A]) extends NClobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: NClobIO[A]) extends NClobOp[A] {
+    final case class Poll1[A](poll: Any, fa: NClobIO[A]) extends NClobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends NClobOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: NClobIO[A], fin: NClobIO[Unit]) extends NClobOp[A] {
+    final case class OnCancel[A](fa: NClobIO[A], fin: NClobIO[Unit]) extends NClobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
 

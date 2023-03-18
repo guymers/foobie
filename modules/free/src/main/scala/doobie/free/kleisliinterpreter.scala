@@ -132,6 +132,7 @@ class KleisliInterpreter[M[_]](implicit val syncM: Sync[M]) { outer =>
   )(body: Poll[Free[G, *]] => Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
     syncM.uncancelable(body.compose(capture).andThen(_.foldMap(interpreter).run(j))),
   )
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
   def poll[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(mpoll: Any, fa: Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
     mpoll.asInstanceOf[Poll[M]].apply(fa.foldMap(interpreter).run(j)),
   )

@@ -34,9 +34,9 @@ object FragmentSuite extends H2DatabaseSpec {
     },
     // https://github.com/tpolecat/doobie/issues/1186
     test("interpolate an expression `Option(1).getOrElse(2)`") {
-      sql"${Option(1).getOrElse(2)} ${false} ${"xx"}": Unit
-      fr"${Option(1).getOrElse(2)}": Unit
-      fr0"${Option(1).getOrElse(2)}": Unit
+      val _ = sql"${Option(1).getOrElse(2)} ${false} ${"xx"}"
+      val _ = fr"${Option(1).getOrElse(2)}"
+      val _ = fr0"${Option(1).getOrElse(2)}"
       assertCompletes
     },
     test("maintain parameter indexing (in-order)") {

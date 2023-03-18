@@ -125,7 +125,7 @@ object transactor {
     def strategy: Strategy
 
     /** Construct a [[doobie.util.yolo.Yolo]] for REPL experimentation. */
-    def yolo(implicit ev: Async[M]): Yolo[M] = new Yolo(this)
+    def yolo(implicit ev: MonadCancelThrow[M]): Yolo[M] = new Yolo(this)
 
     /**
      * Construct a program to perform arbitrary configuration on the kernel
@@ -331,11 +331,13 @@ object transactor {
        * @group Constructors (Partially Applied)
        */
       class FromDataSourceUnapplied[M[_]] {
-        def apply[A <: DataSource](dataSource: A, connectEC: ExecutionContext)(implicit
-          ev: Async[M],
-        ): Transactor.Aux[M, A] = {
-          val connect =
-            (dataSource: A) => Resource.fromAutoCloseable(ev.evalOn(ev.delay(dataSource.getConnection()), connectEC))
+        def apply[A <: DataSource](
+          dataSource: A,
+          connectEC: ExecutionContext,
+        )(implicit ev: Async[M]): Transactor.Aux[M, A] = {
+          val connect = (dataSource: A) => {
+            Resource.fromAutoCloseable(ev.evalOn(ev.delay(dataSource.getConnection()), connectEC))
+          }
           val interp = KleisliInterpreter[M].ConnectionInterpreter
           Transactor(dataSource, connect, interp, Strategy.default)
         }

@@ -27,6 +27,7 @@ object blob { module =>
   type BlobIO[A] = FF[BlobOp, A]
 
   // Module of instances and constructors of BlobOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object BlobOp {
 
     // Given a Blob we can embed a BlobIO program in any algebra that understands embedding.
@@ -89,22 +90,22 @@ object blob { module =>
     case object Realtime extends BlobOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends BlobOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends BlobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: BlobIO[A], fb: BlobIO[B]) extends BlobOp[B] {
+    final case class ForceR[A, B](fa: BlobIO[A], fb: BlobIO[B]) extends BlobOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[BlobIO] => BlobIO[A]) extends BlobOp[A] {
+    final case class Uncancelable[A](body: Poll[BlobIO] => BlobIO[A]) extends BlobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: BlobIO[A]) extends BlobOp[A] {
+    final case class Poll1[A](poll: Any, fa: BlobIO[A]) extends BlobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends BlobOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: BlobIO[A], fin: BlobIO[Unit]) extends BlobOp[A] {
+    final case class OnCancel[A](fa: BlobIO[A], fin: BlobIO[Unit]) extends BlobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
 

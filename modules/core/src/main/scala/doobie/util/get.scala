@@ -140,7 +140,7 @@ object Get extends GetInstances {
     )(implicit ev: TypeName[A]): Advanced[A] =
       Advanced(NonEmptyList.of(Some(ev.value)), NonEmptyList.of(jdbcSource), schemaTypes, Coyoneda.lift(get))
 
-    @SuppressWarnings(Array("org.wartremover.warts.Equals", "org.wartremover.warts.AsInstanceOf"))
+    @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Null"))
     def array[A >: Null <: AnyRef](schemaTypes: NonEmptyList[String]): Advanced[Array[A]] =
       one(
         JdbcType.Array,
@@ -151,7 +151,11 @@ object Get extends GetInstances {
         },
       )
 
-    @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Throw"))
+    @SuppressWarnings(Array(
+      "org.wartremover.warts.AsInstanceOf",
+      "org.wartremover.warts.Null",
+      "org.wartremover.warts.Throw",
+    ))
     def other[A >: Null <: AnyRef: TypeName](schemaTypes: NonEmptyList[String])(
       implicit A: ClassTag[A],
     ): Advanced[A] =

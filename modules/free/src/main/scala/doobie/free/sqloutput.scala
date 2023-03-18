@@ -42,6 +42,7 @@ object sqloutput { module =>
   type SQLOutputIO[A] = FF[SQLOutputOp, A]
 
   // Module of instances and constructors of SQLOutputOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object SQLOutputOp {
 
     // Given a SQLOutput we can embed a SQLOutputIO program in any algebra that understands embedding.
@@ -121,22 +122,22 @@ object sqloutput { module =>
     case object Realtime extends SQLOutputOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends SQLOutputOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends SQLOutputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: SQLOutputIO[A], fb: SQLOutputIO[B]) extends SQLOutputOp[B] {
+    final case class ForceR[A, B](fa: SQLOutputIO[A], fb: SQLOutputIO[B]) extends SQLOutputOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[SQLOutputIO] => SQLOutputIO[A]) extends SQLOutputOp[A] {
+    final case class Uncancelable[A](body: Poll[SQLOutputIO] => SQLOutputIO[A]) extends SQLOutputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: SQLOutputIO[A]) extends SQLOutputOp[A] {
+    final case class Poll1[A](poll: Any, fa: SQLOutputIO[A]) extends SQLOutputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends SQLOutputOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: SQLOutputIO[A], fin: SQLOutputIO[Unit]) extends SQLOutputOp[A] {
+    final case class OnCancel[A](fa: SQLOutputIO[A], fin: SQLOutputIO[Unit]) extends SQLOutputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
 

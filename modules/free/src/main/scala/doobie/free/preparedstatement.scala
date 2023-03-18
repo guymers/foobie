@@ -46,6 +46,7 @@ object preparedstatement { module =>
   type PreparedStatementIO[A] = FF[PreparedStatementOp, A]
 
   // Module of instances and constructors of PreparedStatementOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object PreparedStatementOp {
 
     // Given a PreparedStatement we can embed a PreparedStatementIO program in any algebra that understands embedding.
@@ -207,22 +208,24 @@ object preparedstatement { module =>
     case object Realtime extends PreparedStatementOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends PreparedStatementOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends PreparedStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: PreparedStatementIO[A], fb: PreparedStatementIO[B]) extends PreparedStatementOp[B] {
+    final case class ForceR[A, B](fa: PreparedStatementIO[A], fb: PreparedStatementIO[B]) extends PreparedStatementOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[PreparedStatementIO] => PreparedStatementIO[A]) extends PreparedStatementOp[A] {
+    final case class Uncancelable[A](body: Poll[PreparedStatementIO] => PreparedStatementIO[A])
+      extends PreparedStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: PreparedStatementIO[A]) extends PreparedStatementOp[A] {
+    final case class Poll1[A](poll: Any, fa: PreparedStatementIO[A]) extends PreparedStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends PreparedStatementOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: PreparedStatementIO[A], fin: PreparedStatementIO[Unit]) extends PreparedStatementOp[A] {
+    final case class OnCancel[A](fa: PreparedStatementIO[A], fin: PreparedStatementIO[Unit])
+      extends PreparedStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
 

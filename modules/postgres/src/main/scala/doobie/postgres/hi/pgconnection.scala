@@ -21,6 +21,7 @@ object pgconnection {
   def getLargeObjectAPI[A](k: LargeObjectManagerIO[A]): PGConnectionIO[A] =
     PFPC.getLargeObjectAPI.flatMap(s => PFPC.embed(s, k)) // N.B. no need to close()
 
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
   val getNotifications: PGConnectionIO[List[PGNotification]] =
     PFPC.getNotifications map {
       case null => Nil

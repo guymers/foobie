@@ -29,6 +29,7 @@ object driver { module =>
   type DriverIO[A] = FF[DriverOp, A]
 
   // Module of instances and constructors of DriverOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object DriverOp {
 
     // Given a Driver we can embed a DriverIO program in any algebra that understands embedding.
@@ -87,22 +88,22 @@ object driver { module =>
     case object Realtime extends DriverOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends DriverOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends DriverOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: DriverIO[A], fb: DriverIO[B]) extends DriverOp[B] {
+    final case class ForceR[A, B](fa: DriverIO[A], fb: DriverIO[B]) extends DriverOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[DriverIO] => DriverIO[A]) extends DriverOp[A] {
+    final case class Uncancelable[A](body: Poll[DriverIO] => DriverIO[A]) extends DriverOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: DriverIO[A]) extends DriverOp[A] {
+    final case class Poll1[A](poll: Any, fa: DriverIO[A]) extends DriverOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends DriverOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: DriverIO[A], fin: DriverIO[Unit]) extends DriverOp[A] {
+    final case class OnCancel[A](fa: DriverIO[A], fin: DriverIO[Unit]) extends DriverOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
 

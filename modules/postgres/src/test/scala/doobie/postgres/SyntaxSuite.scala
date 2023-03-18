@@ -16,13 +16,13 @@ object SyntaxSuite extends ZIOSpecDefault {
 
   override val spec = suite("Syntax")(
     test("Partial should allow use of sqlstate syntax") {
-      1.pure[ConnectionIO].map(_ + 1).void: Unit
-      1.pure[ConnectionIO].map(_ + 1).onPrivilegeNotRevoked(2.pure[ConnectionIO]): Unit
+      val _ = 1.pure[ConnectionIO].map(_ + 1).void
+      val _ = 1.pure[ConnectionIO].map(_ + 1).onPrivilegeNotRevoked(2.pure[ConnectionIO])
       assertCompletes
     },
     test("syntax should not overflow the stack on direct recursion") {
       def prog: ConnectionIO[Unit] = FC.delay(()).onUniqueViolation(prog)
-      prog: Unit
+      val _ = prog
       assertCompletes
     },
   )

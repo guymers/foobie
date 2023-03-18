@@ -49,10 +49,10 @@ object ReadSuite extends H2DatabaseSpec with ReadSuitePlatform {
     test("exist for some fancy types") {
       import doobie.util.Read.Auto.*
 
-      Read[Int]: Unit
-      Read[(Int, Int)]: Unit
-      Read[(Int, Int, String)]: Unit
-      Read[(Int, (Int, String))]: Unit
+      val _ = Read[Int]
+      val _ = Read[(Int, Int)]
+      val _ = Read[(Int, Int, String)]
+      val _ = Read[(Int, (Int, String))]
       assertCompletes
     },
     test("Read is not auto derived without an import") {
@@ -82,11 +82,11 @@ object ReadSuite extends H2DatabaseSpec with ReadSuitePlatform {
     test("exist for option of some fancy types") {
       import doobie.util.Read.Auto.*
 
-      Read[Option[Int]]: Unit
-      Read[Option[(Int, Int)]]: Unit
-      Read[Option[(Int, Int, String)]]: Unit
-      Read[Option[(Int, (Int, String))]]: Unit
-      Read[Option[(Int, Option[(Int, String)])]]: Unit
+      val _ = Read[Option[Int]]
+      val _ = Read[Option[(Int, Int)]]
+      val _ = Read[Option[(Int, Int, String)]]
+      val _ = Read[Option[(Int, (Int, String))]]
+      val _ = Read[Option[(Int, Option[(Int, String)])]]
       assertCompletes
     },
     test("exist for option of Unit") {
@@ -106,17 +106,17 @@ object ReadSuite extends H2DatabaseSpec with ReadSuitePlatform {
     test("exist for some fancy types") {
       import doobie.util.Read.Auto.*
 
-      Read[Woozle]: Unit
-      Read[(Woozle, String)]: Unit
-      Read[(Int, (Woozle, Woozle, String))]: Unit
+      val _ = Read[Woozle]
+      val _ = Read[(Woozle, String)]
+      val _ = Read[(Int, (Woozle, Woozle, String))]
       assertCompletes
     },
     test("exist for option of some fancy types") {
       import doobie.util.Read.Auto.*
 
-      Read[Option[Woozle]]: Unit
-      Read[Option[(Woozle, String)]]: Unit
-      Read[Option[(Int, (Woozle, Woozle, String))]]: Unit
+      val _ = Read[Option[Woozle]]
+      val _ = Read[Option[(Woozle, String)]]
+      val _ = Read[Option[(Int, (Woozle, Woozle, String))]]
       assertCompletes
     },
     test(".product should product the correct ordering of gets") {

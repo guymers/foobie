@@ -18,8 +18,6 @@ import org.postgresql.jdbc.PreferQueryMode
 import org.postgresql.largeobject.LargeObjectManager
 import org.postgresql.replication.PGReplicationConnection
 
-import java.lang.Class
-import java.lang.String
 import java.sql.Array as SqlArray
 import java.util.Map
 import scala.concurrent.duration.FiniteDuration
@@ -35,6 +33,7 @@ object pgconnection { module =>
   type PGConnectionIO[A] = FF[PGConnectionOp, A]
 
   // Module of instances and constructors of PGConnectionOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object PGConnectionOp {
 
     // Given a PGConnection we can embed a PGConnectionIO program in any algebra that understands embedding.
@@ -109,22 +108,22 @@ object pgconnection { module =>
     case object Realtime extends PGConnectionOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends PGConnectionOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends PGConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: PGConnectionIO[A], fb: PGConnectionIO[B]) extends PGConnectionOp[B] {
+    final case class ForceR[A, B](fa: PGConnectionIO[A], fb: PGConnectionIO[B]) extends PGConnectionOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[PGConnectionIO] => PGConnectionIO[A]) extends PGConnectionOp[A] {
+    final case class Uncancelable[A](body: Poll[PGConnectionIO] => PGConnectionIO[A]) extends PGConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: PGConnectionIO[A]) extends PGConnectionOp[A] {
+    final case class Poll1[A](poll: Any, fa: PGConnectionIO[A]) extends PGConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends PGConnectionOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: PGConnectionIO[A], fin: PGConnectionIO[Unit]) extends PGConnectionOp[A] {
+    final case class OnCancel[A](fa: PGConnectionIO[A], fin: PGConnectionIO[Unit]) extends PGConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
 

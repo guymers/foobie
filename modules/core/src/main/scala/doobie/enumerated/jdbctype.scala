@@ -9,6 +9,7 @@ import cats.kernel.Order
 import cats.kernel.instances.int.*
 
 import java.sql.Types.*
+import java.util.Locale
 
 /** @group Types */
 sealed abstract class JdbcType(val toInt: Int) extends Product with Serializable
@@ -205,7 +206,9 @@ object JdbcType {
   implicit val OrderJdbcType: Order[JdbcType] =
     Order.by(_.toInt)
 
-  implicit val ShowJdbcType: Show[JdbcType] =
-    Show.fromToString
+  implicit val ShowJdbcType: Show[JdbcType] = {
+    val s = Show.fromToString[JdbcType]
+    Show.show(t => s.show(t).toUpperCase(Locale.ROOT))
+  }
 
 }

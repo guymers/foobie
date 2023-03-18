@@ -26,6 +26,7 @@ object copyin { module =>
   type CopyInIO[A] = FF[CopyInOp, A]
 
   // Module of instances and constructors of CopyInOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object CopyInOp {
 
     // Given a PGCopyIn we can embed a CopyInIO program in any algebra that understands embedding.
@@ -87,22 +88,22 @@ object copyin { module =>
     case object Realtime extends CopyInOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends CopyInOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends CopyInOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: CopyInIO[A], fb: CopyInIO[B]) extends CopyInOp[B] {
+    final case class ForceR[A, B](fa: CopyInIO[A], fb: CopyInIO[B]) extends CopyInOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[CopyInIO] => CopyInIO[A]) extends CopyInOp[A] {
+    final case class Uncancelable[A](body: Poll[CopyInIO] => CopyInIO[A]) extends CopyInOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: CopyInIO[A]) extends CopyInOp[A] {
+    final case class Poll1[A](poll: Any, fa: CopyInIO[A]) extends CopyInOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends CopyInOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: CopyInIO[A], fin: CopyInIO[Unit]) extends CopyInOp[A] {
+    final case class OnCancel[A](fa: CopyInIO[A], fin: CopyInIO[Unit]) extends CopyInOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
 

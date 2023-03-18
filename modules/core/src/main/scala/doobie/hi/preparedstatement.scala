@@ -108,6 +108,7 @@ object preparedstatement {
    * Compute the column `JdbcMeta` list for this `PreparedStatement`.
    * @group Metadata
    */
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
   def getColumnJdbcMeta: PreparedStatementIO[List[ColumnMeta]] =
     FPS.getMetaData.flatMap {
       case null => FPS.pure(Nil) // https://github.com/tpolecat/doobie/issues/262

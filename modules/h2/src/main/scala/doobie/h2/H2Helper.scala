@@ -4,8 +4,8 @@
 
 package doobie.h2
 
-import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
+import cats.effect.kernel.Sync
 import cats.syntax.show.*
 import doobie.free.KleisliInterpreter
 import doobie.util.transactor.Strategy
@@ -22,14 +22,14 @@ object H2Helper {
   def inMemory[M[_]](
     database: String,
     strategy: Strategy = Strategy.default,
-  )(implicit M: Async[M]): Resource[M, Transactor[M]] = {
+  )(implicit M: Sync[M]): Resource[M, Transactor[M]] = {
 
     val url = jdbcUrl(database)
 
     def props = {
       val props = new java.util.Properties()
-      props.put("user", "sa")
-      props.put("password", "")
+      val _ = props.put("user", "sa")
+      val _ = props.put("password", "")
       props
     }
 
@@ -41,7 +41,7 @@ object H2Helper {
     database: String,
     maxConnections: Int = 10,
     strategy: Strategy = Strategy.default,
-  )(implicit M: Async[M]): Resource[M, Transactor[M]] = {
+  )(implicit M: Sync[M]): Resource[M, Transactor[M]] = {
 
     def createPool = {
       val pool = JdbcConnectionPool.create(jdbcUrl(database), "sa", "")
@@ -63,7 +63,7 @@ object H2Helper {
     conn
   }
 
-  private def createTransactor[M[_]](conn: Resource[M, Connection], strategy: Strategy)(implicit M: Async[M]) = {
+  private def createTransactor[M[_]](conn: Resource[M, Connection], strategy: Strategy)(implicit M: Sync[M]) = {
     Transactor[M, Unit]((), _ => conn, KleisliInterpreter[M].ConnectionInterpreter, strategy)
   }
 

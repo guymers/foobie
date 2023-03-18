@@ -46,15 +46,15 @@ object RefinedSuite extends H2DatabaseSpec {
 
   override val spec = suite("Refined")(
     test("Meta should exist for refined types") {
-      Meta[PositiveInt]: Unit
+      val _ = Meta[PositiveInt]
       assertCompletes
     },
     test("Write should exist for refined types") {
-      Write[PointInQuadrant1]: Unit
+      val _ = Write[PointInQuadrant1]
       assertCompletes
     },
     test("Write should exist for Option of a refined type") {
-      Write[Option[PositiveInt]]: Unit
+      val _ = Write[Option[PositiveInt]]
       assertCompletes
     },
     suite("query")(

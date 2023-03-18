@@ -20,7 +20,6 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.io.Reader
 import java.io.Writer
-import java.lang.String
 import scala.concurrent.duration.FiniteDuration
 
 object copymanager { module =>
@@ -34,6 +33,7 @@ object copymanager { module =>
   type CopyManagerIO[A] = FF[CopyManagerOp, A]
 
   // Module of instances and constructors of CopyManagerOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object CopyManagerOp {
 
     // Given a PGCopyManager we can embed a CopyManagerIO program in any algebra that understands embedding.
@@ -95,22 +95,22 @@ object copymanager { module =>
     case object Realtime extends CopyManagerOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends CopyManagerOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends CopyManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: CopyManagerIO[A], fb: CopyManagerIO[B]) extends CopyManagerOp[B] {
+    final case class ForceR[A, B](fa: CopyManagerIO[A], fb: CopyManagerIO[B]) extends CopyManagerOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[CopyManagerIO] => CopyManagerIO[A]) extends CopyManagerOp[A] {
+    final case class Uncancelable[A](body: Poll[CopyManagerIO] => CopyManagerIO[A]) extends CopyManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: CopyManagerIO[A]) extends CopyManagerOp[A] {
+    final case class Poll1[A](poll: Any, fa: CopyManagerIO[A]) extends CopyManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends CopyManagerOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: CopyManagerIO[A], fin: CopyManagerIO[Unit]) extends CopyManagerOp[A] {
+    final case class OnCancel[A](fa: CopyManagerIO[A], fin: CopyManagerIO[Unit]) extends CopyManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
 

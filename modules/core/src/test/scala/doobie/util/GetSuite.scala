@@ -16,8 +16,8 @@ object GetSuite extends H2DatabaseSpec {
 
   override val spec = suite("Get")(
     test("exist for primitive types") {
-      Get[Int]: Unit
-      Get[String]: Unit
+      val _ = Get[Int]
+      val _ = Get[String]
       assertCompletes
     },
     test("not allow map to observe null on the read side (AnyRef)") {

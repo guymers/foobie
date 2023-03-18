@@ -22,7 +22,6 @@ import scala.concurrent.ExecutionContext
 object HikariTransactor {
 
   /** Construct a `HikariTransactor` from an existing `HikariDatasource`. */
-  @SuppressWarnings(Array("org.wartremover.warts.Overloading"))
   def apply[M[_]: Async](
     hikariDataSource: HikariDataSource,
     connectEC: ExecutionContext,

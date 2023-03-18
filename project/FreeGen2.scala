@@ -55,9 +55,9 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
         s"${toScalaType(t.getRawType)}${t.getActualTypeArguments.map(toScalaType).mkString("[", ", ", "]")}"
       case t: WildcardType =>
         t.getUpperBounds.toList.filterNot(_ == classOf[Object]) match {
-          case (c: Class[_]) :: Nil => s"_ <: ${c.getName}"
-          case Nil => "_"
-          case cs => sys.error("unhandled upper bounds: " + cs.toList)
+          case (c: Class[_]) :: Nil => s"? <: ${c.getName}"
+          case Nil => "?"
+          case cs => sys.error("unhandled upper bounds: " + cs)
         }
       case t: TypeVariable[_] => t.toString
       case ClassVoid => "Unit"
@@ -230,6 +230,7 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |  type ${ioname}[A] = FF[${opname}, A]
     |
     |  // Module of instances and constructors of ${opname}.
+    |  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
     |  object ${opname} {
     |
     |    // Given a $sname we can embed a ${ioname} program in any algebra that understands embedding.
@@ -282,22 +283,22 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |    case object Realtime extends ${opname}[FiniteDuration] {
     |      def visit[F[_]](v: Visitor[F]) = v.realTime
     |    }
-    |    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends ${opname}[A] {
+    |    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends ${opname}[A] {
     |      def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     |    }
-    |    case class ForceR[A, B](fa: ${ioname}[A], fb: ${ioname}[B]) extends ${opname}[B] {
+    |    final case class ForceR[A, B](fa: ${ioname}[A], fb: ${ioname}[B]) extends ${opname}[B] {
     |      def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     |    }
-    |    case class Uncancelable[A](body: Poll[${ioname}] => ${ioname}[A]) extends ${opname}[A] {
+    |    final case class Uncancelable[A](body: Poll[${ioname}] => ${ioname}[A]) extends ${opname}[A] {
     |      def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     |    }
-    |    case class Poll1[A](poll: Any, fa: ${ioname}[A]) extends ${opname}[A] {
+    |    final case class Poll1[A](poll: Any, fa: ${ioname}[A]) extends ${opname}[A] {
     |      def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     |    }
     |    case object Canceled extends ${opname}[Unit] {
     |      def visit[F[_]](v: Visitor[F]) = v.canceled
     |    }
-    |    case class OnCancel[A](fa: ${ioname}[A], fin: ${ioname}[Unit]) extends ${opname}[A] {
+    |    final case class OnCancel[A](fa: ${ioname}[A], fin: ${ioname}[Unit]) extends ${opname}[A] {
     |      def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     |    }
     |
@@ -488,6 +489,7 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
       |  def uncancelable[G[_], J, A](interpreter: G ~> Kleisli[M, J, *], capture: Poll[M] => Poll[Free[G, *]])(body: Poll[Free[G, *]] => Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
       |    syncM.uncancelable(body.compose(capture).andThen(_.foldMap(interpreter).run(j)))
       |  )
+      |  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
       |  def poll[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(mpoll: Any, fa: Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
       |    mpoll.asInstanceOf[Poll[M]].apply(fa.foldMap(interpreter).run(j))
       |  )

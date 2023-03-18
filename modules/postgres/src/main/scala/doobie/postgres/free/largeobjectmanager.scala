@@ -26,6 +26,7 @@ object largeobjectmanager { module =>
   type LargeObjectManagerIO[A] = FF[LargeObjectManagerOp, A]
 
   // Module of instances and constructors of LargeObjectManagerOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object LargeObjectManagerOp {
 
     // Given a LargeObjectManager we can embed a LargeObjectManagerIO program in any algebra that understands embedding.
@@ -88,23 +89,25 @@ object largeobjectmanager { module =>
     case object Realtime extends LargeObjectManagerOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends LargeObjectManagerOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends LargeObjectManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: LargeObjectManagerIO[A], fb: LargeObjectManagerIO[B]) extends LargeObjectManagerOp[B] {
+    final case class ForceR[A, B](fa: LargeObjectManagerIO[A], fb: LargeObjectManagerIO[B])
+      extends LargeObjectManagerOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[LargeObjectManagerIO] => LargeObjectManagerIO[A])
+    final case class Uncancelable[A](body: Poll[LargeObjectManagerIO] => LargeObjectManagerIO[A])
       extends LargeObjectManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: LargeObjectManagerIO[A]) extends LargeObjectManagerOp[A] {
+    final case class Poll1[A](poll: Any, fa: LargeObjectManagerIO[A]) extends LargeObjectManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends LargeObjectManagerOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit]) extends LargeObjectManagerOp[A] {
+    final case class OnCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit])
+      extends LargeObjectManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
 

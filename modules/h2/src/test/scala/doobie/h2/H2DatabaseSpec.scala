@@ -1,6 +1,6 @@
 package doobie.h2
 
-import cats.effect.kernel.Async
+import cats.effect.kernel.Sync
 import doobie.free.connection.ConnectionIO
 import doobie.util.transactor.Transactor
 import zio.Chunk
@@ -12,7 +12,7 @@ import zio.test.TestAspect
 import zio.test.ZIOSpec
 
 abstract class BaseH2DatabaseSpec extends ZIOSpec[Transactor[Task]] { self =>
-  protected implicit val instance: Async[Task] = H2DatabaseSpec.instance
+  protected implicit val instance: Sync[Task] = H2DatabaseSpec.instance
 
   def transact[A](io: ConnectionIO[A]): ZIO[Transactor[Task], Throwable, A] = {
     ZIO.serviceWithZIO[Transactor[Task]](_.trans(instance)(io))
@@ -36,7 +36,7 @@ abstract class H2DatabaseSpec extends BaseH2DatabaseSpec {
   override val bootstrap = H2DatabaseSpec.layer
 }
 object H2DatabaseSpec {
-  private[h2] val instance: Async[Task] = zio.interop.catz.asyncInstance[Any]
+  private[h2] val instance: Sync[Task] = zio.interop.catz.asyncInstance[Any]
 
   private val availableProcessors = Runtime.getRuntime.availableProcessors
   private[h2] val maxConnections = (availableProcessors * 2).max(4)

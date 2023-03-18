@@ -40,6 +40,7 @@ object connection { module =>
   type ConnectionIO[A] = FF[ConnectionOp, A]
 
   // Module of instances and constructors of ConnectionOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object ConnectionOp {
 
     // Given a Connection we can embed a ConnectionIO program in any algebra that understands embedding.
@@ -145,22 +146,22 @@ object connection { module =>
     case object Realtime extends ConnectionOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends ConnectionOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends ConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: ConnectionIO[A], fb: ConnectionIO[B]) extends ConnectionOp[B] {
+    final case class ForceR[A, B](fa: ConnectionIO[A], fb: ConnectionIO[B]) extends ConnectionOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[ConnectionIO] => ConnectionIO[A]) extends ConnectionOp[A] {
+    final case class Uncancelable[A](body: Poll[ConnectionIO] => ConnectionIO[A]) extends ConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: ConnectionIO[A]) extends ConnectionOp[A] {
+    final case class Poll1[A](poll: Any, fa: ConnectionIO[A]) extends ConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends ConnectionOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: ConnectionIO[A], fin: ConnectionIO[Unit]) extends ConnectionOp[A] {
+    final case class OnCancel[A](fa: ConnectionIO[A], fin: ConnectionIO[Unit]) extends ConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
 
