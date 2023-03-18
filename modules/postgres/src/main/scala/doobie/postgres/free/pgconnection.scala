@@ -18,6 +18,8 @@ import org.postgresql.jdbc.PreferQueryMode
 import org.postgresql.largeobject.LargeObjectManager
 import org.postgresql.replication.PGReplicationConnection
 
+import java.lang.Class
+import java.lang.String
 import java.sql.Array as SqlArray
 import java.util.Map
 import scala.concurrent.duration.FiniteDuration
