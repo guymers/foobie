@@ -28,8 +28,8 @@ object H2Helper {
 
     def props = {
       val props = new java.util.Properties()
-      props.put("user", "sa")
-      props.put("password", "")
+      val _ = props.put("user", "sa")
+      val _ = props.put("password", "")
       props
     }
 

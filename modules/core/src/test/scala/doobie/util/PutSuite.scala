@@ -11,8 +11,8 @@ object PutSuite extends H2DatabaseSpec {
 
   override val spec = suite("Put")(
     test("Put should exist for primitive types") {
-      Put[Int]: Unit
-      Put[String]: Unit
+      val _ = Put[Int]
+      val _ = Put[String]
       assertCompletes
     },
   )

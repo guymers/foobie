@@ -4,6 +4,7 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
@@ -13,8 +14,6 @@ import doobie.WeakAsync
 
 import java.io.InputStream
 import java.io.Reader
-import java.lang.Class
-import java.lang.String
 import java.math.BigDecimal
 import java.net.URL
 import java.sql.Array as SqlArray
@@ -49,6 +48,7 @@ object preparedstatement { module =>
   type PreparedStatementIO[A] = FF[PreparedStatementOp, A]
 
   // Module of instances and constructors of PreparedStatementOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object PreparedStatementOp {
 
     // Given a PreparedStatement we can embed a PreparedStatementIO program in any algebra that understands embedding.
@@ -211,25 +211,27 @@ object preparedstatement { module =>
     case object Realtime extends PreparedStatementOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends PreparedStatementOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends PreparedStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: PreparedStatementIO[A], fb: PreparedStatementIO[B]) extends PreparedStatementOp[B] {
+    final case class ForceR[A, B](fa: PreparedStatementIO[A], fb: PreparedStatementIO[B]) extends PreparedStatementOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[PreparedStatementIO] => PreparedStatementIO[A]) extends PreparedStatementOp[A] {
+    final case class Uncancelable[A](body: Poll[PreparedStatementIO] => PreparedStatementIO[A])
+      extends PreparedStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: PreparedStatementIO[A]) extends PreparedStatementOp[A] {
+    final case class Poll1[A](poll: Any, fa: PreparedStatementIO[A]) extends PreparedStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends PreparedStatementOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: PreparedStatementIO[A], fin: PreparedStatementIO[Unit]) extends PreparedStatementOp[A] {
+    final case class OnCancel[A](fa: PreparedStatementIO[A], fin: PreparedStatementIO[Unit])
+      extends PreparedStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: PreparedStatementIO[Future[A]]) extends PreparedStatementOp[A] {
+    final case class FromFuture[A](fut: PreparedStatementIO[Future[A]]) extends PreparedStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
@@ -702,13 +704,15 @@ object preparedstatement { module =>
   def setURL(a: Int, b: URL): PreparedStatementIO[Unit] = FF.liftF(SetURL(a, b))
   def unwrap[T](a: Class[T]): PreparedStatementIO[T] = FF.liftF(Unwrap(a))
 
+  private val monad = FF.catsFreeMonadForFree[PreparedStatementOp]
+
   // Typeclass instances for PreparedStatementIO
   implicit val WeakAsyncPreparedStatementIO: WeakAsync[PreparedStatementIO] =
     new WeakAsync[PreparedStatementIO] {
-      val monad = FF.catsFreeMonadForFree[PreparedStatementOp]
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): PreparedStatementIO[A] = monad.pure(x)
+      override def map[A, B](fa: PreparedStatementIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: PreparedStatementIO[A])(f: A => PreparedStatementIO[B]): PreparedStatementIO[B] =
         monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => PreparedStatementIO[Either[A, B]]): PreparedStatementIO[B] =
@@ -728,5 +732,12 @@ object preparedstatement { module =>
       override def onCancel[A](fa: PreparedStatementIO[A], fin: PreparedStatementIO[Unit]): PreparedStatementIO[A] =
         module.onCancel(fa, fin)
       override def fromFuture[A](fut: PreparedStatementIO[Future[A]]): PreparedStatementIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidPreparedStatementIO[A](implicit M: Monoid[A]): Monoid[PreparedStatementIO[A]] =
+    new Monoid[PreparedStatementIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: PreparedStatementIO[A], y: PreparedStatementIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

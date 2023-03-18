@@ -16,6 +16,7 @@ import zio.test.assertTrue
 object `262` extends H2DatabaseSpec {
 
   // an interpreter that returns null when we ask for statement metadata
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
   object Interp extends KleisliInterpreter[Task] {
     override lazy val PreparedStatementInterpreter =
       new PreparedStatementInterpreter {

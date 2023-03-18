@@ -8,7 +8,6 @@ import cats.data.Kleisli
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free
-// Library imports
 import cats.~>
 import doobie.WeakAsync
 import doobie.free.blob.BlobIO
@@ -23,7 +22,6 @@ import doobie.free.databasemetadata.DatabaseMetaDataIO
 import doobie.free.databasemetadata.DatabaseMetaDataOp
 import doobie.free.driver.DriverIO
 import doobie.free.driver.DriverOp
-// Algebras and free monads thereof referenced by our interpreter.
 import doobie.free.nclob.NClobIO
 import doobie.free.nclob.NClobOp
 import doobie.free.preparedstatement.PreparedStatementIO
@@ -41,7 +39,6 @@ import doobie.free.sqloutput.SQLOutputOp
 import doobie.free.statement.StatementIO
 import doobie.free.statement.StatementOp
 
-// Types referenced in the JDBC API
 import java.io.InputStream
 import java.io.Reader
 import java.math.BigDecimal
@@ -137,6 +134,7 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
   )(body: Poll[Free[G, *]] => Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
     asyncM.uncancelable(body.compose(capture).andThen(_.foldMap(interpreter).run(j))),
   )
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
   def poll[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(mpoll: Any, fa: Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
     mpoll.asInstanceOf[Poll[M]].apply(fa.foldMap(interpreter).run(j)),
   )

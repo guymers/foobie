@@ -99,6 +99,11 @@ object Read extends Read1 {
     }
   }
 
+  @SuppressWarnings(Array(
+    "org.wartremover.warts.MutableDataStructures",
+    "org.wartremover.warts.Var",
+    "org.wartremover.warts.While",
+  ))
   private[doobie] def build(instances: Iterable[Read[?]])(rs: ResultSet, index: Int) = {
     var i = index
     val arr = mutable.ArrayBuilder.make[Any]
@@ -106,7 +111,7 @@ object Read extends Read1 {
     while (it.hasNext) {
       val instance = it.next()
       val a = instance.unsafeGet(rs, i)
-      arr.addOne(a)
+      val _ = arr.addOne(a)
       i = i + instance.gets.size
     }
     arr.result()
@@ -120,6 +125,7 @@ sealed trait Read1 extends ReadPlatform { this: Read.type =>
 
     new Read[Option[A]] {
       override val gets = R.gets.map { case (g, _) => (g, Nullable) }
+      @SuppressWarnings(Array("org.wartremover.warts.Var", "org.wartremover.warts.While"))
       override def unsafeGet(rs: ResultSet, i: Int) = {
         // if first item is null or gets is empty => return None
         var allNull = true

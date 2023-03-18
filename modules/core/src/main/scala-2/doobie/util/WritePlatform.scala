@@ -24,6 +24,7 @@ trait WritePlatform {
       override def values(a: A) = {
         ctx.parameters.flatMap(param => param.typeclass.values(param.dereference(a)))
       }
+      @SuppressWarnings(Array("org.wartremover.warts.Var", "org.wartremover.warts.While"))
       override def unsafeSet(ps: PreparedStatement, i: Int, a: A) = {
         var n = i
         val it = ctx.parameters.iterator
@@ -33,6 +34,7 @@ trait WritePlatform {
           n = n + param.typeclass.length
         }
       }
+      @SuppressWarnings(Array("org.wartremover.warts.Var", "org.wartremover.warts.While"))
       override def unsafeUpdate(rs: ResultSet, i: Int, a: A) = {
         var n = i
         val it = ctx.parameters.iterator

@@ -79,12 +79,13 @@ object resultset {
    * `CanBuildFrom`.
    * @group Results
    */
-  @SuppressWarnings(Array("org.wartremover.warts.While", "org.wartremover.warts.NonUnitStatements"))
+  @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures", "org.wartremover.warts.While"))
   def build[F[_], A](implicit F: Factory[A, F[A]], A: Read[A]): ResultSetIO[F[A]] =
     FRS.raw { rs =>
       val b = F.newBuilder
-      while (rs.next)
-        b += A.unsafeGet(rs, 1)
+      while (rs.next) {
+        val _ = b += A.unsafeGet(rs, 1)
+      }
       b.result()
     }
 
@@ -94,11 +95,13 @@ object resultset {
    * `CanBuildFrom`.
    * @group Results
    */
+  @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures", "org.wartremover.warts.While"))
   def buildPair[F[_, _], A, B](implicit F: Factory[(A, B), F[A, B]], A: Read[(A, B)]): ResultSetIO[F[A, B]] =
     FRS.raw { rs =>
       val b = F.newBuilder
-      while (rs.next)
-        b += A.unsafeGet(rs, 1)
+      while (rs.next) {
+        val _ = b += A.unsafeGet(rs, 1)
+      }
       b.result()
     }
 
@@ -109,12 +112,13 @@ object resultset {
    * the CanBuildFrom not having a sensible contravariant functor instance.
    * @group Results
    */
-  @SuppressWarnings(Array("org.wartremover.warts.While", "org.wartremover.warts.NonUnitStatements"))
+  @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures", "org.wartremover.warts.While"))
   def buildMap[F[_], A, B](f: A => B)(implicit F: Factory[B, F[B]], A: Read[A]): ResultSetIO[F[B]] =
     FRS.raw { rs =>
       val b = F.newBuilder
-      while (rs.next)
-        b += f(A.unsafeGet(rs, 1))
+      while (rs.next) {
+        val _ = b += f(A.unsafeGet(rs, 1))
+      }
       b.result()
     }
 
@@ -178,16 +182,16 @@ object resultset {
    * @group Results
    */
   @SuppressWarnings(Array(
+    "org.wartremover.warts.MutableDataStructures",
     "org.wartremover.warts.Var",
     "org.wartremover.warts.While",
-    "org.wartremover.warts.NonUnitStatements",
   ))
   def getNextChunkV[A](chunkSize: Int)(implicit A: Read[A]): ResultSetIO[Vector[A]] =
     FRS.raw { rs =>
       var n = chunkSize
       val b = Vector.newBuilder[A]
       while (n > 0 && rs.next) {
-        b += A.unsafeGet(rs, 1)
+        val _ = b += A.unsafeGet(rs, 1)
         n -= 1
       }
       b.result()

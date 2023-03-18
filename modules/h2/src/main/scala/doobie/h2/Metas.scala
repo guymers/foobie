@@ -14,6 +14,11 @@ import scala.reflect.ClassTag
 
 trait Instances {
 
+  @SuppressWarnings(Array(
+    "org.wartremover.warts.AsInstanceOf",
+    "org.wartremover.warts.Null",
+    "org.wartremover.warts.Throw",
+  ))
   implicit val UuidType: Meta[UUID] =
     Meta.Advanced.many[UUID](
       NonEmptyList.of(JdbcType.Binary),
@@ -30,9 +35,11 @@ trait Instances {
       (rs, n, a) => rs.updateObject(n, a),
     )
 
+  @SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.Throw"))
   private def checkNull[B >: Null](a: Array[B], e: Exception): Array[B] =
     if (a == null) null else if (a.exists(_ == null)) throw e else a
 
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
   private def boxedPair[A >: Null <: AnyRef: ClassTag](
     elementType: String,
   ): (Meta[Array[A]], Meta[Array[Option[A]]]) = {
@@ -67,6 +74,7 @@ trait Instances {
   implicit val unliftedStringArrayType: Meta[Array[java.lang.String]] = boxedStringPair._1
   implicit val liftedStringArrayType: Meta[Array[Option[java.lang.String]]] = boxedStringPair._2
 
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Null"))
   private def unboxedPair[A >: Null <: AnyRef: ClassTag, B <: AnyVal: ClassTag](f: A => B, g: B => A)(
     implicit
     boxed: Meta[Array[A]],

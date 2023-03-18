@@ -31,7 +31,7 @@ object ConnectionIOSuite extends H2DatabaseSpec {
     test("ApplicativeError") {
       import doobie.syntax.applicativeerror.*
 
-      42.pure[ConnectionIO].attemptSql: Unit
+      val _ = 42.pure[ConnectionIO].attemptSql
       assertCompletes
     },
   )

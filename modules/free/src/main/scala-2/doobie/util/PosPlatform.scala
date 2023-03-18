@@ -12,8 +12,8 @@ import scala.reflect.macros.blackbox
 trait PosPlatform {
 
   /** A `Pos` can be forged on demand. */
-  implicit def instance: Pos =
-    macro PosPlatform.PosMacros.instance_impl
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
+  implicit def instance: Pos = macro PosPlatform.PosMacros.instance_impl
 
 }
 

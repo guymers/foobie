@@ -4,6 +4,7 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
@@ -28,6 +29,7 @@ object blob { module =>
   type BlobIO[A] = FF[BlobOp, A]
 
   // Module of instances and constructors of BlobOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object BlobOp {
 
     // Given a Blob we can embed a BlobIO program in any algebra that understands embedding.
@@ -91,25 +93,25 @@ object blob { module =>
     case object Realtime extends BlobOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends BlobOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends BlobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: BlobIO[A], fb: BlobIO[B]) extends BlobOp[B] {
+    final case class ForceR[A, B](fa: BlobIO[A], fb: BlobIO[B]) extends BlobOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[BlobIO] => BlobIO[A]) extends BlobOp[A] {
+    final case class Uncancelable[A](body: Poll[BlobIO] => BlobIO[A]) extends BlobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: BlobIO[A]) extends BlobOp[A] {
+    final case class Poll1[A](poll: Any, fa: BlobIO[A]) extends BlobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends BlobOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: BlobIO[A], fin: BlobIO[Unit]) extends BlobOp[A] {
+    final case class OnCancel[A](fa: BlobIO[A], fin: BlobIO[Unit]) extends BlobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: BlobIO[Future[A]]) extends BlobOp[A] {
+    final case class FromFuture[A](fut: BlobIO[Future[A]]) extends BlobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
@@ -186,13 +188,15 @@ object blob { module =>
   def setBytes(a: Long, b: Array[Byte], c: Int, d: Int): BlobIO[Int] = FF.liftF(SetBytes1(a, b, c, d))
   def truncate(a: Long): BlobIO[Unit] = FF.liftF(Truncate(a))
 
+  private val monad = FF.catsFreeMonadForFree[BlobOp]
+
   // Typeclass instances for BlobIO
   implicit val WeakAsyncBlobIO: WeakAsync[BlobIO] =
     new WeakAsync[BlobIO] {
-      val monad = FF.catsFreeMonadForFree[BlobOp]
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): BlobIO[A] = monad.pure(x)
+      override def map[A, B](fa: BlobIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: BlobIO[A])(f: A => BlobIO[B]): BlobIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => BlobIO[Either[A, B]]): BlobIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): BlobIO[A] = module.raiseError(e)
@@ -206,5 +210,12 @@ object blob { module =>
       override def canceled: BlobIO[Unit] = module.canceled
       override def onCancel[A](fa: BlobIO[A], fin: BlobIO[Unit]): BlobIO[A] = module.onCancel(fa, fin)
       override def fromFuture[A](fut: BlobIO[Future[A]]): BlobIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidBlobIO[A](implicit M: Monoid[A]): Monoid[BlobIO[A]] =
+    new Monoid[BlobIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: BlobIO[A], y: BlobIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

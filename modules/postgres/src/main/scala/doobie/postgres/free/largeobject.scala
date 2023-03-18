@@ -4,6 +4,7 @@
 
 package doobie.postgres.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
@@ -28,6 +29,7 @@ object largeobject { module =>
   type LargeObjectIO[A] = FF[LargeObjectOp, A]
 
   // Module of instances and constructors of LargeObjectOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object LargeObjectOp {
 
     // Given a LargeObject we can embed a LargeObjectIO program in any algebra that understands embedding.
@@ -99,25 +101,25 @@ object largeobject { module =>
     case object Realtime extends LargeObjectOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends LargeObjectOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends LargeObjectOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: LargeObjectIO[A], fb: LargeObjectIO[B]) extends LargeObjectOp[B] {
+    final case class ForceR[A, B](fa: LargeObjectIO[A], fb: LargeObjectIO[B]) extends LargeObjectOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[LargeObjectIO] => LargeObjectIO[A]) extends LargeObjectOp[A] {
+    final case class Uncancelable[A](body: Poll[LargeObjectIO] => LargeObjectIO[A]) extends LargeObjectOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: LargeObjectIO[A]) extends LargeObjectOp[A] {
+    final case class Poll1[A](poll: Any, fa: LargeObjectIO[A]) extends LargeObjectOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends LargeObjectOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: LargeObjectIO[A], fin: LargeObjectIO[Unit]) extends LargeObjectOp[A] {
+    final case class OnCancel[A](fa: LargeObjectIO[A], fin: LargeObjectIO[Unit]) extends LargeObjectOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: LargeObjectIO[Future[A]]) extends LargeObjectOp[A] {
+    final case class FromFuture[A](fut: LargeObjectIO[Future[A]]) extends LargeObjectOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
@@ -226,13 +228,15 @@ object largeobject { module =>
   def write(a: Array[Byte]): LargeObjectIO[Unit] = FF.liftF(Write(a))
   def write(a: Array[Byte], b: Int, c: Int): LargeObjectIO[Unit] = FF.liftF(Write1(a, b, c))
 
+  private val monad = FF.catsFreeMonadForFree[LargeObjectOp]
+
   // Typeclass instances for LargeObjectIO
   implicit val WeakAsyncLargeObjectIO: WeakAsync[LargeObjectIO] =
     new WeakAsync[LargeObjectIO] {
-      val monad = FF.catsFreeMonadForFree[LargeObjectOp]
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): LargeObjectIO[A] = monad.pure(x)
+      override def map[A, B](fa: LargeObjectIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: LargeObjectIO[A])(f: A => LargeObjectIO[B]): LargeObjectIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => LargeObjectIO[Either[A, B]]): LargeObjectIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): LargeObjectIO[A] = module.raiseError(e)
@@ -248,5 +252,12 @@ object largeobject { module =>
       override def onCancel[A](fa: LargeObjectIO[A], fin: LargeObjectIO[Unit]): LargeObjectIO[A] =
         module.onCancel(fa, fin)
       override def fromFuture[A](fut: LargeObjectIO[Future[A]]): LargeObjectIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidLargeObjectIO[A](implicit M: Monoid[A]): Monoid[LargeObjectIO[A]] =
+    new Monoid[LargeObjectIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: LargeObjectIO[A], y: LargeObjectIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

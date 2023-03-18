@@ -4,6 +4,7 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
@@ -13,8 +14,6 @@ import doobie.WeakAsync
 
 import java.io.InputStream
 import java.io.Reader
-import java.lang.Class
-import java.lang.String
 import java.math.BigDecimal
 import java.net.URL
 import java.sql.Array as SqlArray
@@ -48,6 +47,7 @@ object resultset { module =>
   type ResultSetIO[A] = FF[ResultSetOp, A]
 
   // Module of instances and constructors of ResultSetOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object ResultSetOp {
 
     // Given a ResultSet we can embed a ResultSetIO program in any algebra that understands embedding.
@@ -291,25 +291,25 @@ object resultset { module =>
     case object Realtime extends ResultSetOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends ResultSetOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends ResultSetOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: ResultSetIO[A], fb: ResultSetIO[B]) extends ResultSetOp[B] {
+    final case class ForceR[A, B](fa: ResultSetIO[A], fb: ResultSetIO[B]) extends ResultSetOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[ResultSetIO] => ResultSetIO[A]) extends ResultSetOp[A] {
+    final case class Uncancelable[A](body: Poll[ResultSetIO] => ResultSetIO[A]) extends ResultSetOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: ResultSetIO[A]) extends ResultSetOp[A] {
+    final case class Poll1[A](poll: Any, fa: ResultSetIO[A]) extends ResultSetOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends ResultSetOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: ResultSetIO[A], fin: ResultSetIO[Unit]) extends ResultSetOp[A] {
+    final case class OnCancel[A](fa: ResultSetIO[A], fin: ResultSetIO[Unit]) extends ResultSetOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: ResultSetIO[Future[A]]) extends ResultSetOp[A] {
+    final case class FromFuture[A](fut: ResultSetIO[Future[A]]) extends ResultSetOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
@@ -1107,13 +1107,15 @@ object resultset { module =>
   def updateTimestamp(a: String, b: Timestamp): ResultSetIO[Unit] = FF.liftF(UpdateTimestamp1(a, b))
   val wasNull: ResultSetIO[Boolean] = FF.liftF(WasNull)
 
+  private val monad = FF.catsFreeMonadForFree[ResultSetOp]
+
   // Typeclass instances for ResultSetIO
   implicit val WeakAsyncResultSetIO: WeakAsync[ResultSetIO] =
     new WeakAsync[ResultSetIO] {
-      val monad = FF.catsFreeMonadForFree[ResultSetOp]
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): ResultSetIO[A] = monad.pure(x)
+      override def map[A, B](fa: ResultSetIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: ResultSetIO[A])(f: A => ResultSetIO[B]): ResultSetIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => ResultSetIO[Either[A, B]]): ResultSetIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): ResultSetIO[A] = module.raiseError(e)
@@ -1127,5 +1129,12 @@ object resultset { module =>
       override def canceled: ResultSetIO[Unit] = module.canceled
       override def onCancel[A](fa: ResultSetIO[A], fin: ResultSetIO[Unit]): ResultSetIO[A] = module.onCancel(fa, fin)
       override def fromFuture[A](fut: ResultSetIO[Future[A]]): ResultSetIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidResultSetIO[A](implicit M: Monoid[A]): Monoid[ResultSetIO[A]] =
+    new Monoid[ResultSetIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: ResultSetIO[A], y: ResultSetIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

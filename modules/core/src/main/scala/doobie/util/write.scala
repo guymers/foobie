@@ -54,6 +54,7 @@ trait Write[A] { self =>
    * can construct a `Fragment`. If `sql` is unspecified a comma-separated list
    * of `length` placeholders will be used.
    */
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
   def toFragment(a: A, sql: String = List.fill(length)("?").mkString(",")): Fragment = {
     val elems: List[Elem] = (puts.toList zip values(a)).map {
       case ((p: Put[a], NoNulls), a) => Elem.Arg(a.asInstanceOf[a], p)

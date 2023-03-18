@@ -4,6 +4,7 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
@@ -31,6 +32,7 @@ object databasemetadata { module =>
   type DatabaseMetaDataIO[A] = FF[DatabaseMetaDataOp, A]
 
   // Module of instances and constructors of DatabaseMetaDataOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object DatabaseMetaDataOp {
 
     // Given a DatabaseMetaData we can embed a DatabaseMetaDataIO program in any algebra that understands embedding.
@@ -262,25 +264,26 @@ object databasemetadata { module =>
     case object Realtime extends DatabaseMetaDataOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends DatabaseMetaDataOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends DatabaseMetaDataOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: DatabaseMetaDataIO[A], fb: DatabaseMetaDataIO[B]) extends DatabaseMetaDataOp[B] {
+    final case class ForceR[A, B](fa: DatabaseMetaDataIO[A], fb: DatabaseMetaDataIO[B]) extends DatabaseMetaDataOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[DatabaseMetaDataIO] => DatabaseMetaDataIO[A]) extends DatabaseMetaDataOp[A] {
+    final case class Uncancelable[A](body: Poll[DatabaseMetaDataIO] => DatabaseMetaDataIO[A])
+      extends DatabaseMetaDataOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: DatabaseMetaDataIO[A]) extends DatabaseMetaDataOp[A] {
+    final case class Poll1[A](poll: Any, fa: DatabaseMetaDataIO[A]) extends DatabaseMetaDataOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends DatabaseMetaDataOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: DatabaseMetaDataIO[A], fin: DatabaseMetaDataIO[Unit]) extends DatabaseMetaDataOp[A] {
+    final case class OnCancel[A](fa: DatabaseMetaDataIO[A], fin: DatabaseMetaDataIO[Unit]) extends DatabaseMetaDataOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: DatabaseMetaDataIO[Future[A]]) extends DatabaseMetaDataOp[A] {
+    final case class FromFuture[A](fut: DatabaseMetaDataIO[Future[A]]) extends DatabaseMetaDataOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
@@ -1060,13 +1063,15 @@ object databasemetadata { module =>
   val usesLocalFilePerTable: DatabaseMetaDataIO[Boolean] = FF.liftF(UsesLocalFilePerTable)
   val usesLocalFiles: DatabaseMetaDataIO[Boolean] = FF.liftF(UsesLocalFiles)
 
+  private val monad = FF.catsFreeMonadForFree[DatabaseMetaDataOp]
+
   // Typeclass instances for DatabaseMetaDataIO
   implicit val WeakAsyncDatabaseMetaDataIO: WeakAsync[DatabaseMetaDataIO] =
     new WeakAsync[DatabaseMetaDataIO] {
-      val monad = FF.catsFreeMonadForFree[DatabaseMetaDataOp]
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): DatabaseMetaDataIO[A] = monad.pure(x)
+      override def map[A, B](fa: DatabaseMetaDataIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: DatabaseMetaDataIO[A])(f: A => DatabaseMetaDataIO[B]): DatabaseMetaDataIO[B] =
         monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => DatabaseMetaDataIO[Either[A, B]]): DatabaseMetaDataIO[B] =
@@ -1086,5 +1091,12 @@ object databasemetadata { module =>
       override def onCancel[A](fa: DatabaseMetaDataIO[A], fin: DatabaseMetaDataIO[Unit]): DatabaseMetaDataIO[A] =
         module.onCancel(fa, fin)
       override def fromFuture[A](fut: DatabaseMetaDataIO[Future[A]]): DatabaseMetaDataIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidDatabaseMetaDataIO[A](implicit M: Monoid[A]): Monoid[DatabaseMetaDataIO[A]] =
+    new Monoid[DatabaseMetaDataIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: DatabaseMetaDataIO[A], y: DatabaseMetaDataIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

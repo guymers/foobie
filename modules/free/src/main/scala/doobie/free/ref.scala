@@ -4,6 +4,7 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
@@ -11,7 +12,6 @@ import cats.free.Free as FF // alias because some algebras have an op called Fre
 import cats.~>
 import doobie.WeakAsync
 
-import java.lang.String
 import java.sql.Ref
 import java.util.Map
 import scala.concurrent.Future
@@ -28,6 +28,7 @@ object ref { module =>
   type RefIO[A] = FF[RefOp, A]
 
   // Module of instances and constructors of RefOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object RefOp {
 
     // Given a Ref we can embed a RefIO program in any algebra that understands embedding.
@@ -84,25 +85,25 @@ object ref { module =>
     case object Realtime extends RefOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends RefOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends RefOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: RefIO[A], fb: RefIO[B]) extends RefOp[B] {
+    final case class ForceR[A, B](fa: RefIO[A], fb: RefIO[B]) extends RefOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[RefIO] => RefIO[A]) extends RefOp[A] {
+    final case class Uncancelable[A](body: Poll[RefIO] => RefIO[A]) extends RefOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: RefIO[A]) extends RefOp[A] {
+    final case class Poll1[A](poll: Any, fa: RefIO[A]) extends RefOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends RefOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: RefIO[A], fin: RefIO[Unit]) extends RefOp[A] {
+    final case class OnCancel[A](fa: RefIO[A], fin: RefIO[Unit]) extends RefOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: RefIO[Future[A]]) extends RefOp[A] {
+    final case class FromFuture[A](fut: RefIO[Future[A]]) extends RefOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
@@ -150,13 +151,15 @@ object ref { module =>
   def getObject(a: Map[String, Class[?]]): RefIO[AnyRef] = FF.liftF(GetObject1(a))
   def setObject(a: AnyRef): RefIO[Unit] = FF.liftF(SetObject(a))
 
+  private val monad = FF.catsFreeMonadForFree[RefOp]
+
   // Typeclass instances for RefIO
   implicit val WeakAsyncRefIO: WeakAsync[RefIO] =
     new WeakAsync[RefIO] {
-      val monad = FF.catsFreeMonadForFree[RefOp]
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): RefIO[A] = monad.pure(x)
+      override def map[A, B](fa: RefIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: RefIO[A])(f: A => RefIO[B]): RefIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => RefIO[Either[A, B]]): RefIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): RefIO[A] = module.raiseError(e)
@@ -169,5 +172,12 @@ object ref { module =>
       override def canceled: RefIO[Unit] = module.canceled
       override def onCancel[A](fa: RefIO[A], fin: RefIO[Unit]): RefIO[A] = module.onCancel(fa, fin)
       override def fromFuture[A](fut: RefIO[Future[A]]): RefIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidRefIO[A](implicit M: Monoid[A]): Monoid[RefIO[A]] =
+    new Monoid[RefIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: RefIO[A], y: RefIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

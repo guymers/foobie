@@ -4,6 +4,7 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
@@ -11,7 +12,6 @@ import cats.free.Free as FF // alias because some algebras have an op called Fre
 import cats.~>
 import doobie.WeakAsync
 
-import java.lang.String
 import java.sql.SQLData
 import java.sql.SQLInput
 import java.sql.SQLOutput
@@ -29,6 +29,7 @@ object sqldata { module =>
   type SQLDataIO[A] = FF[SQLDataOp, A]
 
   // Module of instances and constructors of SQLDataOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object SQLDataOp {
 
     // Given a SQLData we can embed a SQLDataIO program in any algebra that understands embedding.
@@ -84,25 +85,25 @@ object sqldata { module =>
     case object Realtime extends SQLDataOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends SQLDataOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends SQLDataOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: SQLDataIO[A], fb: SQLDataIO[B]) extends SQLDataOp[B] {
+    final case class ForceR[A, B](fa: SQLDataIO[A], fb: SQLDataIO[B]) extends SQLDataOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[SQLDataIO] => SQLDataIO[A]) extends SQLDataOp[A] {
+    final case class Uncancelable[A](body: Poll[SQLDataIO] => SQLDataIO[A]) extends SQLDataOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: SQLDataIO[A]) extends SQLDataOp[A] {
+    final case class Poll1[A](poll: Any, fa: SQLDataIO[A]) extends SQLDataOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends SQLDataOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: SQLDataIO[A], fin: SQLDataIO[Unit]) extends SQLDataOp[A] {
+    final case class OnCancel[A](fa: SQLDataIO[A], fin: SQLDataIO[Unit]) extends SQLDataOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: SQLDataIO[Future[A]]) extends SQLDataOp[A] {
+    final case class FromFuture[A](fut: SQLDataIO[Future[A]]) extends SQLDataOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
@@ -147,13 +148,15 @@ object sqldata { module =>
   def readSQL(a: SQLInput, b: String): SQLDataIO[Unit] = FF.liftF(ReadSQL(a, b))
   def writeSQL(a: SQLOutput): SQLDataIO[Unit] = FF.liftF(WriteSQL(a))
 
+  private val monad = FF.catsFreeMonadForFree[SQLDataOp]
+
   // Typeclass instances for SQLDataIO
   implicit val WeakAsyncSQLDataIO: WeakAsync[SQLDataIO] =
     new WeakAsync[SQLDataIO] {
-      val monad = FF.catsFreeMonadForFree[SQLDataOp]
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): SQLDataIO[A] = monad.pure(x)
+      override def map[A, B](fa: SQLDataIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: SQLDataIO[A])(f: A => SQLDataIO[B]): SQLDataIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => SQLDataIO[Either[A, B]]): SQLDataIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): SQLDataIO[A] = module.raiseError(e)
@@ -167,5 +170,12 @@ object sqldata { module =>
       override def canceled: SQLDataIO[Unit] = module.canceled
       override def onCancel[A](fa: SQLDataIO[A], fin: SQLDataIO[Unit]): SQLDataIO[A] = module.onCancel(fa, fin)
       override def fromFuture[A](fut: SQLDataIO[Future[A]]): SQLDataIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidSQLDataIO[A](implicit M: Monoid[A]): Monoid[SQLDataIO[A]] =
+    new Monoid[SQLDataIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: SQLDataIO[A], y: SQLDataIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

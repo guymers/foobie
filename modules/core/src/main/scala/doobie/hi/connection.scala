@@ -270,7 +270,7 @@ object connection {
     FC.setClientInfo {
       // Java 11 overloads the `putAll` method with Map[*,*] along with the existing Map[Obj,Obj]
       val ps = new java.util.Properties
-      info.foreach { case (k, v) =>
+      info.foreachEntry { case (k, v) =>
         ps.put(k, v)
       }
       ps

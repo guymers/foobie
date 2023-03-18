@@ -4,6 +4,7 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
@@ -13,8 +14,6 @@ import doobie.WeakAsync
 
 import java.io.InputStream
 import java.io.Reader
-import java.lang.Class
-import java.lang.String
 import java.math.BigDecimal
 import java.net.URL
 import java.sql.Array as SqlArray
@@ -42,6 +41,7 @@ object sqlinput { module =>
   type SQLInputIO[A] = FF[SQLInputOp, A]
 
   // Module of instances and constructors of SQLInputOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object SQLInputOp {
 
     // Given a SQLInput we can embed a SQLInputIO program in any algebra that understands embedding.
@@ -122,25 +122,25 @@ object sqlinput { module =>
     case object Realtime extends SQLInputOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends SQLInputOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends SQLInputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: SQLInputIO[A], fb: SQLInputIO[B]) extends SQLInputOp[B] {
+    final case class ForceR[A, B](fa: SQLInputIO[A], fb: SQLInputIO[B]) extends SQLInputOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[SQLInputIO] => SQLInputIO[A]) extends SQLInputOp[A] {
+    final case class Uncancelable[A](body: Poll[SQLInputIO] => SQLInputIO[A]) extends SQLInputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: SQLInputIO[A]) extends SQLInputOp[A] {
+    final case class Poll1[A](poll: Any, fa: SQLInputIO[A]) extends SQLInputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends SQLInputOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: SQLInputIO[A], fin: SQLInputIO[Unit]) extends SQLInputOp[A] {
+    final case class OnCancel[A](fa: SQLInputIO[A], fin: SQLInputIO[Unit]) extends SQLInputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: SQLInputIO[Future[A]]) extends SQLInputOp[A] {
+    final case class FromFuture[A](fut: SQLInputIO[Future[A]]) extends SQLInputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
@@ -285,13 +285,15 @@ object sqlinput { module =>
   val readURL: SQLInputIO[URL] = FF.liftF(ReadURL)
   val wasNull: SQLInputIO[Boolean] = FF.liftF(WasNull)
 
+  private val monad = FF.catsFreeMonadForFree[SQLInputOp]
+
   // Typeclass instances for SQLInputIO
   implicit val WeakAsyncSQLInputIO: WeakAsync[SQLInputIO] =
     new WeakAsync[SQLInputIO] {
-      val monad = FF.catsFreeMonadForFree[SQLInputOp]
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): SQLInputIO[A] = monad.pure(x)
+      override def map[A, B](fa: SQLInputIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: SQLInputIO[A])(f: A => SQLInputIO[B]): SQLInputIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => SQLInputIO[Either[A, B]]): SQLInputIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): SQLInputIO[A] = module.raiseError(e)
@@ -305,5 +307,12 @@ object sqlinput { module =>
       override def canceled: SQLInputIO[Unit] = module.canceled
       override def onCancel[A](fa: SQLInputIO[A], fin: SQLInputIO[Unit]): SQLInputIO[A] = module.onCancel(fa, fin)
       override def fromFuture[A](fut: SQLInputIO[Future[A]]): SQLInputIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidSQLInputIO[A](implicit M: Monoid[A]): Monoid[SQLInputIO[A]] =
+    new Monoid[SQLInputIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: SQLInputIO[A], y: SQLInputIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

@@ -8,10 +8,8 @@ import cats.data.Kleisli
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free
-// Library imports
 import cats.~>
 import doobie.WeakAsync
-// Algebras and free monads thereof referenced by our interpreter.
 import doobie.postgres.free.copyin.CopyInIO
 import doobie.postgres.free.copyin.CopyInOp
 import doobie.postgres.free.copymanager.CopyManagerIO
@@ -33,7 +31,6 @@ import org.postgresql.largeobject.LargeObject
 import org.postgresql.largeobject.LargeObjectManager
 import org.postgresql.util.ByteStreamWriter
 
-// Types referenced in the JDBC API
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.Reader
@@ -92,6 +89,7 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
   )(body: Poll[Free[G, *]] => Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
     asyncM.uncancelable(body.compose(capture).andThen(_.foldMap(interpreter).run(j))),
   )
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
   def poll[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(mpoll: Any, fa: Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
     mpoll.asInstanceOf[Poll[M]].apply(fa.foldMap(interpreter).run(j)),
   )

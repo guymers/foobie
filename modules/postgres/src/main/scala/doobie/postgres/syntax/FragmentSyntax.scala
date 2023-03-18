@@ -72,6 +72,7 @@ class FragmentOps(f: Fragment) {
    * Folds given `F` to string, encoding each `A` with `Text` instance and
    * joining resulting strings with `\n`
    */
+  @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures", "org.wartremover.warts.ToString"))
   private def foldToString[F[_]: Foldable, A](fa: F[A])(implicit ev: Text[A]): String =
     fa.foldLeft(new StringBuilder) { (b, a) =>
       ev.unsafeEncode(a, b)

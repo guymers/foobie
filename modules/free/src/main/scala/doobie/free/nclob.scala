@@ -4,6 +4,7 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
@@ -15,7 +16,6 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.io.Reader
 import java.io.Writer
-import java.lang.String
 import java.sql.Clob
 import java.sql.NClob
 import scala.concurrent.Future
@@ -32,6 +32,7 @@ object nclob { module =>
   type NClobIO[A] = FF[NClobOp, A]
 
   // Module of instances and constructors of NClobOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object NClobOp {
 
     // Given a NClob we can embed a NClobIO program in any algebra that understands embedding.
@@ -97,25 +98,25 @@ object nclob { module =>
     case object Realtime extends NClobOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends NClobOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends NClobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: NClobIO[A], fb: NClobIO[B]) extends NClobOp[B] {
+    final case class ForceR[A, B](fa: NClobIO[A], fb: NClobIO[B]) extends NClobOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[NClobIO] => NClobIO[A]) extends NClobOp[A] {
+    final case class Uncancelable[A](body: Poll[NClobIO] => NClobIO[A]) extends NClobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: NClobIO[A]) extends NClobOp[A] {
+    final case class Poll1[A](poll: Any, fa: NClobIO[A]) extends NClobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends NClobOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: NClobIO[A], fin: NClobIO[Unit]) extends NClobOp[A] {
+    final case class OnCancel[A](fa: NClobIO[A], fin: NClobIO[Unit]) extends NClobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: NClobIO[Future[A]]) extends NClobOp[A] {
+    final case class FromFuture[A](fut: NClobIO[Future[A]]) extends NClobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
@@ -200,13 +201,15 @@ object nclob { module =>
   def setString(a: Long, b: String, c: Int, d: Int): NClobIO[Int] = FF.liftF(SetString1(a, b, c, d))
   def truncate(a: Long): NClobIO[Unit] = FF.liftF(Truncate(a))
 
+  private val monad = FF.catsFreeMonadForFree[NClobOp]
+
   // Typeclass instances for NClobIO
   implicit val WeakAsyncNClobIO: WeakAsync[NClobIO] =
     new WeakAsync[NClobIO] {
-      val monad = FF.catsFreeMonadForFree[NClobOp]
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): NClobIO[A] = monad.pure(x)
+      override def map[A, B](fa: NClobIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: NClobIO[A])(f: A => NClobIO[B]): NClobIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => NClobIO[Either[A, B]]): NClobIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): NClobIO[A] = module.raiseError(e)
@@ -220,5 +223,12 @@ object nclob { module =>
       override def canceled: NClobIO[Unit] = module.canceled
       override def onCancel[A](fa: NClobIO[A], fin: NClobIO[Unit]): NClobIO[A] = module.onCancel(fa, fin)
       override def fromFuture[A](fut: NClobIO[Future[A]]): NClobIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidNClobIO[A](implicit M: Monoid[A]): Monoid[NClobIO[A]] =
+    new Monoid[NClobIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: NClobIO[A], y: NClobIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

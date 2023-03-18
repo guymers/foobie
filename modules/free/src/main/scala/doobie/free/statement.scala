@@ -4,6 +4,7 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
@@ -11,8 +12,6 @@ import cats.free.Free as FF // alias because some algebras have an op called Fre
 import cats.~>
 import doobie.WeakAsync
 
-import java.lang.Class
-import java.lang.String
 import java.sql.Connection
 import java.sql.ResultSet
 import java.sql.SQLWarning
@@ -31,6 +30,7 @@ object statement { module =>
   type StatementIO[A] = FF[StatementOp, A]
 
   // Module of instances and constructors of StatementOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object StatementOp {
 
     // Given a Statement we can embed a StatementIO program in any algebra that understands embedding.
@@ -135,25 +135,25 @@ object statement { module =>
     case object Realtime extends StatementOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends StatementOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends StatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: StatementIO[A], fb: StatementIO[B]) extends StatementOp[B] {
+    final case class ForceR[A, B](fa: StatementIO[A], fb: StatementIO[B]) extends StatementOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[StatementIO] => StatementIO[A]) extends StatementOp[A] {
+    final case class Uncancelable[A](body: Poll[StatementIO] => StatementIO[A]) extends StatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: StatementIO[A]) extends StatementOp[A] {
+    final case class Poll1[A](poll: Any, fa: StatementIO[A]) extends StatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends StatementOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: StatementIO[A], fin: StatementIO[Unit]) extends StatementOp[A] {
+    final case class OnCancel[A](fa: StatementIO[A], fin: StatementIO[Unit]) extends StatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: StatementIO[Future[A]]) extends StatementOp[A] {
+    final case class FromFuture[A](fut: StatementIO[Future[A]]) extends StatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
@@ -394,13 +394,15 @@ object statement { module =>
   def setQueryTimeout(a: Int): StatementIO[Unit] = FF.liftF(SetQueryTimeout(a))
   def unwrap[T](a: Class[T]): StatementIO[T] = FF.liftF(Unwrap(a))
 
+  private val monad = FF.catsFreeMonadForFree[StatementOp]
+
   // Typeclass instances for StatementIO
   implicit val WeakAsyncStatementIO: WeakAsync[StatementIO] =
     new WeakAsync[StatementIO] {
-      val monad = FF.catsFreeMonadForFree[StatementOp]
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): StatementIO[A] = monad.pure(x)
+      override def map[A, B](fa: StatementIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: StatementIO[A])(f: A => StatementIO[B]): StatementIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => StatementIO[Either[A, B]]): StatementIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): StatementIO[A] = module.raiseError(e)
@@ -414,5 +416,12 @@ object statement { module =>
       override def canceled: StatementIO[Unit] = module.canceled
       override def onCancel[A](fa: StatementIO[A], fin: StatementIO[Unit]): StatementIO[A] = module.onCancel(fa, fin)
       override def fromFuture[A](fut: StatementIO[Future[A]]): StatementIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidStatementIO[A](implicit M: Monoid[A]): Monoid[StatementIO[A]] =
+    new Monoid[StatementIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: StatementIO[A], y: StatementIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

@@ -4,6 +4,7 @@
 
 package doobie.postgres.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
@@ -27,6 +28,7 @@ object largeobjectmanager { module =>
   type LargeObjectManagerIO[A] = FF[LargeObjectManagerOp, A]
 
   // Module of instances and constructors of LargeObjectManagerOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object LargeObjectManagerOp {
 
     // Given a LargeObjectManager we can embed a LargeObjectManagerIO program in any algebra that understands embedding.
@@ -90,26 +92,28 @@ object largeobjectmanager { module =>
     case object Realtime extends LargeObjectManagerOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends LargeObjectManagerOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends LargeObjectManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: LargeObjectManagerIO[A], fb: LargeObjectManagerIO[B]) extends LargeObjectManagerOp[B] {
+    final case class ForceR[A, B](fa: LargeObjectManagerIO[A], fb: LargeObjectManagerIO[B])
+      extends LargeObjectManagerOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[LargeObjectManagerIO] => LargeObjectManagerIO[A])
+    final case class Uncancelable[A](body: Poll[LargeObjectManagerIO] => LargeObjectManagerIO[A])
       extends LargeObjectManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: LargeObjectManagerIO[A]) extends LargeObjectManagerOp[A] {
+    final case class Poll1[A](poll: Any, fa: LargeObjectManagerIO[A]) extends LargeObjectManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends LargeObjectManagerOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit]) extends LargeObjectManagerOp[A] {
+    final case class OnCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit])
+      extends LargeObjectManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: LargeObjectManagerIO[Future[A]]) extends LargeObjectManagerOp[A] {
+    final case class FromFuture[A](fut: LargeObjectManagerIO[Future[A]]) extends LargeObjectManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
@@ -186,13 +190,15 @@ object largeobjectmanager { module =>
   def open(a: Long, b: Int, c: Boolean): LargeObjectManagerIO[LargeObject] = FF.liftF(Open5(a, b, c))
   def unlink(a: Long): LargeObjectManagerIO[Unit] = FF.liftF(Unlink(a))
 
+  private val monad = FF.catsFreeMonadForFree[LargeObjectManagerOp]
+
   // Typeclass instances for LargeObjectManagerIO
   implicit val WeakAsyncLargeObjectManagerIO: WeakAsync[LargeObjectManagerIO] =
     new WeakAsync[LargeObjectManagerIO] {
-      val monad = FF.catsFreeMonadForFree[LargeObjectManagerOp]
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): LargeObjectManagerIO[A] = monad.pure(x)
+      override def map[A, B](fa: LargeObjectManagerIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: LargeObjectManagerIO[A])(
         f: A => LargeObjectManagerIO[B],
       ): LargeObjectManagerIO[B] = monad.flatMap(fa)(f)
@@ -213,5 +219,12 @@ object largeobjectmanager { module =>
       override def onCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit]): LargeObjectManagerIO[A] =
         module.onCancel(fa, fin)
       override def fromFuture[A](fut: LargeObjectManagerIO[Future[A]]): LargeObjectManagerIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidLargeObjectManagerIO[A](implicit M: Monoid[A]): Monoid[LargeObjectManagerIO[A]] =
+    new Monoid[LargeObjectManagerIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: LargeObjectManagerIO[A], y: LargeObjectManagerIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

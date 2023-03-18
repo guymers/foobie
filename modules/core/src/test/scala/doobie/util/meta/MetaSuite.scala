@@ -19,8 +19,8 @@ object MetaSuite extends H2DatabaseSpec {
 
   override val spec = suite("Meta")(
     test("exists for primitive types") {
-      Meta[Int]: Unit
-      Meta[String]: Unit
+      val _ = Meta[Int]
+      val _ = Meta[String]
       assertCompletes
     },
     test("imply Get") {

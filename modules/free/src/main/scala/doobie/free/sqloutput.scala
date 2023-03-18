@@ -4,6 +4,7 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
@@ -13,7 +14,6 @@ import doobie.WeakAsync
 
 import java.io.InputStream
 import java.io.Reader
-import java.lang.String
 import java.math.BigDecimal
 import java.net.URL
 import java.sql.Array as SqlArray
@@ -44,6 +44,7 @@ object sqloutput { module =>
   type SQLOutputIO[A] = FF[SQLOutputOp, A]
 
   // Module of instances and constructors of SQLOutputOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object SQLOutputOp {
 
     // Given a SQLOutput we can embed a SQLOutputIO program in any algebra that understands embedding.
@@ -124,25 +125,25 @@ object sqloutput { module =>
     case object Realtime extends SQLOutputOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends SQLOutputOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends SQLOutputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: SQLOutputIO[A], fb: SQLOutputIO[B]) extends SQLOutputOp[B] {
+    final case class ForceR[A, B](fa: SQLOutputIO[A], fb: SQLOutputIO[B]) extends SQLOutputOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[SQLOutputIO] => SQLOutputIO[A]) extends SQLOutputOp[A] {
+    final case class Uncancelable[A](body: Poll[SQLOutputIO] => SQLOutputIO[A]) extends SQLOutputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: SQLOutputIO[A]) extends SQLOutputOp[A] {
+    final case class Poll1[A](poll: Any, fa: SQLOutputIO[A]) extends SQLOutputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends SQLOutputOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: SQLOutputIO[A], fin: SQLOutputIO[Unit]) extends SQLOutputOp[A] {
+    final case class OnCancel[A](fa: SQLOutputIO[A], fin: SQLOutputIO[Unit]) extends SQLOutputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: SQLOutputIO[Future[A]]) extends SQLOutputOp[A] {
+    final case class FromFuture[A](fut: SQLOutputIO[Future[A]]) extends SQLOutputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
@@ -287,13 +288,15 @@ object sqloutput { module =>
   def writeTimestamp(a: Timestamp): SQLOutputIO[Unit] = FF.liftF(WriteTimestamp(a))
   def writeURL(a: URL): SQLOutputIO[Unit] = FF.liftF(WriteURL(a))
 
+  private val monad = FF.catsFreeMonadForFree[SQLOutputOp]
+
   // Typeclass instances for SQLOutputIO
   implicit val WeakAsyncSQLOutputIO: WeakAsync[SQLOutputIO] =
     new WeakAsync[SQLOutputIO] {
-      val monad = FF.catsFreeMonadForFree[SQLOutputOp]
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): SQLOutputIO[A] = monad.pure(x)
+      override def map[A, B](fa: SQLOutputIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: SQLOutputIO[A])(f: A => SQLOutputIO[B]): SQLOutputIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => SQLOutputIO[Either[A, B]]): SQLOutputIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): SQLOutputIO[A] = module.raiseError(e)
@@ -307,5 +310,12 @@ object sqloutput { module =>
       override def canceled: SQLOutputIO[Unit] = module.canceled
       override def onCancel[A](fa: SQLOutputIO[A], fin: SQLOutputIO[Unit]): SQLOutputIO[A] = module.onCancel(fa, fin)
       override def fromFuture[A](fut: SQLOutputIO[Future[A]]): SQLOutputIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidSQLOutputIO[A](implicit M: Monoid[A]): Monoid[SQLOutputIO[A]] =
+    new Monoid[SQLOutputIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: SQLOutputIO[A], y: SQLOutputIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

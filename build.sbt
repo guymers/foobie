@@ -98,6 +98,23 @@ lazy val commonSettings = Seq(
     case Some((2, _)) => Seq(compilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full))
     case _ => Seq.empty
   }),
+
+  Compile / compile / wartremoverErrors := Warts.all,
+  Compile / compile / wartremoverErrors --= Seq(
+    Wart.Any,
+    Wart.DefaultArguments,
+    Wart.Equals,
+    Wart.ImplicitConversion, // TODO remove
+    Wart.ImplicitParameter,
+    Wart.Nothing,
+    Wart.Overloading,
+    Wart.PublicInference,
+  ),
+  Test / compile / wartremoverErrors := Seq(
+    Wart.NonUnitStatements,
+    Wart.Null,
+    Wart.Return,
+  ),
 )
 
 def filterScalacConsoleOpts(options: Seq[String]) = {
@@ -154,7 +171,7 @@ lazy val free = module("free")
       classOf[java.sql.PreparedStatement],
       classOf[java.sql.CallableStatement],
       classOf[java.sql.ResultSet]
-    )
+    ),
   )
 
 lazy val core = module("core")
@@ -327,7 +344,8 @@ lazy val specs2 = module("specs2")
       "org.specs2" %% "specs2-core" % specs2Version,
 
       "com.h2database" % "h2" % h2Version % Test,
-    )
+    ),
+    Test / compile / wartremoverErrors --= Seq(Wart.NonUnitStatements),
   )
   .dependsOn(core)
 
@@ -344,6 +362,8 @@ lazy val weaver = module("weaver")
 lazy val example = project.in(file("modules/example"))
   .settings(commonSettings)
   .settings(publish / skip := true)
+  .settings(Compile / compile / wartremoverErrors := Nil)
+  .settings(Test / compile / wartremoverErrors := Nil)
   .settings(
     libraryDependencies ++= Seq(
       "co.fs2" %% "fs2-io" % fs2Version,
@@ -354,6 +374,7 @@ lazy val example = project.in(file("modules/example"))
 lazy val bench = project.in(file("modules/bench"))
   .settings(commonSettings)
   .settings(publish / skip := true)
+  .settings(Compile / compile / wartremoverErrors := Nil)
   .enablePlugins(JmhPlugin)
   .dependsOn(core, postgres)
 
@@ -361,6 +382,7 @@ lazy val docs = project.in(file("modules/docs"))
   .dependsOn(core, postgres, postgis, h2, hikari, munit, scalatest, specs2, weaver)
   .settings(commonSettings)
   .settings(publish / skip := true)
+  .settings(Compile / compile / wartremoverErrors := Nil)
   .enablePlugins(GhpagesPlugin)
   .enablePlugins(ParadoxPlugin)
   .enablePlugins(ParadoxSitePlugin)

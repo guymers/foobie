@@ -4,6 +4,7 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
@@ -50,6 +51,7 @@ object callablestatement { module =>
   type CallableStatementIO[A] = FF[CallableStatementOp, A]
 
   // Module of instances and constructors of CallableStatementOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object CallableStatementOp {
 
     // Given a CallableStatement we can embed a CallableStatementIO program in any algebra that understands embedding.
@@ -332,25 +334,27 @@ object callablestatement { module =>
     case object Realtime extends CallableStatementOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends CallableStatementOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends CallableStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: CallableStatementIO[A], fb: CallableStatementIO[B]) extends CallableStatementOp[B] {
+    final case class ForceR[A, B](fa: CallableStatementIO[A], fb: CallableStatementIO[B]) extends CallableStatementOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[CallableStatementIO] => CallableStatementIO[A]) extends CallableStatementOp[A] {
+    final case class Uncancelable[A](body: Poll[CallableStatementIO] => CallableStatementIO[A])
+      extends CallableStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: CallableStatementIO[A]) extends CallableStatementOp[A] {
+    final case class Poll1[A](poll: Any, fa: CallableStatementIO[A]) extends CallableStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends CallableStatementOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: CallableStatementIO[A], fin: CallableStatementIO[Unit]) extends CallableStatementOp[A] {
+    final case class OnCancel[A](fa: CallableStatementIO[A], fin: CallableStatementIO[Unit])
+      extends CallableStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: CallableStatementIO[Future[A]]) extends CallableStatementOp[A] {
+    final case class FromFuture[A](fut: CallableStatementIO[Future[A]]) extends CallableStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
@@ -1314,13 +1318,15 @@ object callablestatement { module =>
   def unwrap[T](a: Class[T]): CallableStatementIO[T] = FF.liftF(Unwrap(a))
   val wasNull: CallableStatementIO[Boolean] = FF.liftF(WasNull)
 
+  private val monad = FF.catsFreeMonadForFree[CallableStatementOp]
+
   // Typeclass instances for CallableStatementIO
   implicit val WeakAsyncCallableStatementIO: WeakAsync[CallableStatementIO] =
     new WeakAsync[CallableStatementIO] {
-      val monad = FF.catsFreeMonadForFree[CallableStatementOp]
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): CallableStatementIO[A] = monad.pure(x)
+      override def map[A, B](fa: CallableStatementIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: CallableStatementIO[A])(f: A => CallableStatementIO[B]): CallableStatementIO[B] =
         monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => CallableStatementIO[Either[A, B]]): CallableStatementIO[B] =
@@ -1340,5 +1346,12 @@ object callablestatement { module =>
       override def onCancel[A](fa: CallableStatementIO[A], fin: CallableStatementIO[Unit]): CallableStatementIO[A] =
         module.onCancel(fa, fin)
       override def fromFuture[A](fut: CallableStatementIO[Future[A]]): CallableStatementIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidCallableStatementIO[A](implicit M: Monoid[A]): Monoid[CallableStatementIO[A]] =
+    new Monoid[CallableStatementIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: CallableStatementIO[A], y: CallableStatementIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

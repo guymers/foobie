@@ -48,6 +48,7 @@ trait Instances {
   implicit val UuidType: Meta[UUID] = Meta.Advanced.other[UUID]("uuid")
 
   // Network Address Types
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
   implicit val InetType: Meta[InetAddress] = Meta.Advanced.other[PGobject]("inet").timap[InetAddress](o =>
     Option(o).map(a => InetAddress.getByName(a.getValue)).orNull,
   )(a =>
@@ -75,11 +76,7 @@ trait Instances {
   // automatic lifting to Meta will give us lifted and unlifted arrays, for a total of four variants
   // of each 1-d array type. In the non-nullable case we simply check for nulls and perform a cast;
   // in the nullable case we must copy the array in both directions to lift/unlift Option.
-  @SuppressWarnings(Array(
-    "org.wartremover.warts.Equals",
-    "org.wartremover.warts.ArrayEquals",
-    "org.wartremover.warts.Throw",
-  ))
+  @SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.Throw"))
   private def boxedPair[A >: Null <: AnyRef: ClassTag](
     elemType: String,
     arrayType: String,
@@ -137,11 +134,7 @@ trait Instances {
   // equivalent of A, otherwise this will fail in spectacular fashion, and we're using a cast in the
   // lifted case because the representation is identical, assuming no nulls. In the long run this
   // may need to become something slower but safer. Unclear.
-  @SuppressWarnings(Array(
-    "org.wartremover.warts.Equals",
-    "org.wartremover.warts.ArrayEquals",
-    "org.wartremover.warts.AsInstanceOf",
-  ))
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Null"))
   private def unboxedPair[A >: Null <: AnyRef: ClassTag, B <: AnyVal: ClassTag](f: A => B, g: B => A)(
     implicit
     boxed: Meta[Array[A]],
@@ -177,10 +170,11 @@ trait Instances {
   implicit val liftedUnboxedDoubleArrayType: Meta[Array[Option[scala.Double]]] = unboxedPairDouble._2
 
   // Arrays of scala.BigDecimal - special case as BigDecimal can be null
-  @SuppressWarnings(Array("org.wartremover.warts.Equals"))
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
   implicit val bigDecimalMeta: Meta[Array[BigDecimal]] = Meta[Array[java.math.BigDecimal]]
     .timap(_.map(a => if (a == null) null else BigDecimal.apply(a)))(_.map(a => if (a == null) null else a.bigDecimal))
-  @SuppressWarnings(Array("org.wartremover.warts.Equals"))
+
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
   implicit val optionBigDecimalMeta: Meta[Array[Option[BigDecimal]]] = Meta[Array[Option[java.math.BigDecimal]]]
     .timap(_.map(_.map(a => if (a == null) null else BigDecimal.apply(a))))(_.map(_.map(a =>
       if (a == null) null else a.bigDecimal,
@@ -206,13 +200,13 @@ trait Instances {
       (rs, n) => rs.getString(n),
       (ps, n, a) => {
         val o = new PGobject
-        o.setValue(a.toString)
+        o.setValue(a)
         o.setType(name)
         ps.setObject(n, o)
       },
       (rs, n, a) => {
         val o = new PGobject
-        o.setValue(a.toString)
+        o.setValue(a)
         o.setType(name)
         rs.updateObject(n, o)
       },
@@ -237,9 +231,9 @@ trait Instances {
    * Construct a `Meta` for value members of the given `Enumeration`.
    */
   @SuppressWarnings(Array(
-    "org.wartremover.warts.NonUnitStatements",
-    "org.wartremover.warts.ToString",
+    "org.wartremover.warts.Enumeration",
     "org.wartremover.warts.Throw",
+    "org.wartremover.warts.ToString",
   ))
   def pgEnum(e: Enumeration, name: String): Meta[e.Value] =
     pgEnumString[e.Value](

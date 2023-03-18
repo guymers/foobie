@@ -53,6 +53,7 @@ object fragment {
           case Opt(a, _) => a
         }.toList
 
+        @SuppressWarnings(Array("org.wartremover.warts.Var", "org.wartremover.warts.While"))
         override def unsafeSet(ps: PreparedStatement, i: Int, es: elems.type) = {
           var index = i
           val it = es.iterator
@@ -65,6 +66,7 @@ object fragment {
           }
         }
 
+        @SuppressWarnings(Array("org.wartremover.warts.Var", "org.wartremover.warts.While"))
         override def unsafeUpdate(rs: ResultSet, i: Int, es: elems.type) = {
           var index = i
           val it = es.iterator

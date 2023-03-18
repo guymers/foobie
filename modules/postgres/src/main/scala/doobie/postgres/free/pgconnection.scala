@@ -4,6 +4,7 @@
 
 package doobie.postgres.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
@@ -18,8 +19,6 @@ import org.postgresql.jdbc.PreferQueryMode
 import org.postgresql.largeobject.LargeObjectManager
 import org.postgresql.replication.PGReplicationConnection
 
-import java.lang.Class
-import java.lang.String
 import java.sql.Array as SqlArray
 import java.util.Map
 import scala.concurrent.Future
@@ -36,6 +35,7 @@ object pgconnection { module =>
   type PGConnectionIO[A] = FF[PGConnectionOp, A]
 
   // Module of instances and constructors of PGConnectionOp.
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
   object PGConnectionOp {
 
     // Given a PGConnection we can embed a PGConnectionIO program in any algebra that understands embedding.
@@ -111,25 +111,25 @@ object pgconnection { module =>
     case object Realtime extends PGConnectionOp[FiniteDuration] {
       def visit[F[_]](v: Visitor[F]) = v.realTime
     }
-    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends PGConnectionOp[A] {
+    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends PGConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     }
-    case class ForceR[A, B](fa: PGConnectionIO[A], fb: PGConnectionIO[B]) extends PGConnectionOp[B] {
+    final case class ForceR[A, B](fa: PGConnectionIO[A], fb: PGConnectionIO[B]) extends PGConnectionOp[B] {
       def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     }
-    case class Uncancelable[A](body: Poll[PGConnectionIO] => PGConnectionIO[A]) extends PGConnectionOp[A] {
+    final case class Uncancelable[A](body: Poll[PGConnectionIO] => PGConnectionIO[A]) extends PGConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     }
-    case class Poll1[A](poll: Any, fa: PGConnectionIO[A]) extends PGConnectionOp[A] {
+    final case class Poll1[A](poll: Any, fa: PGConnectionIO[A]) extends PGConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     }
     case object Canceled extends PGConnectionOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.canceled
     }
-    case class OnCancel[A](fa: PGConnectionIO[A], fin: PGConnectionIO[Unit]) extends PGConnectionOp[A] {
+    final case class OnCancel[A](fa: PGConnectionIO[A], fin: PGConnectionIO[Unit]) extends PGConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    case class FromFuture[A](fut: PGConnectionIO[Future[A]]) extends PGConnectionOp[A] {
+    final case class FromFuture[A](fut: PGConnectionIO[Future[A]]) extends PGConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
@@ -251,13 +251,15 @@ object pgconnection { module =>
   def setDefaultFetchSize(a: Int): PGConnectionIO[Unit] = FF.liftF(SetDefaultFetchSize(a))
   def setPrepareThreshold(a: Int): PGConnectionIO[Unit] = FF.liftF(SetPrepareThreshold(a))
 
+  private val monad = FF.catsFreeMonadForFree[PGConnectionOp]
+
   // Typeclass instances for PGConnectionIO
   implicit val WeakAsyncPGConnectionIO: WeakAsync[PGConnectionIO] =
     new WeakAsync[PGConnectionIO] {
-      val monad = FF.catsFreeMonadForFree[PGConnectionOp]
       override val applicative = monad
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): PGConnectionIO[A] = monad.pure(x)
+      override def map[A, B](fa: PGConnectionIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: PGConnectionIO[A])(f: A => PGConnectionIO[B]): PGConnectionIO[B] =
         monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => PGConnectionIO[Either[A, B]]): PGConnectionIO[B] = monad.tailRecM(a)(f)
@@ -274,5 +276,12 @@ object pgconnection { module =>
       override def onCancel[A](fa: PGConnectionIO[A], fin: PGConnectionIO[Unit]): PGConnectionIO[A] =
         module.onCancel(fa, fin)
       override def fromFuture[A](fut: PGConnectionIO[Future[A]]): PGConnectionIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidPGConnectionIO[A](implicit M: Monoid[A]): Monoid[PGConnectionIO[A]] =
+    new Monoid[PGConnectionIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: PGConnectionIO[A], y: PGConnectionIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

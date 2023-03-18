@@ -17,13 +17,12 @@ object FreeGen2 {
     freeGen2Dir := (Compile / sourceManaged).value,
     freeGen2Package := "doobie.free",
     freeGen2Renames := Map(classOf[java.sql.Array] -> "SqlArray"),
-    freeGen2 :=
-      new FreeGen2(
-        freeGen2Classes.value,
-        freeGen2Package.value,
-        freeGen2Renames.value,
-        state.value.log,
-      ).gen(freeGen2Dir.value),
+    freeGen2 := new FreeGen2(
+      freeGen2Classes.value,
+      freeGen2Package.value,
+      freeGen2Renames.value,
+      state.value.log,
+    ).gen(freeGen2Dir.value),
   )
 
 }
@@ -56,9 +55,9 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
         s"${toScalaType(t.getRawType)}${t.getActualTypeArguments.map(toScalaType).mkString("[", ", ", "]")}"
       case t: WildcardType =>
         t.getUpperBounds.toList.filterNot(_ == classOf[Object]) match {
-          case (c: Class[_]) :: Nil => s"_ <: ${c.getName}"
-          case Nil => "_"
-          case cs => sys.error("unhandled upper bounds: " + cs.toList)
+          case (c: Class[_]) :: Nil => s"? <: ${c.getName}"
+          case Nil => "?"
+          case cs => sys.error("unhandled upper bounds: " + cs)
         }
       case t: TypeVariable[_] => t.toString
       case ClassVoid => "Unit"
@@ -215,6 +214,7 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |import cats.~>
     |import cats.effect.kernel.{ CancelScope, Poll, Sync }
     |import cats.free.Free as FF // alias because some algebras have an op called Free
+    |import cats.Monoid
     |import doobie.WeakAsync
     |import scala.concurrent.Future
     |import scala.concurrent.duration.FiniteDuration
@@ -232,6 +232,7 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |  type ${ioname}[A] = FF[${opname}, A]
     |
     |  // Module of instances and constructors of ${opname}.
+    |  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
     |  object ${opname} {
     |
     |    // Given a $sname we can embed a ${ioname} program in any algebra that understands embedding.
@@ -285,25 +286,25 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |    case object Realtime extends ${opname}[FiniteDuration] {
     |      def visit[F[_]](v: Visitor[F]) = v.realTime
     |    }
-    |    case class Suspend[A](hint: Sync.Type, thunk: () => A) extends ${opname}[A] {
+    |    final case class Suspend[A](hint: Sync.Type, thunk: () => A) extends ${opname}[A] {
     |      def visit[F[_]](v: Visitor[F]) = v.suspend(hint)(thunk())
     |    }
-    |    case class ForceR[A, B](fa: ${ioname}[A], fb: ${ioname}[B]) extends ${opname}[B] {
+    |    final case class ForceR[A, B](fa: ${ioname}[A], fb: ${ioname}[B]) extends ${opname}[B] {
     |      def visit[F[_]](v: Visitor[F]) = v.forceR(fa)(fb)
     |    }
-    |    case class Uncancelable[A](body: Poll[${ioname}] => ${ioname}[A]) extends ${opname}[A] {
+    |    final case class Uncancelable[A](body: Poll[${ioname}] => ${ioname}[A]) extends ${opname}[A] {
     |      def visit[F[_]](v: Visitor[F]) = v.uncancelable(body)
     |    }
-    |    case class Poll1[A](poll: Any, fa: ${ioname}[A]) extends ${opname}[A] {
+    |    final case class Poll1[A](poll: Any, fa: ${ioname}[A]) extends ${opname}[A] {
     |      def visit[F[_]](v: Visitor[F]) = v.poll(poll, fa)
     |    }
     |    case object Canceled extends ${opname}[Unit] {
     |      def visit[F[_]](v: Visitor[F]) = v.canceled
     |    }
-    |    case class OnCancel[A](fa: ${ioname}[A], fin: ${ioname}[Unit]) extends ${opname}[A] {
+    |    final case class OnCancel[A](fa: ${ioname}[A], fin: ${ioname}[Unit]) extends ${opname}[A] {
     |      def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     |    }
-    |    case class FromFuture[A](fut: ${ioname}[Future[A]]) extends ${opname}[A] {
+    |    final case class FromFuture[A](fut: ${ioname}[Future[A]]) extends ${opname}[A] {
     |      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     |    }
     |
@@ -311,7 +312,7 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |    ${ctors[A].map(_.ctor(opname)).mkString("\n    ")}
     |
     |  }
-    |  import ${opname}._
+    |  import ${opname}.*
     |
     |  // Smart constructors for operations common to all algebras.
     |  val unit: ${ioname}[Unit] = FF.pure[${opname}, Unit](())
@@ -336,13 +337,15 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |  // Smart constructors for $oname-specific operations.
     |  ${ctors[A].map(_.lifted(ioname)).mkString("\n  ")}
     |
+    |  private val monad = FF.catsFreeMonadForFree[${opname}]
+    |
     |  // Typeclass instances for ${ioname}
     |  implicit val WeakAsync${ioname}: WeakAsync[${ioname}] =
     |    new WeakAsync[${ioname}] {
-    |      val monad = FF.catsFreeMonadForFree[${opname}]
     |      override val applicative = monad
     |      override val rootCancelScope = CancelScope.Cancelable
     |      override def pure[A](x: A): ${ioname}[A] = monad.pure(x)
+    |      override def map[A, B](fa: ${ioname}[A])(f: A => B) = monad.map(fa)(f)
     |      override def flatMap[A, B](fa: ${ioname}[A])(f: A => ${ioname}[B]): ${ioname}[B] = monad.flatMap(fa)(f)
     |      override def tailRecM[A, B](a: A)(f: A => ${ioname}[Either[A, B]]): ${ioname}[B] = monad.tailRecM(a)(f)
     |      override def raiseError[A](e: Throwable): ${ioname}[A] = module.raiseError(e)
@@ -356,6 +359,13 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |      override def onCancel[A](fa: ${ioname}[A], fin: ${ioname}[Unit]): ${ioname}[A] = module.onCancel(fa, fin)
     |      override def fromFuture[A](fut: ${ioname}[Future[A]]): ${ioname}[A] = module.fromFuture(fut)
     |    }
+    |
+    |  implicit def Monoid${ioname}[A](implicit M: Monoid[A]): Monoid[${ioname}[A]] =
+    |    new Monoid[${ioname}[A]] {
+    |      override val empty = monad.pure(M.empty)
+    |      override def combine(x: ${ioname}[A], y: ${ioname}[A]) =
+    |        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
+    |  }
     |}
     |""".trim.stripMargin
   }
@@ -491,6 +501,7 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
       |  def uncancelable[G[_], J, A](interpreter: G ~> Kleisli[M, J, *], capture: Poll[M] => Poll[Free[G, *]])(body: Poll[Free[G, *]] => Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
       |    asyncM.uncancelable(body.compose(capture).andThen(_.foldMap(interpreter).run(j)))
       |  )
+      |  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
       |  def poll[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(mpoll: Any, fa: Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
       |    mpoll.asInstanceOf[Poll[M]].apply(fa.foldMap(interpreter).run(j))
       |  )

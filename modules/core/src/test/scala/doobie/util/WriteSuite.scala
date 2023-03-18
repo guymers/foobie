@@ -35,10 +35,10 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
     test("exist for some fancy types") {
       import doobie.util.Write.Auto.*
 
-      Write[Int]: Unit
-      Write[(Int, Int)]: Unit
-      Write[(Int, Int, String)]: Unit
-      Write[(Int, (Int, String))]: Unit
+      val _ = Write[Int]
+      val _ = Write[(Int, Int)]
+      val _ = Write[(Int, Int, String)]
+      val _ = Write[(Int, (Int, String))]
       assertCompletes
     },
     test("is not auto derived without an import") {
@@ -54,24 +54,26 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
       import doobie.util.Write.Auto.*
 
       class Foo[A: Write, B: Write] {
-        Write[(A, B)]: Unit
+        locally {
+          val _ = Write[(A, B)]
+        }
       }
       assertCompletes
     },
     test("exist for Unit") {
       import doobie.util.Write.Auto.*
 
-      Write[Unit]: Unit
+      val _ = Write[Unit]
       assertTrue(Write[(Int, Unit)].length == 1)
     },
     test("exist for option of some fancy types") {
       import doobie.util.Write.Auto.*
 
-      Write[Option[Int]]: Unit
-      Write[Option[(Int, Int)]]: Unit
-      Write[Option[(Int, Int, String)]]: Unit
-      Write[Option[(Int, (Int, String))]]: Unit
-      Write[Option[(Int, Option[(Int, String)])]]: Unit
+      val _ = Write[Option[Int]]
+      val _ = Write[Option[(Int, Int)]]
+      val _ = Write[Option[(Int, Int, String)]]
+      val _ = Write[Option[(Int, (Int, String))]]
+      val _ = Write[Option[(Int, Option[(Int, String)])]]
       assertCompletes
     },
     test("auto derives nested types") {
@@ -100,17 +102,17 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
     test("exist for some fancy types") {
       import doobie.util.Write.Auto.*
 
-      Write[Woozle]: Unit
-      Write[(Woozle, String)]: Unit
-      Write[(Int, (Woozle, Woozle, String))]: Unit
+      val _ = Write[Woozle]
+      val _ = Write[(Woozle, String)]
+      val _ = Write[(Int, (Woozle, Woozle, String))]
       assertCompletes
     },
     test("exist for option of some fancy types") {
       import doobie.util.Write.Auto.*
 
-      Write[Option[Woozle]]: Unit
-      Write[Option[(Woozle, String)]]: Unit
-      Write[Option[(Int, (Woozle, Woozle, String))]]: Unit
+      val _ = Write[Option[Woozle]]
+      val _ = Write[Option[(Woozle, String)]]
+      val _ = Write[Option[(Int, (Woozle, Woozle, String))]]
       assertCompletes
     },
     suite("platform specific")(platformTests*),
