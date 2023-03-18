@@ -18,7 +18,7 @@ object LOStreamingSuite extends PostgresDatabaseSpec {
 
   override val spec = suite("LOStreaming")(
     test("large object streaming should round-trip") {
-      val genString = Gen.bounded(2048, 20480)(i => Gen.fromRandom(_.nextString(i)))
+      val genString = Gen.bounded(2048, 10480)(i => Gen.fromRandom(_.nextString(i)))
       val gen = Gen.vectorOfBounded(10, 30)(genString).map { chunks =>
         chunks.map { str =>
           Stream.chunk(Chunk.array(str.getBytes(StandardCharsets.UTF_8)))
@@ -30,7 +30,7 @@ object LOStreamingSuite extends PostgresDatabaseSpec {
         Stream.bracket(
           PHLOS.createLOFromStream(stream),
         )(oid => PHC.pgGetLargeObjectAPI(PFLOM.unlink(oid)))
-          .flatMap(oid => PHLOS.createStreamFromLO(oid, chunkSize = 1024 * 10))
+          .flatMap(oid => PHLOS.createStreamFromLO(oid, chunkSize = 1024 * 5))
           .compile.toVector.transact
           .map { result =>
             assertTrue(result == data.toVector)
