@@ -20,6 +20,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.io.Reader
 import java.io.Writer
+import java.lang.String
 import scala.concurrent.duration.FiniteDuration
 
 object copymanager { module =>

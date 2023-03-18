@@ -20,11 +20,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install JDK 8
+      - name: Install JDK 11
         uses: actions/setup-java@v3
         with:
           distribution: zulu
-          java-version: '8'
+          java-version: '11'
           java-package: jdk
 
       - name: Cache SBT
