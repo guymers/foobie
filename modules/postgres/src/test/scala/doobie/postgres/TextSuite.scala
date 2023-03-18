@@ -4,95 +4,65 @@
 
 package doobie.postgres
 
-import cats.syntax.all.*
+import cats.syntax.apply.*
+import cats.syntax.functor.*
 import doobie.free.connection.ConnectionIO
 import doobie.postgres.implicits.*
-import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 import doobie.util.Read
-import doobie.util.fragment.Fragment
 import fs2.Stream
-import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.Gen
-import org.scalacheck.Prop.forAll
+import zio.test.Gen
+import zio.test.assertTrue
+import zio.test.check
 
-class TextSuite extends munit.ScalaCheckSuite {
-  import PostgresTestTransactor.xa
-  import TextSuite.*
-  import cats.effect.unsafe.implicits.global
+import java.nio.charset.StandardCharsets
 
-  implicit val byteListInstance: Text[List[Byte]] =
-    Text[Array[Byte]].contramap(_.toArray)
+object TextSuite extends PostgresDatabaseSpec {
 
-  val create: ConnectionIO[Unit] =
-    sql"""| CREATE TEMPORARY TABLE test (
-      |  id serial,  -- just for ordering
-      |   a text,    -- String
-      |   b int2,    -- Short
-      |   c int4,    -- Int
-      |   d int8,    -- Long
-      |   e float4,  -- Float
-      |   f float8,  -- Double
-      |   g numeric, -- BigDecimal
-      |   h boolean, -- Boolean
-      |   i bytea,   -- List[Byte]
-      |   j _text,   -- List[String]
-      |   k _int4    -- List[Int]
-      | ) ON COMMIT DELETE ROWS
-      |""".stripMargin.update.run.void
+  private val create = fr"""
+    CREATE TEMPORARY TABLE test (
+      id serial, -- just for ordering
+      a text,    -- String
+      b int2,    -- Short
+      c int4,    -- Int
+      d int8,    -- Long
+      e float4,  -- Float
+      f float8,  -- Double
+      g numeric, -- BigDecimal
+      h boolean, -- Boolean
+      i bytea,   -- List[Byte]
+      j _text,   -- List[String]
+      k _int4    -- List[Int]
+    ) ON COMMIT DROP
+  """.update.run.void
 
-  val insert: Fragment =
-    sql"""| COPY test (a, b, c, d, e, f, g, h, i, j, k)
-      | FROM STDIN
-      |""".stripMargin
+  private val insert = fr"COPY test (a, b, c, d, e, f, g, h, i, j, k) FROM STDIN"
 
-  val selectAll: ConnectionIO[List[Row]] =
-    sql"SELECT a, b, c, d, e, f, g, h, i, j, k FROM test ORDER BY id ASC".query[Row].to[List]
+  private val selectAll = fr"SELECT a, b, c, d, e, f, g, h, i, j, k FROM test ORDER BY id ASC".query[Row].to[List]
 
-  // filter chars pg can't cope with
-  def filter(s: String): String =
-    s.replace("\u0000", "") // NUL
-      .toList
-      .map { c => if (Character.isSpaceChar(c)) ' ' else c } // high space
-      .filterNot(c => c >= 0x0e && c <= 0x1f) // low ctrl
-      .mkString
+  private val genRows = Gen.listOfBounded(0, 100)(Row.gen)
 
-  val genRow: Gen[Row] =
-    for {
-      a <- arbitrary[Option[String]].map(_.map(filter))
-      b <- arbitrary[Option[Short]]
-      c <- arbitrary[Option[Int]]
-      d <- arbitrary[Option[Long]]
-      e <- arbitrary[Option[Float]]
-      f <- arbitrary[Option[Double]]
-      g <- arbitrary[Option[BigDecimal]]
-      h <- arbitrary[Option[Boolean]]
-      i <- arbitrary[Option[List[Byte]]]
-      j <- arbitrary[Option[List[String]]].map(_.map(_.map(filter)))
-      k <- arbitrary[Option[List[Int]]]
-    } yield Row(a, b, c, d, e, f, g, h, i, j, k)
+  override val spec = suite("Text")(
+    suite("copyIn")(
+      test("insert batches of rows") {
+        check(genRows) { rs =>
+          val copyIn = insert.copyIn(rs)
+          (create *> copyIn *> selectAll).transact.map { results =>
+            assertTrue(results == rs)
+          }
+        }
+      },
+      test("insert batches of rows via Stream") {
+        check(genRows) { rs =>
+          val copyIn = insert.copyIn(Stream.emits[ConnectionIO, Row](rs), 200)
+          (create *> copyIn *> selectAll).transact.map { results =>
+            assertTrue(results == rs)
+          }
+        }
+      },
+    ),
+  )
 
-  val genRows: Gen[List[Row]] =
-    Gen.choose(0, 50).flatMap(Gen.listOfN(_, genRow))
-
-  test("copyIn should correctly insert batches of rows") {
-    forAll(genRows) { rs =>
-      val rs_ = (create *> insert.copyIn(rs) *> selectAll).transact(xa).unsafeRunSync()
-      assertEquals(rs, rs_)
-    }
-  }
-
-  test("correctly insert batches of rows via Stream") {
-    forAll(genRows) { rs =>
-      val rs_ =
-        (create *> insert.copyIn(Stream.emits[ConnectionIO, Row](rs), 100) *> selectAll).transact(xa).unsafeRunSync()
-      assertEquals(rs, rs_)
-    }
-  }
-
-}
-
-object TextSuite {
   // A test type to insert, all optional so we can check NULL
   final case class Row(
     a: Option[String],
@@ -109,6 +79,27 @@ object TextSuite {
   )
   object Row {
     implicit val read: Read[Row] = Read.derived
+
+    private val genString = Gen.bounded(0, 2048)(i => Gen.fromRandom(_.nextString(i))).map { str =>
+      // filter chars pg can't cope with
+      str.replace("\u0000", "") // NUL
+        .map(c => if (Character.isSpaceChar(c)) ' ' else c) // high space
+        .filterNot(c => c >= 0x0e && c <= 0x1f) // low ctrl
+    }
+
+    val gen = for {
+      a <- Gen.option(genString)
+      b <- Gen.option(Gen.short)
+      c <- Gen.option(Gen.int)
+      d <- Gen.option(Gen.long)
+      e <- Gen.option(Gen.float)
+      f <- Gen.option(Gen.double)
+      g <- Gen.option(Gen.bigDecimal(BigDecimal(Long.MinValue), BigDecimal(Long.MaxValue)))
+      h <- Gen.option(Gen.boolean)
+      i <- Gen.option(genString.map(_.getBytes(StandardCharsets.UTF_8).toList))
+      j <- Gen.option(Gen.listOfBounded(0, 10)(genString))
+      k <- Gen.option(Gen.listOfBounded(0, 10)(Gen.int))
+    } yield Row(a, b, c, d, e, f, g, h, i, j, k)
   }
 
 }

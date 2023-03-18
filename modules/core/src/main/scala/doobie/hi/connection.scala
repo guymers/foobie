@@ -7,7 +7,7 @@ package doobie.hi
 import cats.Foldable
 import cats.data.Ior
 import cats.effect.kernel.syntax.monadCancel.*
-import cats.syntax.all.*
+import cats.syntax.apply.*
 import doobie.FC
 import doobie.FCS
 import doobie.FDMD

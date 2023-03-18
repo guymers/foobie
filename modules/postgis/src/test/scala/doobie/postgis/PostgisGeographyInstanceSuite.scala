@@ -4,24 +4,29 @@
 
 package doobie.postgis
 
-import doobie.postgis.instances.geography.*
-import doobie.postgres.PostgresInstanceCheckSuite
+import doobie.postgres.PostgresDatabaseSpec
 import net.postgis.jdbc.geometry.*
+import zio.test.Gen
 
-class PostgisGeographyInstanceSuite extends munit.ScalaCheckSuite with PostgresInstanceCheckSuite {
+object PostgisGeographyInstanceSuite extends PostgresDatabaseSpec {
+  import doobie.postgis.instances.geography.*
+  import doobie.postgres.PostgresTypesSuite.suiteGetPut
 
-  def createPoint(lat: Double, lon: Double): Point = {
+  private def createPoint(lat: Double, lon: Double): Point = {
     val p = new Point(lon, lat)
     p.setSrid(4326)
-
     p
   }
-  val point1 = createPoint(1, 2)
-  val point2 = createPoint(1, 3)
-  val lineString = new LineString(Array[Point](point1, point2))
-  lineString.setSrid(4326)
+  private val point1 = createPoint(1, 2)
+  private val point2 = createPoint(1, 3)
+  private val lineString = {
+    val ls = new LineString(Array[Point](point1, point2))
+    ls.setSrid(4326)
+    ls
+  }
 
-  // test geography points
-  testInOut("GEOGRAPHY(POINT)", point1)
-  testInOut("GEOGRAPHY(LINESTRING)", lineString)
+  override val spec = suite("PostgisGeometryInstances")(
+    suiteGetPut("GEOGRAPHY(POINT)", Gen.const(point1)),
+    suiteGetPut("GEOGRAPHY(LINESTRING)", Gen.const(lineString)),
+  )
 }

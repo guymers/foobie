@@ -6,14 +6,12 @@ package doobie.postgres
 
 import doobie.postgres.enums.*
 import doobie.postgres.implicits.*
-import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 import doobie.util.invariant.*
 import doobie.util.meta.Meta
+import zio.test.assertTrue
 
-class ReadErrorSuite extends munit.FunSuite {
-  import PostgresTestTransactor.xa
-  import cats.effect.unsafe.implicits.global
+object ReadErrorSuite extends PostgresDatabaseSpec {
 
   implicit val MyEnumMetaOpt: Meta[MyEnum] = pgEnumStringOpt(
     "myenum",
@@ -30,19 +28,22 @@ class ReadErrorSuite extends munit.FunSuite {
   implicit val MyScalaEnumMeta: Meta[MyScalaEnum.Value] = pgEnum(MyScalaEnum, "myenum")
   implicit val MyJavaEnumMeta: Meta[MyJavaEnum] = pgJavaEnum[MyJavaEnum]("myenum")
 
-  test("pgEnumStringOpt") {
-    val r = sql"select 'invalid'".query[MyEnum].unique.transact(xa).attempt.unsafeRunSync()
-    assertEquals(r, Left(InvalidEnum[MyEnum]("invalid")))
-  }
-
-  test("pgEnum") {
-    val r = sql"select 'invalid' :: myenum".query[MyScalaEnum.Value].unique.transact(xa).attempt.unsafeRunSync()
-    assertEquals(r, Left(InvalidEnum[MyScalaEnum.Value]("invalid")))
-  }
-
-  test("pgJavaEnum") {
-    val r = sql"select 'invalid' :: myenum".query[MyJavaEnum].unique.transact(xa).attempt.unsafeRunSync()
-    assertEquals(r, Left(InvalidEnum[MyJavaEnum]("invalid")))
-  }
+  override val spec = suite("ReadError")(
+    test("pgEnumStringOpt") {
+      fr"select 'invalid'".query[MyEnum].unique.transact.either.map { result =>
+        assertTrue(result == Left(InvalidEnum[MyEnum]("invalid")))
+      }
+    },
+    test("pgEnum") {
+      fr"select 'invalid' :: myenum".query[MyScalaEnum.Value].unique.transact.either.map { result =>
+        assertTrue(result == Left(InvalidEnum[MyScalaEnum.Value]("invalid")))
+      }
+    },
+    test("pgJavaEnum") {
+      fr"select 'invalid' :: myenum".query[MyJavaEnum].unique.transact.either.map { result =>
+        assertTrue(result == Left(InvalidEnum[MyJavaEnum]("invalid")))
+      }
+    },
+  )
 
 }

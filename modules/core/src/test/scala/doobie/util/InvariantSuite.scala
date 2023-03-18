@@ -4,9 +4,15 @@
 
 package doobie.util
 
-class invariantspec extends munit.FunSuite {
-  test("NonNullableColumnRead should include a one-based indexing disclaimer") {
-    val ex = invariant.NonNullableColumnRead(1, doobie.enumerated.JdbcType.Array)
-    assert(ex.getMessage.contains("is 1-based"))
-  }
+import zio.test.ZIOSpecDefault
+import zio.test.assertTrue
+
+object InvariantSuite extends ZIOSpecDefault {
+
+  override val spec = suite("Invariant")(
+    test("NonNullableColumnRead should include a one-based indexing disclaimer") {
+      val ex = invariant.NonNullableColumnRead(1, doobie.enumerated.JdbcType.Array)
+      assertTrue(ex.getMessage.contains("is 1-based"))
+    },
+  )
 }

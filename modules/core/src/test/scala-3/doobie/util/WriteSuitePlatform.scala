@@ -4,16 +4,22 @@
 
 package doobie.util
 
-trait WriteSuitePlatform { self: munit.FunSuite =>
+import doobie.test.illTyped
+import zio.test.assertCompletes
 
-  test("derives") {
-    case class Foo(a: String, b: Int) derives Write
-  }
+trait WriteSuitePlatform { self: WriteSuite.type =>
 
-  test("does not auto derive") {
-    val _ = compileErrors("""
-      case class Foo(a: String, b: Int)
-      case class Bar(a: String, foo: Foo) derives Write
-    """)
-  }
+  protected def platformTests = List(
+    test("derives") {
+      case class Foo(a: String, b: Int) derives Write
+      assertCompletes
+    },
+    test("does not auto derive") {
+      val _ = illTyped("""
+        case class Foo(a: String, b: Int)
+        case class Bar(a: String, foo: Foo) derives Write
+      """)
+      assertCompletes
+    },
+  )
 }

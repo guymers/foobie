@@ -15,7 +15,7 @@ import java.io.OutputStream
 
 object largeobject {
 
-  lazy val io = new IOActions[LargeObjectIO]
+  val io = new IOActions[LargeObjectIO]
 
   def copyFromFile(blockSize: Int, file: File): LargeObjectIO[Unit] =
     PFLO.getOutputStream.flatMap { os => io.copyFileToStream(blockSize, file, os) *> io.flush(os) }

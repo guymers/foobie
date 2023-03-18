@@ -17,7 +17,6 @@ import scala.annotation.nowarn
  * @see
  *   [[https://www.postgresql.org/docs/9.6/static/sql-copy.html Postgres `COPY` command]]
  */
-
 trait Text[A] { outer =>
 
   /**
@@ -156,14 +155,13 @@ trait TextInstances extends TextInstances0 { this: Text.type =>
       }
     }
 
+  implicit val byteListInstance: Text[List[Byte]] = byteArrayInstance.contramap(_.toArray)
+
   // Any non-option Text can be lifted to Option
-  implicit def option[A](
-    implicit csv: Text[A],
-  ): Text[Option[A]] =
-    instance {
-      case (Some(a), sb) => { csv.unsafeEncode(a, sb); () }
-      case (None, sb) => { sb.append(Text.NULL); () }
-    }
+  implicit def option[A](implicit csv: Text[A]): Text[Option[A]] = instance {
+    case (Some(a), sb) => { csv.unsafeEncode(a, sb); () }
+    case (None, sb) => { sb.append(Text.NULL); () }
+  }
 
 }
 

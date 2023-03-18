@@ -7,7 +7,10 @@ package doobie.hi
 import cats.Foldable
 import cats.data.Ior
 import cats.effect.kernel.syntax.monadCancel.*
-import cats.syntax.all.*
+import cats.syntax.applicative.*
+import cats.syntax.apply.*
+import cats.syntax.foldable.*
+import cats.syntax.traverse.*
 import doobie.FPS
 import doobie.FRS
 import doobie.enumerated.ColumnNullable

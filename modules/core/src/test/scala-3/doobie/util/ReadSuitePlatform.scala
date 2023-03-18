@@ -4,16 +4,22 @@
 
 package doobie.util
 
-trait ReadSuitePlatform { self: munit.FunSuite =>
+import doobie.test.illTyped
+import zio.test.assertCompletes
 
-  test("derives") {
-    case class Foo(a: String, b: Int) derives Read
-  }
+trait ReadSuitePlatform { self: ReadSuite.type =>
 
-  test("does not auto derive") {
-    val _ = compileErrors("""
-      case class Foo(a: String, b: Int)
-      case class Bar(a: String, foo: Foo) derives Read
-    """)
-  }
+  protected def platformTests = List(
+    test("derives") {
+      case class Foo(a: String, b: Int) derives Read
+      assertCompletes
+    },
+    test("does not auto derive") {
+      val _ = illTyped("""
+        case class Foo(a: String, b: Int)
+        case class Bar(a: String, foo: Foo) derives Read
+      """)
+      assertCompletes
+    },
+  )
 }

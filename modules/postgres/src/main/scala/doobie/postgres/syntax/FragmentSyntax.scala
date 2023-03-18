@@ -10,7 +10,6 @@ import cats.effect.kernel.Resource
 import cats.syntax.all.*
 import doobie.free.connection.ConnectionIO
 import doobie.postgres.*
-import doobie.postgres.hi.PHC
 import doobie.util.fragment.Fragment
 import fs2.Stream
 import fs2.text.utf8.encode

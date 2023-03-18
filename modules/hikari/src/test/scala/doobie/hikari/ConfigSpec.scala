@@ -4,60 +4,59 @@
 
 package doobie.hikari
 
-import cats.effect.IO
+import cats.effect.SyncIO
 import com.zaxxer.hikari.HikariConfig
+import zio.test.ZIOSpecDefault
+import zio.test.assertTrue
 
-class ConfigSpec extends munit.FunSuite {
+object ConfigSpec extends ZIOSpecDefault {
 
-  test("Default should be the same as unmodified HikariConfig") {
+  override val spec = suite("Config")(
+    test("Default should be the same as unmodified HikariConfig") {
+      val poolName = "poolName"
 
-    import cats.effect.unsafe.implicits.global
+      val actual = Config.makeHikariConfig[SyncIO](Config("jdbcUrl", poolName = Some(poolName))).unsafeRunSync()
+      val expected = {
+        val c = new HikariConfig()
+        c.setJdbcUrl("jdbcUrl") // mandatory argument
+        c.setPoolName(poolName) // otherwise the pool name is generated
+        c.validate()
+        c
+      }
 
-    val actual = Config.makeHikariConfig[IO](Config("jdbcUrl", poolName = Some("poolName"))).unsafeRunSync()
-    val expected = {
-      val c = new HikariConfig()
-      c.setJdbcUrl("jdbcUrl") // mandatory argument
-      c.setPoolName("poolName") // otherwise the pool name is generated
-      c.validate()
-      c
-    }
-
-    assertEquals(actual.getJdbcUrl, expected.getJdbcUrl)
-
-    assertEquals(actual.getCatalog, expected.getCatalog)
-    assertEquals(actual.getConnectionTimeout, expected.getConnectionTimeout)
-    assertEquals(actual.getIdleTimeout, expected.getIdleTimeout)
-    assertEquals(actual.getLeakDetectionThreshold, expected.getLeakDetectionThreshold)
-    assertEquals(actual.getMaximumPoolSize, expected.getMaximumPoolSize)
-    assertEquals(actual.getMaxLifetime, expected.getMaxLifetime)
-    assertEquals(actual.getMinimumIdle, expected.getMinimumIdle)
-    assertEquals(actual.getPassword, expected.getPassword)
-    assertEquals(actual.getPoolName, expected.getPoolName)
-    assertEquals(actual.getUsername, expected.getUsername)
-    assertEquals(actual.getValidationTimeout, expected.getValidationTimeout)
-
-    assertEquals(actual.isAllowPoolSuspension, expected.isAllowPoolSuspension)
-    assertEquals(actual.isAutoCommit, expected.isAutoCommit)
-    assertEquals(actual.getConnectionInitSql, expected.getConnectionInitSql)
-    assertEquals(actual.getConnectionTestQuery, expected.getConnectionTestQuery)
-    assertEquals(actual.getDataSourceClassName, expected.getDataSourceClassName)
-    assertEquals(actual.getDataSourceJNDI, expected.getDataSourceJNDI)
-    assertEquals(actual.getDriverClassName, expected.getDriverClassName)
-    assertEquals(actual.getInitializationFailTimeout, expected.getInitializationFailTimeout)
-    assertEquals(actual.isIsolateInternalQueries, expected.isIsolateInternalQueries)
-    assertEquals(actual.isReadOnly, expected.isReadOnly)
-    assertEquals(actual.isRegisterMbeans, expected.isRegisterMbeans)
-    assertEquals(actual.getSchema, expected.getSchema)
-    assertEquals(actual.getTransactionIsolation, expected.getTransactionIsolation)
-
-    assertEquals(actual.getDataSource, expected.getDataSource)
-    assertEquals(actual.getDataSourceProperties, expected.getDataSourceProperties)
-    assertEquals(actual.getHealthCheckProperties, expected.getHealthCheckProperties)
-    assertEquals(actual.getHealthCheckRegistry, expected.getHealthCheckRegistry)
-    assertEquals(actual.getMetricRegistry, expected.getMetricRegistry)
-    assertEquals(actual.getMetricsTrackerFactory, expected.getMetricsTrackerFactory)
-    assertEquals(actual.getScheduledExecutor, expected.getScheduledExecutor)
-    assertEquals(actual.getThreadFactory, expected.getThreadFactory)
-
-  }
+      assertTrue(actual.getJdbcUrl == expected.getJdbcUrl) &&
+      assertTrue(actual.getCatalog == expected.getCatalog) &&
+      assertTrue(actual.getConnectionTimeout == expected.getConnectionTimeout) &&
+      assertTrue(actual.getIdleTimeout == expected.getIdleTimeout) &&
+      assertTrue(actual.getLeakDetectionThreshold == expected.getLeakDetectionThreshold) &&
+      assertTrue(actual.getMaximumPoolSize == expected.getMaximumPoolSize) &&
+      assertTrue(actual.getMaxLifetime == expected.getMaxLifetime) &&
+      assertTrue(actual.getMinimumIdle == expected.getMinimumIdle) &&
+      assertTrue(actual.getPassword == expected.getPassword) &&
+      assertTrue(actual.getPoolName == expected.getPoolName) &&
+      assertTrue(actual.getUsername == expected.getUsername) &&
+      assertTrue(actual.getValidationTimeout == expected.getValidationTimeout) &&
+      assertTrue(actual.isAllowPoolSuspension == expected.isAllowPoolSuspension) &&
+      assertTrue(actual.isAutoCommit == expected.isAutoCommit) &&
+      assertTrue(actual.getConnectionInitSql == expected.getConnectionInitSql) &&
+      assertTrue(actual.getConnectionTestQuery == expected.getConnectionTestQuery) &&
+      assertTrue(actual.getDataSourceClassName == expected.getDataSourceClassName) &&
+      assertTrue(actual.getDataSourceJNDI == expected.getDataSourceJNDI) &&
+      assertTrue(actual.getDriverClassName == expected.getDriverClassName) &&
+      assertTrue(actual.getInitializationFailTimeout == expected.getInitializationFailTimeout) &&
+      assertTrue(actual.isIsolateInternalQueries == expected.isIsolateInternalQueries) &&
+      assertTrue(actual.isReadOnly == expected.isReadOnly) &&
+      assertTrue(actual.isRegisterMbeans == expected.isRegisterMbeans) &&
+      assertTrue(actual.getSchema == expected.getSchema) &&
+      assertTrue(actual.getTransactionIsolation == expected.getTransactionIsolation) &&
+      assertTrue(actual.getDataSource == expected.getDataSource) &&
+      assertTrue(actual.getDataSourceProperties == expected.getDataSourceProperties) &&
+      assertTrue(actual.getHealthCheckProperties == expected.getHealthCheckProperties) &&
+      assertTrue(actual.getHealthCheckRegistry == expected.getHealthCheckRegistry) &&
+      assertTrue(actual.getMetricRegistry == expected.getMetricRegistry) &&
+      assertTrue(actual.getMetricsTrackerFactory == expected.getMetricsTrackerFactory) &&
+      assertTrue(actual.getScheduledExecutor == expected.getScheduledExecutor) &&
+      assertTrue(actual.getThreadFactory == expected.getThreadFactory)
+    },
+  )
 }

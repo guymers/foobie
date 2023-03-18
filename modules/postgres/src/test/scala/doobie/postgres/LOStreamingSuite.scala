@@ -5,37 +5,37 @@
 package doobie.postgres
 
 import doobie.free.connection.ConnectionIO
-import doobie.syntax.connectionio.*
 import fs2.Chunk
 import fs2.Pure
 import fs2.Stream
-import org.scalacheck.Arbitrary
-import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.Gen
-import org.scalacheck.Prop.forAll
+import zio.test.Gen
+import zio.test.assertTrue
+import zio.test.check
 
-class LOStreamingSuite extends munit.ScalaCheckSuite {
-  import PostgresTestTransactor.xa
-  import cats.effect.unsafe.implicits.global
+import java.nio.charset.StandardCharsets
 
-  def genFiniteStream[F[_], A: Arbitrary]: Gen[Stream[F, A]] =
-    arbitrary[Vector[Vector[A]]].map { chunks =>
-      chunks.map { chunk =>
-        Stream.chunk(Chunk.seq(chunk))
-      }.foldLeft(Stream.empty.covaryAll[F, A])(_ ++ _)
-    }
+object LOStreamingSuite extends PostgresDatabaseSpec {
 
-  test("large object streaming should round-trip") {
-    forAll(genFiniteStream[Pure, Byte]) { data =>
-      val data0 = data.covary[ConnectionIO]
+  override val spec = suite("LOStreaming")(
+    test("large object streaming should round-trip") {
+      val genString = Gen.bounded(2048, 10480)(i => Gen.fromRandom(_.nextString(i)))
+      val gen = Gen.vectorOfBounded(10, 30)(genString).map { chunks =>
+        chunks.map { str =>
+          Stream.chunk(Chunk.array(str.getBytes(StandardCharsets.UTF_8)))
+        }.foldLeft(Stream.empty.covaryAll[Pure, Byte])(_ ++ _)
+      }
+      check(gen) { data =>
+        val stream = data.covary[ConnectionIO]
 
-      val result = Stream.bracket(PHLOS.createLOFromStream(data0))(oid =>
-        PHC.pgGetLargeObjectAPI(PFLOM.unlink(oid)),
-      ).flatMap(oid => PHLOS.createStreamFromLO(oid, chunkSize = 1024 * 10))
-        .compile.toVector.transact(xa).unsafeRunSync()
-
-      assertEquals(result, data.toVector)
-    }
-  }
-
+        Stream.bracket(
+          PHLOS.createLOFromStream(stream),
+        )(oid => PHC.pgGetLargeObjectAPI(PFLOM.unlink(oid)))
+          .flatMap(oid => PHLOS.createStreamFromLO(oid, chunkSize = 1024 * 5))
+          .compile.toVector.transact
+          .map { result =>
+            assertTrue(result == data.toVector)
+          }
+      }
+    },
+  )
 }

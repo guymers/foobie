@@ -5,32 +5,35 @@
 package doobie.util
 
 import cats.Applicative
-import cats.effect.IO
 import cats.kernel.Monoid
+import cats.syntax.applicative.*
 import cats.syntax.semigroup.*
+import doobie.H2DatabaseSpec
 import doobie.free.connection.ConnectionIO
-import doobie.syntax.connectionio.*
-import doobie.util.transactor.Transactor
+import zio.test.assertCompletes
+import zio.test.assertTrue
 
-class ConnectionIOSuite extends munit.FunSuite {
+object ConnectionIOSuite extends H2DatabaseSpec {
 
-  import cats.effect.unsafe.implicits.global
+  override val spec = suite("ConnectionIO")(
+    test("Semigroup") {
+      val prg = Applicative[ConnectionIO].pure(List(1, 2, 3))
+        .combine(Applicative[ConnectionIO].pure(List(4, 5, 6)))
+      prg.transact.map { result =>
+        assertTrue(result == List(1, 2, 3, 4, 5, 6))
+      }
+    },
+    test("Monoid") {
+      Monoid[ConnectionIO[List[Int]]].empty.transact.map { result =>
+        assertTrue(result == Nil)
+      }
+    },
+    test("ApplicativeError") {
+      import doobie.syntax.applicativeerror.*
 
-  val xa = Transactor.fromDriverManager[IO](
-    "org.h2.Driver",
-    "jdbc:h2:mem:queryspec;DB_CLOSE_DELAY=-1",
-    "sa",
-    "",
+      42.pure[ConnectionIO].attemptSql: Unit
+      assertCompletes
+    },
   )
-
-  test("Semigroup ConnectionIO") {
-    val prg = Applicative[ConnectionIO].pure(List(1, 2, 3))
-      .combine(Applicative[ConnectionIO].pure(List(4, 5, 6)))
-    assertEquals(prg.transact(xa).unsafeRunSync(), List(1, 2, 3, 4, 5, 6))
-  }
-
-  test("Monoid ConnectionIO") {
-    assertEquals(Monoid[ConnectionIO[List[Int]]].empty.transact(xa).unsafeRunSync(), Nil)
-  }
 
 }
