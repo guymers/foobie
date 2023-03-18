@@ -9,3 +9,8 @@ Currently contains the following changes:
 - `LogHandler` has been removed. Override interpreters if you want to log things.
 - removed `WeakAsync`, a `ConnectionIO` is pretty much always a database transaction and should not be mixed with an `IO` implementation
 - Requires Java 11
+
+To use add at least the core module to your project:
+```
+"io.github.guymers" %% "foobie-core" % <version>
+```
