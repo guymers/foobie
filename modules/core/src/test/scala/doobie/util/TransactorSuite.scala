@@ -47,7 +47,7 @@ object TransactorSuite extends H2DatabaseSpec {
         transactor <- ZIO.service[Transactor[Task]]
         poll = transactor.transP(instance)(fr"select 1".query[Int].stream) ++ Stream.exec(ZIO.sleep(50.millis))
         _ <- Stream.emits(List.fill(4)(poll.repeat))
-          .parJoinUnbounded
+          .parJoinUnbounded(zio.interop.catz.asyncInstance[Any])
           .take(20)
           .compile
           .drain

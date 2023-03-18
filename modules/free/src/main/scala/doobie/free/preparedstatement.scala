@@ -10,7 +10,6 @@ import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 
 import java.io.InputStream
 import java.io.Reader
@@ -34,7 +33,6 @@ import java.sql.SQLXML
 import java.sql.Time
 import java.sql.Timestamp
 import java.util.Calendar
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object preparedstatement { module =>
@@ -76,7 +74,6 @@ object preparedstatement { module =>
       def poll[A](poll: Any, fa: PreparedStatementIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: PreparedStatementIO[A], fin: PreparedStatementIO[Unit]): F[A]
-      def fromFuture[A](fut: PreparedStatementIO[Future[A]]): F[A]
 
       // PreparedStatement
       def addBatch: F[Unit]
@@ -230,9 +227,6 @@ object preparedstatement { module =>
     final case class OnCancel[A](fa: PreparedStatementIO[A], fin: PreparedStatementIO[Unit])
       extends PreparedStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
-    }
-    final case class FromFuture[A](fut: PreparedStatementIO[Future[A]]) extends PreparedStatementOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
     // PreparedStatement-specific operations.
@@ -590,7 +584,6 @@ object preparedstatement { module =>
   val canceled = FF.liftF[PreparedStatementOp, Unit](Canceled)
   def onCancel[A](fa: PreparedStatementIO[A], fin: PreparedStatementIO[Unit]) =
     FF.liftF[PreparedStatementOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: PreparedStatementIO[Future[A]]) = FF.liftF[PreparedStatementOp, A](FromFuture(fut))
 
   // Smart constructors for PreparedStatement-specific operations.
   val addBatch: PreparedStatementIO[Unit] = FF.liftF(AddBatch)
@@ -707,9 +700,8 @@ object preparedstatement { module =>
   private val monad = FF.catsFreeMonadForFree[PreparedStatementOp]
 
   // Typeclass instances for PreparedStatementIO
-  implicit val WeakAsyncPreparedStatementIO: WeakAsync[PreparedStatementIO] =
-    new WeakAsync[PreparedStatementIO] {
-      override val applicative = monad
+  implicit val SyncPreparedStatementIO: Sync[PreparedStatementIO] =
+    new Sync[PreparedStatementIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): PreparedStatementIO[A] = monad.pure(x)
       override def map[A, B](fa: PreparedStatementIO[A])(f: A => B) = monad.map(fa)(f)
@@ -731,7 +723,6 @@ object preparedstatement { module =>
       override def canceled: PreparedStatementIO[Unit] = module.canceled
       override def onCancel[A](fa: PreparedStatementIO[A], fin: PreparedStatementIO[Unit]): PreparedStatementIO[A] =
         module.onCancel(fa, fin)
-      override def fromFuture[A](fut: PreparedStatementIO[Future[A]]): PreparedStatementIO[A] = module.fromFuture(fut)
     }
 
   implicit def MonoidPreparedStatementIO[A](implicit M: Monoid[A]): Monoid[PreparedStatementIO[A]] =

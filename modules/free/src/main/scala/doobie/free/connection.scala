@@ -10,7 +10,6 @@ import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 
 import java.sql.Array as SqlArray
 import java.sql.Blob
@@ -28,7 +27,6 @@ import java.sql.Struct
 import java.util.Map
 import java.util.Properties
 import java.util.concurrent.Executor
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object connection { module =>
@@ -70,7 +68,6 @@ object connection { module =>
       def poll[A](poll: Any, fa: ConnectionIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: ConnectionIO[A], fin: ConnectionIO[Unit]): F[A]
-      def fromFuture[A](fut: ConnectionIO[Future[A]]): F[A]
 
       // Connection
       def abort(a: Executor): F[Unit]
@@ -166,9 +163,6 @@ object connection { module =>
     }
     final case class OnCancel[A](fa: ConnectionIO[A], fin: ConnectionIO[Unit]) extends ConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
-    }
-    final case class FromFuture[A](fut: ConnectionIO[Future[A]]) extends ConnectionOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
     // Connection-specific operations.
@@ -358,7 +352,6 @@ object connection { module =>
   }
   val canceled = FF.liftF[ConnectionOp, Unit](Canceled)
   def onCancel[A](fa: ConnectionIO[A], fin: ConnectionIO[Unit]) = FF.liftF[ConnectionOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: ConnectionIO[Future[A]]) = FF.liftF[ConnectionOp, A](FromFuture(fut))
 
   // Smart constructors for Connection-specific operations.
   def abort(a: Executor): ConnectionIO[Unit] = FF.liftF(Abort(a))
@@ -421,9 +414,8 @@ object connection { module =>
   private val monad = FF.catsFreeMonadForFree[ConnectionOp]
 
   // Typeclass instances for ConnectionIO
-  implicit val WeakAsyncConnectionIO: WeakAsync[ConnectionIO] =
-    new WeakAsync[ConnectionIO] {
-      override val applicative = monad
+  implicit val SyncConnectionIO: Sync[ConnectionIO] =
+    new Sync[ConnectionIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): ConnectionIO[A] = monad.pure(x)
       override def map[A, B](fa: ConnectionIO[A])(f: A => B) = monad.map(fa)(f)
@@ -440,7 +432,6 @@ object connection { module =>
         module.uncancelable(body)
       override def canceled: ConnectionIO[Unit] = module.canceled
       override def onCancel[A](fa: ConnectionIO[A], fin: ConnectionIO[Unit]): ConnectionIO[A] = module.onCancel(fa, fin)
-      override def fromFuture[A](fut: ConnectionIO[Future[A]]): ConnectionIO[A] = module.fromFuture(fut)
     }
 
   implicit def MonoidConnectionIO[A](implicit M: Monoid[A]): Monoid[ConnectionIO[A]] =

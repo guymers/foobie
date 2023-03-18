@@ -10,11 +10,9 @@ import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 
 import java.sql.Ref
 import java.util.Map
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object ref { module =>
@@ -56,7 +54,6 @@ object ref { module =>
       def poll[A](poll: Any, fa: RefIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: RefIO[A], fin: RefIO[Unit]): F[A]
-      def fromFuture[A](fut: RefIO[Future[A]]): F[A]
 
       // Ref
       def getBaseTypeName: F[String]
@@ -103,9 +100,6 @@ object ref { module =>
     final case class OnCancel[A](fa: RefIO[A], fin: RefIO[Unit]) extends RefOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    final case class FromFuture[A](fut: RefIO[Future[A]]) extends RefOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
-    }
 
     // Ref-specific operations.
     case object GetBaseTypeName extends RefOp[String] {
@@ -143,7 +137,6 @@ object ref { module =>
   }
   val canceled = FF.liftF[RefOp, Unit](Canceled)
   def onCancel[A](fa: RefIO[A], fin: RefIO[Unit]) = FF.liftF[RefOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: RefIO[Future[A]]) = FF.liftF[RefOp, A](FromFuture(fut))
 
   // Smart constructors for Ref-specific operations.
   val getBaseTypeName: RefIO[String] = FF.liftF(GetBaseTypeName)
@@ -154,9 +147,8 @@ object ref { module =>
   private val monad = FF.catsFreeMonadForFree[RefOp]
 
   // Typeclass instances for RefIO
-  implicit val WeakAsyncRefIO: WeakAsync[RefIO] =
-    new WeakAsync[RefIO] {
-      override val applicative = monad
+  implicit val SyncRefIO: Sync[RefIO] =
+    new Sync[RefIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): RefIO[A] = monad.pure(x)
       override def map[A, B](fa: RefIO[A])(f: A => B) = monad.map(fa)(f)
@@ -171,7 +163,6 @@ object ref { module =>
       override def uncancelable[A](body: Poll[RefIO] => RefIO[A]): RefIO[A] = module.uncancelable(body)
       override def canceled: RefIO[Unit] = module.canceled
       override def onCancel[A](fa: RefIO[A], fin: RefIO[Unit]): RefIO[A] = module.onCancel(fa, fin)
-      override def fromFuture[A](fut: RefIO[Future[A]]): RefIO[A] = module.fromFuture(fut)
     }
 
   implicit def MonoidRefIO[A](implicit M: Monoid[A]): Monoid[RefIO[A]] =

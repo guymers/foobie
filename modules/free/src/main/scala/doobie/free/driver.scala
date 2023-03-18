@@ -10,14 +10,12 @@ import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 
 import java.sql.Connection
 import java.sql.Driver
 import java.sql.DriverPropertyInfo
 import java.util.Properties
 import java.util.logging.Logger
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object driver { module =>
@@ -59,7 +57,6 @@ object driver { module =>
       def poll[A](poll: Any, fa: DriverIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: DriverIO[A], fin: DriverIO[Unit]): F[A]
-      def fromFuture[A](fut: DriverIO[Future[A]]): F[A]
 
       // Driver
       def acceptsURL(a: String): F[Boolean]
@@ -109,9 +106,6 @@ object driver { module =>
     final case class OnCancel[A](fa: DriverIO[A], fin: DriverIO[Unit]) extends DriverOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     }
-    final case class FromFuture[A](fut: DriverIO[Future[A]]) extends DriverOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
-    }
 
     // Driver-specific operations.
     final case class AcceptsURL(a: String) extends DriverOp[Boolean] {
@@ -159,7 +153,6 @@ object driver { module =>
   }
   val canceled = FF.liftF[DriverOp, Unit](Canceled)
   def onCancel[A](fa: DriverIO[A], fin: DriverIO[Unit]) = FF.liftF[DriverOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: DriverIO[Future[A]]) = FF.liftF[DriverOp, A](FromFuture(fut))
 
   // Smart constructors for Driver-specific operations.
   def acceptsURL(a: String): DriverIO[Boolean] = FF.liftF(AcceptsURL(a))
@@ -173,9 +166,8 @@ object driver { module =>
   private val monad = FF.catsFreeMonadForFree[DriverOp]
 
   // Typeclass instances for DriverIO
-  implicit val WeakAsyncDriverIO: WeakAsync[DriverIO] =
-    new WeakAsync[DriverIO] {
-      override val applicative = monad
+  implicit val SyncDriverIO: Sync[DriverIO] =
+    new Sync[DriverIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): DriverIO[A] = monad.pure(x)
       override def map[A, B](fa: DriverIO[A])(f: A => B) = monad.map(fa)(f)
@@ -191,7 +183,6 @@ object driver { module =>
       override def uncancelable[A](body: Poll[DriverIO] => DriverIO[A]): DriverIO[A] = module.uncancelable(body)
       override def canceled: DriverIO[Unit] = module.canceled
       override def onCancel[A](fa: DriverIO[A], fin: DriverIO[Unit]): DriverIO[A] = module.onCancel(fa, fin)
-      override def fromFuture[A](fut: DriverIO[Future[A]]): DriverIO[A] = module.fromFuture(fut)
     }
 
   implicit def MonoidDriverIO[A](implicit M: Monoid[A]): Monoid[DriverIO[A]] =

@@ -10,14 +10,12 @@ import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.Reader
 import java.io.Writer
 import java.sql.Clob
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object clob { module =>
@@ -59,7 +57,6 @@ object clob { module =>
       def poll[A](poll: Any, fa: ClobIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: ClobIO[A], fin: ClobIO[Unit]): F[A]
-      def fromFuture[A](fut: ClobIO[Future[A]]): F[A]
 
       // Clob
       def free: F[Unit]
@@ -114,9 +111,6 @@ object clob { module =>
     }
     final case class OnCancel[A](fa: ClobIO[A], fin: ClobIO[Unit]) extends ClobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
-    }
-    final case class FromFuture[A](fut: ClobIO[Future[A]]) extends ClobOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
     // Clob-specific operations.
@@ -183,7 +177,6 @@ object clob { module =>
   }
   val canceled = FF.liftF[ClobOp, Unit](Canceled)
   def onCancel[A](fa: ClobIO[A], fin: ClobIO[Unit]) = FF.liftF[ClobOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: ClobIO[Future[A]]) = FF.liftF[ClobOp, A](FromFuture(fut))
 
   // Smart constructors for Clob-specific operations.
   val free: ClobIO[Unit] = FF.liftF(Free)
@@ -203,9 +196,8 @@ object clob { module =>
   private val monad = FF.catsFreeMonadForFree[ClobOp]
 
   // Typeclass instances for ClobIO
-  implicit val WeakAsyncClobIO: WeakAsync[ClobIO] =
-    new WeakAsync[ClobIO] {
-      override val applicative = monad
+  implicit val SyncClobIO: Sync[ClobIO] =
+    new Sync[ClobIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): ClobIO[A] = monad.pure(x)
       override def map[A, B](fa: ClobIO[A])(f: A => B) = monad.map(fa)(f)
@@ -221,7 +213,6 @@ object clob { module =>
       override def uncancelable[A](body: Poll[ClobIO] => ClobIO[A]): ClobIO[A] = module.uncancelable(body)
       override def canceled: ClobIO[Unit] = module.canceled
       override def onCancel[A](fa: ClobIO[A], fin: ClobIO[Unit]): ClobIO[A] = module.onCancel(fa, fin)
-      override def fromFuture[A](fut: ClobIO[Future[A]]): ClobIO[A] = module.fromFuture(fut)
     }
 
   implicit def MonoidClobIO[A](implicit M: Monoid[A]): Monoid[ClobIO[A]] =

@@ -10,8 +10,8 @@ import cats.effect.kernel.Async
 import cats.effect.kernel.MonadCancelThrow
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Resource.ExitCase
+import cats.effect.kernel.Sync
 import cats.~>
-import doobie.WeakAsync
 import doobie.free.KleisliInterpreter
 import doobie.free.connection.ConnectionIO
 import doobie.free.connection.ConnectionOp
@@ -21,7 +21,6 @@ import doobie.free.connection.setAutoCommit
 import doobie.free.connection.unit
 import doobie.util.lens.*
 import doobie.util.yolo.Yolo
-import fs2.Pipe
 import fs2.Stream
 
 import java.sql.Connection
@@ -126,7 +125,7 @@ object transactor {
     def strategy: Strategy
 
     /** Construct a [[doobie.util.yolo.Yolo]] for REPL experimentation. */
-    def yolo(implicit ev: Async[M]): Yolo[M] = new Yolo(this)
+    def yolo(implicit ev: MonadCancelThrow[M]): Yolo[M] = new Yolo(this)
 
     /**
      * Construct a program to perform arbitrary configuration on the kernel
@@ -234,32 +233,6 @@ object transactor {
           }.scope
       }
 
-    /**
-     * Create a program expressed as `ConnectionIO` effect using a provided
-     * natural transformation `M ~> ConnectionIO` and translate it to back `M`
-     * effect.
-     */
-    def liftF[I](mkEffect: M ~> ConnectionIO => ConnectionIO[I])(implicit ev: Async[M]): M[I] =
-      WeakAsync.liftK[M, ConnectionIO].use(toConnectionIO => trans(ev).apply(mkEffect(toConnectionIO)))(ev)
-
-    /**
-     * Crate a program expressed as `Stream` with `ConnectionIO` effects using a
-     * provided natural transformation `M ~> ConnectionIO` and translate it back
-     * to a `Stream` with `M` effects.
-     */
-    def liftS[I](mkStream: M ~> ConnectionIO => Stream[ConnectionIO, I])(implicit ev: Async[M]): Stream[M, I] =
-      Stream.resource(WeakAsync.liftK[M, ConnectionIO])(ev).flatMap(toConnectionIO =>
-        transP(ev).apply(mkStream(toConnectionIO)),
-      )
-
-    /**
-     * Embed a `Pipe` with `ConnectionIO` effects inside a `Pipe` with `M`
-     * effects by lifting incoming stream to `ConnectionIO` effects and lowering
-     * outgoing stream to `M` effects.
-     */
-    def liftP[I, O](inner: Pipe[ConnectionIO, I, O])(implicit ev: Async[M]): Pipe[M, I, O] =
-      (in: Stream[M, I]) => liftS(toConnectionIO => in.translate(toConnectionIO).through(inner))
-
     private def run(c: Connection)(implicit ev: Monad[M]): ConnectionIO ~> M =
       new (ConnectionIO ~> M) {
         def apply[T](f: ConnectionIO[T]) =
@@ -358,11 +331,13 @@ object transactor {
        * @group Constructors (Partially Applied)
        */
       class FromDataSourceUnapplied[M[_]] {
-        def apply[A <: DataSource](dataSource: A, connectEC: ExecutionContext)(implicit
-          ev: Async[M],
-        ): Transactor.Aux[M, A] = {
-          val connect =
-            (dataSource: A) => Resource.fromAutoCloseable(ev.evalOn(ev.delay(dataSource.getConnection()), connectEC))
+        def apply[A <: DataSource](
+          dataSource: A,
+          connectEC: ExecutionContext,
+        )(implicit ev: Async[M]): Transactor.Aux[M, A] = {
+          val connect = (dataSource: A) => {
+            Resource.fromAutoCloseable(ev.evalOn(ev.delay(dataSource.getConnection()), connectEC))
+          }
           val interp = KleisliInterpreter[M].ConnectionInterpreter
           Transactor(dataSource, connect, interp, Strategy.default)
         }
@@ -379,7 +354,7 @@ object transactor {
     def fromConnection[M[_]]: FromConnectionUnapplied[M] = new FromConnectionUnapplied[M]
 
     class FromConnectionUnapplied[M[_]] {
-      def apply(connection: Connection)(implicit async: Async[M]): Transactor.Aux[M, Connection] = {
+      def apply(connection: Connection)(implicit sync: Sync[M]): Transactor.Aux[M, Connection] = {
         val connect = (c: Connection) => Resource.pure[M, Connection](c)
         val interp = KleisliInterpreter[M].ConnectionInterpreter
         Transactor(connection, connect, interp, Strategy.default)
@@ -408,7 +383,7 @@ object transactor {
         driver: String,
         conn: () => Connection,
         strategy: Strategy,
-      )(implicit ev: Async[M]): Transactor.Aux[M, Unit] =
+      )(implicit ev: Sync[M]): Transactor.Aux[M, Unit] =
         Transactor(
           (),
           _ => Resource.fromAutoCloseable(ev.blocking { Class.forName(driver); conn() }),
@@ -424,7 +399,7 @@ object transactor {
        * @param url
        *   a connection URL, specific to your driver
        */
-      def apply(driver: String, url: String)(implicit ev: Async[M]): Transactor.Aux[M, Unit] =
+      def apply(driver: String, url: String)(implicit ev: Sync[M]): Transactor.Aux[M, Unit] =
         create(driver, () => DriverManager.getConnection(url), Strategy.default)
 
       /**
@@ -444,7 +419,7 @@ object transactor {
         url: String,
         user: String,
         pass: String,
-      )(implicit ev: Async[M]): Transactor.Aux[M, Unit] =
+      )(implicit ev: Sync[M]): Transactor.Aux[M, Unit] =
         create(driver, () => DriverManager.getConnection(url, user, pass), Strategy.default)
 
       /**
@@ -462,7 +437,7 @@ object transactor {
         driver: String,
         url: String,
         info: java.util.Properties,
-      )(implicit ev: Async[M]): Transactor.Aux[M, Unit] =
+      )(implicit ev: Sync[M]): Transactor.Aux[M, Unit] =
         create(driver, () => DriverManager.getConnection(url, info), Strategy.default)
 
     }

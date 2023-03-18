@@ -12,9 +12,7 @@ import doobie.free.connection.ConnectionIO
 import doobie.postgres.*
 import doobie.syntax.all.*
 import doobie.util.transactor.Transactor
-import fs2.Pipe
 import fs2.Stream
-import fs2.Stream.*
 import org.postgresql.*
 
 import scala.concurrent.duration.*
@@ -45,14 +43,10 @@ object PostgresNotify extends IOApp.Simple {
     channelName: String,
     pollingInterval: FiniteDuration,
   ): Stream[IO, PGNotification] = {
-    val inner: Pipe[ConnectionIO, FiniteDuration, PGNotification] = ticks =>
-      for {
-        _ <- resource(channel(channelName))
-        _ <- ticks
-        ns <- eval(PHC.pgGetNotifications <* HC.commit)
-        n <- emits(ns)
-      } yield n
-    awakeEvery[IO](pollingInterval).through(inner.transact(xa))
+    val stream = Stream.resource(channel(channelName)) *>
+      Stream.eval(pgSleep(pollingInterval.toSeconds) *> PHC.pgGetNotifications <* HC.commit)
+        .flatMap(Stream.emits(_))
+    stream.transact(xa)
   }
 
   /** A transactor that knows how to connect to a PostgreSQL database. */
@@ -73,4 +67,5 @@ object PostgresNotify extends IOApp.Simple {
       .take(5)
       .evalMap(s => IO.delay(Console.println(s))).compile.drain
 
+  private def pgSleep(seconds: Long) = fr"SELECT pg_sleep($seconds)".query[Unit].option.as(())
 }

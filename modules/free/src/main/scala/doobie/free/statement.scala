@@ -10,13 +10,11 @@ import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 
 import java.sql.Connection
 import java.sql.ResultSet
 import java.sql.SQLWarning
 import java.sql.Statement
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object statement { module =>
@@ -58,7 +56,6 @@ object statement { module =>
       def poll[A](poll: Any, fa: StatementIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: StatementIO[A], fin: StatementIO[Unit]): F[A]
-      def fromFuture[A](fut: StatementIO[Future[A]]): F[A]
 
       // Statement
       def addBatch(a: String): F[Unit]
@@ -152,9 +149,6 @@ object statement { module =>
     }
     final case class OnCancel[A](fa: StatementIO[A], fin: StatementIO[Unit]) extends StatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
-    }
-    final case class FromFuture[A](fut: StatementIO[Future[A]]) extends StatementOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
     // Statement-specific operations.
@@ -338,7 +332,6 @@ object statement { module =>
   }
   val canceled = FF.liftF[StatementOp, Unit](Canceled)
   def onCancel[A](fa: StatementIO[A], fin: StatementIO[Unit]) = FF.liftF[StatementOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: StatementIO[Future[A]]) = FF.liftF[StatementOp, A](FromFuture(fut))
 
   // Smart constructors for Statement-specific operations.
   def addBatch(a: String): StatementIO[Unit] = FF.liftF(AddBatch(a))
@@ -397,9 +390,8 @@ object statement { module =>
   private val monad = FF.catsFreeMonadForFree[StatementOp]
 
   // Typeclass instances for StatementIO
-  implicit val WeakAsyncStatementIO: WeakAsync[StatementIO] =
-    new WeakAsync[StatementIO] {
-      override val applicative = monad
+  implicit val SyncStatementIO: Sync[StatementIO] =
+    new Sync[StatementIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): StatementIO[A] = monad.pure(x)
       override def map[A, B](fa: StatementIO[A])(f: A => B) = monad.map(fa)(f)
@@ -415,7 +407,6 @@ object statement { module =>
       override def uncancelable[A](body: Poll[StatementIO] => StatementIO[A]): StatementIO[A] = module.uncancelable(body)
       override def canceled: StatementIO[Unit] = module.canceled
       override def onCancel[A](fa: StatementIO[A], fin: StatementIO[Unit]): StatementIO[A] = module.onCancel(fa, fin)
-      override def fromFuture[A](fut: StatementIO[Future[A]]): StatementIO[A] = module.fromFuture(fut)
     }
 
   implicit def MonoidStatementIO[A](implicit M: Monoid[A]): Monoid[StatementIO[A]] =

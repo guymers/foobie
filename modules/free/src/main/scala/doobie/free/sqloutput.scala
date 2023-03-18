@@ -10,7 +10,6 @@ import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 
 import java.io.InputStream
 import java.io.Reader
@@ -30,7 +29,6 @@ import java.sql.SQLXML
 import java.sql.Struct
 import java.sql.Time
 import java.sql.Timestamp
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object sqloutput { module =>
@@ -72,7 +70,6 @@ object sqloutput { module =>
       def poll[A](poll: Any, fa: SQLOutputIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: SQLOutputIO[A], fin: SQLOutputIO[Unit]): F[A]
-      def fromFuture[A](fut: SQLOutputIO[Future[A]]): F[A]
 
       // SQLOutput
       def writeArray(a: SqlArray): F[Unit]
@@ -142,9 +139,6 @@ object sqloutput { module =>
     }
     final case class OnCancel[A](fa: SQLOutputIO[A], fin: SQLOutputIO[Unit]) extends SQLOutputOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
-    }
-    final case class FromFuture[A](fut: SQLOutputIO[Future[A]]) extends SQLOutputOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
     // SQLOutput-specific operations.
@@ -256,7 +250,6 @@ object sqloutput { module =>
   }
   val canceled = FF.liftF[SQLOutputOp, Unit](Canceled)
   def onCancel[A](fa: SQLOutputIO[A], fin: SQLOutputIO[Unit]) = FF.liftF[SQLOutputOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: SQLOutputIO[Future[A]]) = FF.liftF[SQLOutputOp, A](FromFuture(fut))
 
   // Smart constructors for SQLOutput-specific operations.
   def writeArray(a: SqlArray): SQLOutputIO[Unit] = FF.liftF(WriteArray(a))
@@ -291,9 +284,8 @@ object sqloutput { module =>
   private val monad = FF.catsFreeMonadForFree[SQLOutputOp]
 
   // Typeclass instances for SQLOutputIO
-  implicit val WeakAsyncSQLOutputIO: WeakAsync[SQLOutputIO] =
-    new WeakAsync[SQLOutputIO] {
-      override val applicative = monad
+  implicit val SyncSQLOutputIO: Sync[SQLOutputIO] =
+    new Sync[SQLOutputIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): SQLOutputIO[A] = monad.pure(x)
       override def map[A, B](fa: SQLOutputIO[A])(f: A => B) = monad.map(fa)(f)
@@ -309,7 +301,6 @@ object sqloutput { module =>
       override def uncancelable[A](body: Poll[SQLOutputIO] => SQLOutputIO[A]): SQLOutputIO[A] = module.uncancelable(body)
       override def canceled: SQLOutputIO[Unit] = module.canceled
       override def onCancel[A](fa: SQLOutputIO[A], fin: SQLOutputIO[Unit]): SQLOutputIO[A] = module.onCancel(fa, fin)
-      override def fromFuture[A](fut: SQLOutputIO[Future[A]]): SQLOutputIO[A] = module.fromFuture(fut)
     }
 
   implicit def MonoidSQLOutputIO[A](implicit M: Monoid[A]): Monoid[SQLOutputIO[A]] =

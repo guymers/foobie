@@ -10,10 +10,8 @@ import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 import org.postgresql.copy.CopyOut as PGCopyOut
 
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object copyout { module =>
@@ -55,7 +53,6 @@ object copyout { module =>
       def poll[A](poll: Any, fa: CopyOutIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: CopyOutIO[A], fin: CopyOutIO[Unit]): F[A]
-      def fromFuture[A](fut: CopyOutIO[Future[A]]): F[A]
 
       // PGCopyOut
       def cancelCopy: F[Unit]
@@ -105,9 +102,6 @@ object copyout { module =>
     }
     final case class OnCancel[A](fa: CopyOutIO[A], fin: CopyOutIO[Unit]) extends CopyOutOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
-    }
-    final case class FromFuture[A](fut: CopyOutIO[Future[A]]) extends CopyOutOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
     // PGCopyOut-specific operations.
@@ -159,7 +153,6 @@ object copyout { module =>
   }
   val canceled = FF.liftF[CopyOutOp, Unit](Canceled)
   def onCancel[A](fa: CopyOutIO[A], fin: CopyOutIO[Unit]) = FF.liftF[CopyOutOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: CopyOutIO[Future[A]]) = FF.liftF[CopyOutOp, A](FromFuture(fut))
 
   // Smart constructors for CopyOut-specific operations.
   val cancelCopy: CopyOutIO[Unit] = FF.liftF(CancelCopy)
@@ -174,9 +167,8 @@ object copyout { module =>
   private val monad = FF.catsFreeMonadForFree[CopyOutOp]
 
   // Typeclass instances for CopyOutIO
-  implicit val WeakAsyncCopyOutIO: WeakAsync[CopyOutIO] =
-    new WeakAsync[CopyOutIO] {
-      override val applicative = monad
+  implicit val SyncCopyOutIO: Sync[CopyOutIO] =
+    new Sync[CopyOutIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): CopyOutIO[A] = monad.pure(x)
       override def map[A, B](fa: CopyOutIO[A])(f: A => B) = monad.map(fa)(f)
@@ -192,7 +184,6 @@ object copyout { module =>
       override def uncancelable[A](body: Poll[CopyOutIO] => CopyOutIO[A]): CopyOutIO[A] = module.uncancelable(body)
       override def canceled: CopyOutIO[Unit] = module.canceled
       override def onCancel[A](fa: CopyOutIO[A], fin: CopyOutIO[Unit]): CopyOutIO[A] = module.onCancel(fa, fin)
-      override def fromFuture[A](fut: CopyOutIO[Future[A]]): CopyOutIO[A] = module.fromFuture(fut)
     }
 
   implicit def MonoidCopyOutIO[A](implicit M: Monoid[A]): Monoid[CopyOutIO[A]] =

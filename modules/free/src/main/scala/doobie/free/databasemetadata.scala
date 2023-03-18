@@ -10,15 +10,11 @@ import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 
-import java.lang.Class
-import java.lang.String
 import java.sql.Connection
 import java.sql.DatabaseMetaData
 import java.sql.ResultSet
 import java.sql.RowIdLifetime
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object databasemetadata { module =>
@@ -60,7 +56,6 @@ object databasemetadata { module =>
       def poll[A](poll: Any, fa: DatabaseMetaDataIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: DatabaseMetaDataIO[A], fin: DatabaseMetaDataIO[Unit]): F[A]
-      def fromFuture[A](fut: DatabaseMetaDataIO[Future[A]]): F[A]
 
       // DatabaseMetaData
       def allProceduresAreCallable: F[Boolean]
@@ -282,9 +277,6 @@ object databasemetadata { module =>
     }
     final case class OnCancel[A](fa: DatabaseMetaDataIO[A], fin: DatabaseMetaDataIO[Unit]) extends DatabaseMetaDataOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
-    }
-    final case class FromFuture[A](fut: DatabaseMetaDataIO[Future[A]]) extends DatabaseMetaDataOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
     // DatabaseMetaData-specific operations.
@@ -857,7 +849,6 @@ object databasemetadata { module =>
   val canceled = FF.liftF[DatabaseMetaDataOp, Unit](Canceled)
   def onCancel[A](fa: DatabaseMetaDataIO[A], fin: DatabaseMetaDataIO[Unit]) =
     FF.liftF[DatabaseMetaDataOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: DatabaseMetaDataIO[Future[A]]) = FF.liftF[DatabaseMetaDataOp, A](FromFuture(fut))
 
   // Smart constructors for DatabaseMetaData-specific operations.
   val allProceduresAreCallable: DatabaseMetaDataIO[Boolean] = FF.liftF(AllProceduresAreCallable)
@@ -1066,9 +1057,8 @@ object databasemetadata { module =>
   private val monad = FF.catsFreeMonadForFree[DatabaseMetaDataOp]
 
   // Typeclass instances for DatabaseMetaDataIO
-  implicit val WeakAsyncDatabaseMetaDataIO: WeakAsync[DatabaseMetaDataIO] =
-    new WeakAsync[DatabaseMetaDataIO] {
-      override val applicative = monad
+  implicit val SyncDatabaseMetaDataIO: Sync[DatabaseMetaDataIO] =
+    new Sync[DatabaseMetaDataIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): DatabaseMetaDataIO[A] = monad.pure(x)
       override def map[A, B](fa: DatabaseMetaDataIO[A])(f: A => B) = monad.map(fa)(f)
@@ -1090,7 +1080,6 @@ object databasemetadata { module =>
       override def canceled: DatabaseMetaDataIO[Unit] = module.canceled
       override def onCancel[A](fa: DatabaseMetaDataIO[A], fin: DatabaseMetaDataIO[Unit]): DatabaseMetaDataIO[A] =
         module.onCancel(fa, fin)
-      override def fromFuture[A](fut: DatabaseMetaDataIO[Future[A]]): DatabaseMetaDataIO[A] = module.fromFuture(fut)
     }
 
   implicit def MonoidDatabaseMetaDataIO[A](implicit M: Monoid[A]): Monoid[DatabaseMetaDataIO[A]] =

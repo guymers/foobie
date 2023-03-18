@@ -6,7 +6,6 @@ package doobie.util
 
 import cats.syntax.apply.*
 import doobie.H2DatabaseSpec
-import doobie.WeakAsync
 import doobie.free.KleisliInterpreter
 import doobie.free.connection.ConnectionIO
 import doobie.syntax.string.*
@@ -140,9 +139,7 @@ object StrategySuite extends H2DatabaseSpec {
 
 // an instrumented interpreter
 @SuppressWarnings(Array("org.wartremover.warts.Var"))
-class Interp extends KleisliInterpreter[Task]()(
-    WeakAsync.doobieWeakAsyncForAsync(zio.interop.catz.asyncInstance[Any]),
-  ) {
+class Interp extends KleisliInterpreter[Task]()(zio.interop.catz.asyncInstance[Any]) {
 
   object Connection {
     var autoCommit: Option[Boolean] = None

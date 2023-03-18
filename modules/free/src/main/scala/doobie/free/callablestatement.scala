@@ -10,12 +10,9 @@ import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 
 import java.io.InputStream
 import java.io.Reader
-import java.lang.Class
-import java.lang.String
 import java.math.BigDecimal
 import java.net.URL
 import java.sql.Array as SqlArray
@@ -37,7 +34,6 @@ import java.sql.Time
 import java.sql.Timestamp
 import java.util.Calendar
 import java.util.Map
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object callablestatement { module =>
@@ -79,7 +75,6 @@ object callablestatement { module =>
       def poll[A](poll: Any, fa: CallableStatementIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: CallableStatementIO[A], fin: CallableStatementIO[Unit]): F[A]
-      def fromFuture[A](fut: CallableStatementIO[Future[A]]): F[A]
 
       // CallableStatement
       def addBatch: F[Unit]
@@ -353,9 +348,6 @@ object callablestatement { module =>
     final case class OnCancel[A](fa: CallableStatementIO[A], fin: CallableStatementIO[Unit])
       extends CallableStatementOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
-    }
-    final case class FromFuture[A](fut: CallableStatementIO[Future[A]]) extends CallableStatementOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
     // CallableStatement-specific operations.
@@ -1073,7 +1065,6 @@ object callablestatement { module =>
   val canceled = FF.liftF[CallableStatementOp, Unit](Canceled)
   def onCancel[A](fa: CallableStatementIO[A], fin: CallableStatementIO[Unit]) =
     FF.liftF[CallableStatementOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: CallableStatementIO[Future[A]]) = FF.liftF[CallableStatementOp, A](FromFuture(fut))
 
   // Smart constructors for CallableStatement-specific operations.
   val addBatch: CallableStatementIO[Unit] = FF.liftF(AddBatch)
@@ -1321,9 +1312,8 @@ object callablestatement { module =>
   private val monad = FF.catsFreeMonadForFree[CallableStatementOp]
 
   // Typeclass instances for CallableStatementIO
-  implicit val WeakAsyncCallableStatementIO: WeakAsync[CallableStatementIO] =
-    new WeakAsync[CallableStatementIO] {
-      override val applicative = monad
+  implicit val SyncCallableStatementIO: Sync[CallableStatementIO] =
+    new Sync[CallableStatementIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): CallableStatementIO[A] = monad.pure(x)
       override def map[A, B](fa: CallableStatementIO[A])(f: A => B) = monad.map(fa)(f)
@@ -1345,7 +1335,6 @@ object callablestatement { module =>
       override def canceled: CallableStatementIO[Unit] = module.canceled
       override def onCancel[A](fa: CallableStatementIO[A], fin: CallableStatementIO[Unit]): CallableStatementIO[A] =
         module.onCancel(fa, fin)
-      override def fromFuture[A](fut: CallableStatementIO[Future[A]]): CallableStatementIO[A] = module.fromFuture(fut)
     }
 
   implicit def MonoidCallableStatementIO[A](implicit M: Monoid[A]): Monoid[CallableStatementIO[A]] =
