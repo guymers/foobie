@@ -4,17 +4,28 @@
 
 package doobie.postgres
 
-import doobie.syntax.stream.*
+import cats.syntax.apply.*
 import doobie.syntax.string.*
+import doobie.util.Read
+import doobie.util.transactor.Transactor
+import zio.Task
+import zio.ZIO
+import zio.test.assertTrue
 
-class ManyRowsSuite extends munit.FunSuite {
-  import PostgresTestTransactor.xa
-  import cats.effect.unsafe.implicits.global
-  import doobie.util.Read.Auto.*
+object ManyRowsSuite extends PostgresDatabaseSpec {
 
-  test("select should take consistent memory") {
-    val q = sql"""select a.name, b.name from city a, city b""".query[(String, String)]
-    q.stream.take(5).transact(xa).compile.drain.unsafeRunSync()
-  }
+  implicit val readTuple: Read[(String, String)] = (Read[String], Read[String]).tupled
+
+  override val spec = suite("ManyRows")(
+    test("select should take consistent memory") {
+      for {
+        transactor <- ZIO.service[Transactor[Task]]
+        q = fr"SELECT a.name, b.name FROM city a, city b".query[(String, String)]
+        count <- transactor.transP(instance)(q.stream).compile.count
+      } yield {
+        assertTrue(count == 16_638_241)
+      }
+    },
+  )
 
 }

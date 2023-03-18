@@ -4,103 +4,78 @@
 
 package doobie.postgres.circe
 
-import cats.effect.IO
-import doobie.syntax.connectionio.*
+import doobie.postgres.PostgresDatabaseSpec
 import doobie.syntax.string.*
 import doobie.util.Get
 import doobie.util.Put
-import doobie.util.Read
-import doobie.util.Write
-import doobie.util.transactor.Transactor
-import doobie.util.update.Update
-import doobie.util.update.Update0
 import io.circe.Decoder
 import io.circe.Encoder
 import io.circe.Json
+import zio.test.Gen
+import zio.test.assertTrue
 
-class PGJsonSuite extends munit.FunSuite {
+object PGJsonSuite extends PostgresDatabaseSpec {
+  import doobie.postgres.PostgresTypesSuite.suiteGetPut
 
-  import cats.effect.unsafe.implicits.global
-
-  val xa = Transactor.fromDriverManager[IO](
-    "org.postgresql.Driver",
-    "jdbc:postgresql:world",
-    "postgres",
-    "password",
+  override val spec = suite("PGJson")(
+    suite("types")(
+      {
+        import doobie.postgres.circe.json.implicits.*
+        suiteGetPut("json", Gen.const(Json.obj("something" -> Json.fromString("Yellow"))))
+      }, {
+        import doobie.postgres.circe.jsonb.implicits.*
+        suiteGetPut("jsonb", Gen.const(Json.obj("something" -> Json.fromString("Yellow"))))
+      },
+    ),
+    suite("check")(
+      suite("json")({
+        import doobie.postgres.circe.json.implicits.*
+        test("read") {
+          fr"select '{}' :: json".query[Json].analysis.transact.map { a =>
+            assertTrue(a.columnTypeErrors == Nil)
+          }
+        } ::
+        test("write") {
+          fr"select ${Json.obj()} :: json".query[Json].analysis.transact.map { a =>
+            assertTrue(a.parameterTypeErrors == Nil)
+          }
+        } :: Nil
+      }),
+      suite("jsonb")({
+        import doobie.postgres.circe.jsonb.implicits.*
+        test("read") {
+          fr"select '{}' :: jsonb".query[Json].analysis.transact.map { a =>
+            assertTrue(a.columnTypeErrors == Nil)
+          }
+        } ::
+        test("write") {
+          fr"select ${Json.obj()} :: jsonb".query[Json].analysis.transact.map { a =>
+            assertTrue(a.parameterTypeErrors == Nil)
+          }
+        } :: Nil
+      }),
+      suite("custom type")({
+        test("read") {
+          fr"select '{}' :: jsonb".query[Foo].analysis.transact.map { a =>
+            assertTrue(a.columnTypeErrors == Nil)
+          }
+        } ::
+        test("write") {
+          fr"select ${Foo(Json.obj())} :: jsonb".query[Foo].analysis.transact.map { a =>
+            assertTrue(a.parameterTypeErrors == Nil)
+          }
+        } :: Nil
+      }),
+    ),
   )
 
-  def inOut[A: Write: Read](col: String, a: A) =
-    for {
-      _ <- Update0(s"CREATE TEMPORARY TABLE TEST (value $col)", None).run
-      a0 <- Update[A](s"INSERT INTO TEST VALUES (?)", None).withUniqueGeneratedKeys[A]("value")(a)
-    } yield a0
-
-  @SuppressWarnings(Array("org.wartremover.warts.StringPlusAny"))
-  def testInOut[A](col: String, a: A, t: Transactor[IO])(implicit m: Get[A], p: Put[A]) = {
-    test(s"Mapping for $col as ${m.typeStack} - write+read $col as ${m.typeStack}") {
-      assertEquals(inOut(col, a).transact(t).attempt.unsafeRunSync(), Right(a))
-    }
-    test(s"Mapping for $col as ${m.typeStack} - write+read $col as Option[${m.typeStack}] (Some)") {
-      assertEquals(inOut[Option[A]](col, Some(a)).transact(t).attempt.unsafeRunSync(), Right(Some(a)))
-    }
-    test(s"Mapping for $col as ${m.typeStack} - write+read $col as Option[${m.typeStack}] (None)") {
-      assertEquals(inOut[Option[A]](col, None).transact(t).attempt.unsafeRunSync(), Right(None))
-    }
-  }
-
-  {
-    import doobie.postgres.circe.json.implicits.*
-    testInOut("json", Json.obj("something" -> Json.fromString("Yellow")), xa)
-  }
-
-  {
-    import doobie.postgres.circe.jsonb.implicits.*
-    testInOut("jsonb", Json.obj("something" -> Json.fromString("Yellow")), xa)
-  }
-
-  // Explicit Type Checks
-
-  test("json should check ok for read") {
-    import doobie.postgres.circe.json.implicits.*
-
-    val a = sql"select '{}' :: json".query[Json].analysis.transact(xa).unsafeRunSync()
-    assertEquals(a.columnTypeErrors, Nil)
-  }
-  test("json should check ok for write") {
-    import doobie.postgres.circe.json.implicits.*
-    val a = sql"select ${Json.obj()} :: json".query[Json].analysis.transact(xa).unsafeRunSync()
-    assertEquals(a.parameterTypeErrors, Nil)
-  }
-
-  test("jsonb should check ok for read") {
-    import doobie.postgres.circe.jsonb.implicits.*
-    val a = sql"select '{}' :: jsonb".query[Json].analysis.transact(xa).unsafeRunSync()
-    assertEquals(a.columnTypeErrors, Nil)
-  }
-
-  test("jsonb should check ok for write") {
-    import doobie.postgres.circe.jsonb.implicits.*
-    val a = sql"select ${Json.obj()} :: jsonb".query[Json].analysis.transact(xa).unsafeRunSync()
-    assertEquals(a.parameterTypeErrors, Nil)
-  }
-
-  // Encoder / Decoders
   private case class Foo(x: Json)
   private object Foo {
-    import doobie.postgres.circe.json.implicits.*
+    import doobie.postgres.circe.jsonb.implicits.*
+
     implicit val fooEncoder: Encoder[Foo] = Encoder[Json].contramap(_.x)
     implicit val fooDecoder: Decoder[Foo] = Decoder[Json].map(Foo(_))
     implicit val fooGet: Get[Foo] = pgDecoderGetT[Foo]
     implicit val fooPut: Put[Foo] = pgEncoderPutT[Foo]
   }
-
-  test("fooGet should check ok for read") {
-    val a = sql"select '{}' :: json".query[Foo].analysis.transact(xa).unsafeRunSync()
-    assertEquals(a.columnTypeErrors, Nil)
-  }
-  test("fooPut check ok for write") {
-    val a = sql"select ${Foo(Json.obj())} :: json".query[Foo].analysis.transact(xa).unsafeRunSync()
-    assertEquals(a.parameterTypeErrors, Nil)
-  }
-
 }

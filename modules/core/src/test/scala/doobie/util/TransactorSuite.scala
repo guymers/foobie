@@ -8,8 +8,11 @@ import doobie.H2DatabaseSpec
 import doobie.free.connection.ConnectionIO
 import doobie.syntax.string.*
 import doobie.util.transactor.Transactor
+import fs2.Stream
 import zio.Task
 import zio.ZIO
+import zio.durationInt
+import zio.test.assertCompletes
 import zio.test.assertTrue
 
 object TransactorSuite extends H2DatabaseSpec {
@@ -37,6 +40,19 @@ object TransactorSuite extends H2DatabaseSpec {
       withTracker(fr"abc".query[Int].stream.compile.toList).map { case (tracker, result) =>
         assertTrue(result.isLeft) &&
         assertTrue(tracker.connections.map(_.isClosed) == List(true))
+      }
+    },
+    test("Not leak connections with recursive query streams") {
+      for {
+        transactor <- ZIO.service[Transactor[Task]]
+        poll = transactor.transP(instance)(fr"select 1".query[Int].stream) ++ Stream.exec(ZIO.sleep(50.millis))
+        _ <- Stream.emits(List.fill(4)(poll.repeat))
+          .parJoinUnbounded
+          .take(20)
+          .compile
+          .drain
+      } yield {
+        assertCompletes
       }
     },
   )

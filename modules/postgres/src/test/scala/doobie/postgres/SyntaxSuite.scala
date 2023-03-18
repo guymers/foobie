@@ -4,15 +4,27 @@
 
 package doobie.postgres
 
+import cats.syntax.applicative.*
+import cats.syntax.functor.*
 import doobie.FC
 import doobie.free.connection.ConnectionIO
-import doobie.postgres.implicits.*
+import doobie.postgres.syntax.monaderror.*
+import zio.test.ZIOSpecDefault
+import zio.test.assertCompletes
 
-class SyntaxSuite extends munit.FunSuite {
+object SyntaxSuite extends ZIOSpecDefault {
 
-  test("syntax should not overflow the stack on direct recursion") {
-    def prog: ConnectionIO[Unit] = FC.delay(()).onUniqueViolation(prog)
-    prog
-  }
+  override val spec = suite("Syntax")(
+    test("Partial should allow use of sqlstate syntax") {
+      1.pure[ConnectionIO].map(_ + 1).void: Unit
+      1.pure[ConnectionIO].map(_ + 1).onPrivilegeNotRevoked(2.pure[ConnectionIO]): Unit
+      assertCompletes
+    },
+    test("syntax should not overflow the stack on direct recursion") {
+      def prog: ConnectionIO[Unit] = FC.delay(()).onUniqueViolation(prog)
+      prog: Unit
+      assertCompletes
+    },
+  )
 
 }

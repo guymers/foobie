@@ -6,16 +6,20 @@ package doobie.h2
 
 import cats.syntax.foldable.*
 import cats.syntax.show.*
-import doobie.FC
 import doobie.Fragment
-import doobie.Update0
 import doobie.free.connection.ConnectionIO
 import doobie.h2.implicits.*
 import doobie.syntax.string.*
 import doobie.util.Get
 import doobie.util.Put
-import doobie.util.update.Update
+import doobie.util.Read
+import doobie.util.Write
+import doobie.util.transactor.Transactor
+import zio.Task
+import zio.ZIO
+import zio.ZLayer
 import zio.test.Gen
+import zio.test.Live
 import zio.test.TestAspect
 import zio.test.assertCompletes
 import zio.test.assertTrue
@@ -65,39 +69,53 @@ object H2TypesSpec extends H2DatabaseSpec {
     suite(show"column ${columnType} as ${g.typeStack.toList.flatten.mkString_(".")}")(
       test("not null") {
         check(gen) { a =>
-          putGet(columnType, a).transact.either.map { result =>
+          insertNotNull(a).either.map { result =>
             assertTrue(result == Right(a))
           }
         }
       },
       test("nullable with value") {
         check(gen) { a =>
-          putGetOpt(columnType, Some(a)).transact.either.map { result =>
+          insertNullable(Some(a)).either.map { result =>
             assertTrue(result == Right(Some(a)))
           }
         }
       },
       test("nullable no value") {
-        putGetOpt(columnType, None).transact.either.map { result =>
+        insertNullable(None).either.map { result =>
           assertTrue(result == Right(None))
         }
       },
-    )
+    ).provideSomeLayerShared[Transactor[Task]](ZLayer.scoped(withTables(columnType)))
   }
 
-  private def putGet[A: Get: Put](columnType: String, a: A): ConnectionIO[A] = for {
-    table <- FC.delay(s"test_${columnType.replaceAll("[^a-z]", "_")}")
-    _ <- Update0(s"CREATE LOCAL TEMPORARY TABLE $table (v $columnType NOT NULL)", None).run
-    _ <- Update[A](s"INSERT INTO $table VALUES (?)", None).run(a)
-    a0 <- fr"SELECT v FROM ${Fragment.const(table)}".query[A].unique
-  } yield a0
+  private def insertNotNull[A: Get: Put](a: A) = for {
+    table <- ZIO.serviceWith[(Fragment, Fragment)](_._1)
+    result <- insert(table, a).transact
+  } yield result
 
-  private def putGetOpt[A: Get: Put](columnType: String, a: Option[A]): ConnectionIO[Option[A]] = for {
-    table <- FC.delay(s"test_${columnType.replaceAll("[^a-z]", "_")}")
-    _ <- Update0(s"CREATE LOCAL TEMPORARY TABLE $table (v $columnType)", None).run
-    _ <- Update[Option[A]](s"INSERT INTO $table VALUES (?)", None).run(a)
-    a0 <- fr"SELECT v FROM ${Fragment.const(table)}".query[Option[A]].unique
-  } yield a0
+  private def insertNullable[A: Get: Put](a: Option[A]) = for {
+    table <- ZIO.serviceWith[(Fragment, Fragment)](_._2)
+    result <- insert(table, a).transact
+  } yield result
+
+  private def insert[A: Read: Write](table: Fragment, a: A): ConnectionIO[A] = {
+    fr"INSERT INTO $table (v) VALUES ($a)".update.withUniqueGeneratedKeys[A]("v")
+  }
+
+  private def withTables(columnType: String) = for {
+    notNull <- withTable(columnType, nullable = false)
+    nullable <- withTable(columnType, nullable = true)
+  } yield (notNull, nullable)
+
+  private def withTable(columnType: String, nullable: Boolean) = for {
+    uuid <- Live.live(zio.Random.nextUUID)
+    table = Fragment.const(show"test_types_${uuid.toString.replaceAll("-", "")}")
+    col = Fragment.const(columnType)
+    create = fr"CREATE MEMORY TABLE $table (v $col ${if (nullable) fr"" else fr"NOT NULL"}) NOT PERSISTENT".update.run
+    drop = fr"DROP TABLE IF EXISTS $table".update.run
+    _ <- ZIO.acquireRelease(create.transact)(_ => drop.transact.ignoreLogged)
+  } yield table
 
   private def skip(col: String, msg: String = "not yet implemented") = {
     test(show"Mapping for $col - $msg") {

@@ -4,67 +4,63 @@
 
 package doobie.postgres
 
-import cats.syntax.all.*
-import doobie.syntax.connectionio.*
+import cats.syntax.apply.*
+import cats.syntax.flatMap.*
+import zio.ZIO
+import zio.test.assertTrue
 
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.nio.file.Files
 
-class LOSuite extends munit.FunSuite with FileEquality {
-  import PostgresTestTransactor.xa
-  import cats.effect.unsafe.implicits.global
+object LOSuite extends PostgresDatabaseSpec {
 
   // A big file. Contents are irrelevant.
-  val in = new File("init/postgres/test-db.sql")
+  private val in = new File("init/postgres/test-db.sql")
 
-  test("large object support should allow round-trip from file to large object and back") {
-    val out = File.createTempFile("doobie", "tst")
-    val prog = PHLOM.createLOFromFile(1024 * 16, in) >>= { oid =>
-      PHLOM.createFileFromLO(1024 * 16, oid, out) *> PHLOM.delete(oid)
-    }
-    PHC.pgGetLargeObjectAPI(prog).transact(xa).unsafeRunSync()
-    assert(filesEqual(in, out))
-    out.delete()
-  }
-
-  test("large object support should allow round-trip from stream to large object and back") {
-    val out = File.createTempFile("doobie", "tst")
-    val is = new FileInputStream(in)
-    val os = new FileOutputStream(out)
-    val prog = PHLOM.createLOFromStream(1024 * 16, is) >>= { oid =>
-      PHLOM.createStreamFromLO(1024 * 16, oid, os) *> PHLOM.delete(oid)
-    }
-    PHC.pgGetLargeObjectAPI(prog).transact(xa).unsafeRunSync()
-    assert(filesEqual(in, out))
-    out.delete()
-  }
-
-}
-
-trait FileEquality {
-
-  import java.io.Closeable
-  import java.io.File
-  import java.io.FileInputStream
-  import java.nio.ByteBuffer
-  import java.nio.channels.FileChannel
-
-  def using[A <: Closeable, B](a: A)(f: A => B): B =
-    try f(a)
-    finally a.close()
-
-  def mapIn[A](file: File)(f: ByteBuffer => A): A =
-    using(new FileInputStream(file)) { fis =>
-      f(fis.getChannel.map(FileChannel.MapMode.READ_ONLY, 0, file.length))
-    }
-
-  @SuppressWarnings(Array("org.wartremover.warts.Equals"))
-  def filesEqual(f1: File, f2: File): Boolean =
-    mapIn(f1) { bb1 =>
-      mapIn(f2) { bb2 =>
-        bb1 == bb2
+  override val spec = suite("LO")(
+    test("large object support should allow round-trip from file to large object and back") {
+      for {
+        out <- tempFile
+        prog = PHLOM.createLOFromFile(1024 * 16, in) >>= { oid =>
+          PHLOM.createFileFromLO(1024 * 16, oid, out) *> PHLOM.delete(oid)
+        }
+        _ <- PHC.pgGetLargeObjectAPI(prog).transact
+        eq <- filesEqual(in, out)
+      } yield {
+        assertTrue(eq)
       }
-    }
+    },
+    test("large object support should allow round-trip from stream to large object and back") {
+      for {
+        out <- tempFile
+        is <- ZIO.acquireRelease(
+          ZIO.attemptBlocking(new FileInputStream(in)),
+        )(is => ZIO.attemptBlocking(is.close()).ignoreLogged)
+        os <- ZIO.acquireRelease(
+          ZIO.attemptBlocking(new FileOutputStream(out)),
+        )(os => ZIO.attemptBlocking(os.close()).ignoreLogged)
+        prog = PHLOM.createLOFromStream(1024 * 16, is) >>= { oid =>
+          PHLOM.createStreamFromLO(1024 * 16, oid, os) *> PHLOM.delete(oid)
+        }
+        _ <- PHC.pgGetLargeObjectAPI(prog).transact
+        eq <- filesEqual(in, out)
+      } yield {
+        assertTrue(eq)
+      }
+    },
+  )
 
+  private def tempFile = {
+    ZIO.acquireRelease(
+      ZIO.attemptBlocking(File.createTempFile("doobie", "tst")),
+    )(file => ZIO.attemptBlocking(file.delete()).ignoreLogged)
+  }
+
+  private def filesEqual(f1: File, f2: File) = {
+    ZIO.attemptBlocking {
+      Files.readAllBytes(f1.toPath) sameElements Files.readAllBytes(f2.toPath)
+    }
+  }
 }

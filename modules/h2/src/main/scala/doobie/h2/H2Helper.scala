@@ -6,11 +6,13 @@ package doobie.h2
 
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
-import cats.syntax.functor.*
 import cats.syntax.show.*
 import doobie.free.KleisliInterpreter
 import doobie.util.transactor.Strategy
 import doobie.util.transactor.Transactor
+import org.h2.jdbcx.JdbcConnectionPool
+
+import java.sql.Connection
 
 object H2Helper {
 
@@ -22,7 +24,7 @@ object H2Helper {
     strategy: Strategy = Strategy.default,
   )(implicit M: Async[M]): Resource[M, Transactor[M]] = {
 
-    val url = show"jdbc:h2:mem:$database;DB_CLOSE_DELAY=-1"
+    val url = jdbcUrl(database)
 
     def props = {
       val props = new java.util.Properties()
@@ -32,14 +34,37 @@ object H2Helper {
     }
 
     val conn = Resource.fromAutoCloseable(M.blocking { driver.connect(url, props) })
-    val transactor = Transactor[M, Unit]((), _ => conn, KleisliInterpreter[M].ConnectionInterpreter, strategy)
+    shutdownDatabase(conn).map(_ => createTransactor(conn, strategy))
+  }
 
-    val shutdown = conn.use { c =>
-      M.blocking {
-        c.createStatement().execute("SHUTDOWN")
-      }.void
+  def inMemoryPooled[M[_]](
+    database: String,
+    maxConnections: Int = 10,
+    strategy: Strategy = Strategy.default,
+  )(implicit M: Async[M]): Resource[M, Transactor[M]] = {
+
+    def createPool = {
+      val pool = JdbcConnectionPool.create(jdbcUrl(database), "sa", "")
+      pool.setMaxConnections(maxConnections)
+      pool
     }
-    Resource.make(M.unit)(_ => shutdown).as(transactor)
+
+    for {
+      pool <- Resource.make(M.delay(createPool)) { pool => M.delay(pool.dispose()) }
+      conn = Resource.fromAutoCloseable(M.blocking { pool.getConnection })
+      _ <- shutdownDatabase(conn)
+    } yield createTransactor(conn, strategy)
+  }
+
+  private def jdbcUrl(database: String) = show"jdbc:h2:mem:$database"
+
+  private def shutdownDatabase[M[_]](conn: Resource[M, Connection]) = {
+    // keep a connection open, when all connections are closed the database will be shutdown
+    conn
+  }
+
+  private def createTransactor[M[_]](conn: Resource[M, Connection], strategy: Strategy)(implicit M: Async[M]) = {
+    Transactor[M, Unit]((), _ => conn, KleisliInterpreter[M].ConnectionInterpreter, strategy)
   }
 
 }
