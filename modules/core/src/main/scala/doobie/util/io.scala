@@ -4,12 +4,12 @@
 
 package doobie.util
 
+import cats.effect.kernel.Sync
 import cats.effect.kernel.syntax.monadCancel.*
 import cats.syntax.applicative.*
 import cats.syntax.flatMap.*
 import cats.syntax.functor.*
 import cats.syntax.monad.*
-import doobie.WeakAsync
 
 import java.io.File
 import java.io.FileInputStream
@@ -29,9 +29,7 @@ object io {
    * mostly intended for library authors who wish to integrate vendor- specific
    * behavior that relies on JDK IO.
    */
-  class IOActions[M[_]](
-    implicit M: WeakAsync[M],
-  ) {
+  class IOActions[M[_]](implicit M: Sync[M]) {
 
     private def delay[A](a: => A): M[A] = M.delay(a)
 

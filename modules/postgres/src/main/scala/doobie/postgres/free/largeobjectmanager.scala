@@ -4,16 +4,15 @@
 
 package doobie.postgres.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 import org.postgresql.largeobject.LargeObject
 import org.postgresql.largeobject.LargeObjectManager
 
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object largeobjectmanager { module =>
@@ -54,7 +53,6 @@ object largeobjectmanager { module =>
       def poll[A](poll: Any, fa: LargeObjectManagerIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit]): F[A]
-      def fromFuture[A](fut: LargeObjectManagerIO[Future[A]]): F[A]
 
       // LargeObjectManager
       def createLO: F[Long]
@@ -108,9 +106,6 @@ object largeobjectmanager { module =>
     }
     case class OnCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit]) extends LargeObjectManagerOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
-    }
-    case class FromFuture[A](fut: LargeObjectManagerIO[Future[A]]) extends LargeObjectManagerOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
     // LargeObjectManager-specific operations.
@@ -172,7 +167,6 @@ object largeobjectmanager { module =>
   val canceled = FF.liftF[LargeObjectManagerOp, Unit](Canceled)
   def onCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit]) =
     FF.liftF[LargeObjectManagerOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: LargeObjectManagerIO[Future[A]]) = FF.liftF[LargeObjectManagerOp, A](FromFuture(fut))
 
   // Smart constructors for LargeObjectManager-specific operations.
   val createLO: LargeObjectManagerIO[Long] = FF.liftF(CreateLO)
@@ -186,13 +180,14 @@ object largeobjectmanager { module =>
   def open(a: Long, b: Int, c: Boolean): LargeObjectManagerIO[LargeObject] = FF.liftF(Open5(a, b, c))
   def unlink(a: Long): LargeObjectManagerIO[Unit] = FF.liftF(Unlink(a))
 
+  private val monad = FF.catsFreeMonadForFree[LargeObjectManagerOp]
+
   // Typeclass instances for LargeObjectManagerIO
-  implicit val WeakAsyncLargeObjectManagerIO: WeakAsync[LargeObjectManagerIO] =
-    new WeakAsync[LargeObjectManagerIO] {
-      val monad = FF.catsFreeMonadForFree[LargeObjectManagerOp]
-      override val applicative = monad
+  implicit val SyncLargeObjectManagerIO: Sync[LargeObjectManagerIO] =
+    new Sync[LargeObjectManagerIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): LargeObjectManagerIO[A] = monad.pure(x)
+      override def map[A, B](fa: LargeObjectManagerIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: LargeObjectManagerIO[A])(
         f: A => LargeObjectManagerIO[B],
       ): LargeObjectManagerIO[B] = monad.flatMap(fa)(f)
@@ -212,6 +207,12 @@ object largeobjectmanager { module =>
       override def canceled: LargeObjectManagerIO[Unit] = module.canceled
       override def onCancel[A](fa: LargeObjectManagerIO[A], fin: LargeObjectManagerIO[Unit]): LargeObjectManagerIO[A] =
         module.onCancel(fa, fin)
-      override def fromFuture[A](fut: LargeObjectManagerIO[Future[A]]): LargeObjectManagerIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidLargeObjectManagerIO[A](implicit M: Monoid[A]): Monoid[LargeObjectManagerIO[A]] =
+    new Monoid[LargeObjectManagerIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: LargeObjectManagerIO[A], y: LargeObjectManagerIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

@@ -4,8 +4,8 @@
 
 package doobie.munit
 
-import cats.effect.Async
 import cats.effect.IO
+import cats.effect.kernel.Sync
 import doobie.munit.analysisspec.Checker.ErrorItems
 import doobie.syntax.connectionio.*
 import doobie.util.query.Query
@@ -72,10 +72,9 @@ object analysisspec {
   }
 
   /** Implementation of Checker[IO] */
-  trait IOChecker extends Checker[IO] {
-    self: Assertions =>
+  trait IOChecker extends Checker[IO] { self: Assertions =>
     import cats.effect.unsafe.implicits.global
-    override implicit val M: Async[IO] = IO.asyncForIO
+    override implicit val M: Sync[IO] = IO.asyncForIO
     override implicit val U: UnsafeRun[IO] = new UnsafeRun[IO] {
       def unsafeRunSync[A](ioa: IO[A]) = ioa.unsafeRunSync()
     }

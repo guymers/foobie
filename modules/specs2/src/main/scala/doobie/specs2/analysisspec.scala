@@ -4,8 +4,8 @@
 
 package doobie.specs2
 
-import cats.effect.Async
 import cats.effect.IO
+import cats.effect.kernel.Sync
 import doobie.Update
 import doobie.Update0
 import doobie.syntax.connectionio.*
@@ -105,7 +105,7 @@ object analysisspec {
   /** Implementation of Checker[IO] */
   trait IOChecker extends Checker[IO] { this: Specification =>
     import cats.effect.unsafe.implicits.global
-    override implicit val M: Async[IO] = IO.asyncForIO
+    override implicit val M: Sync[IO] = IO.asyncForIO
     override implicit val U: UnsafeRun[IO] = new UnsafeRun[IO] {
       def unsafeRunSync[A](ioa: IO[A]) = ioa.unsafeRunSync()
     }

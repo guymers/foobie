@@ -8,9 +8,7 @@ import cats.data.Kleisli
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free
-// Library imports
 import cats.~>
-import doobie.WeakAsync
 import doobie.free.blob.BlobIO
 import doobie.free.blob.BlobOp
 import doobie.free.callablestatement.CallableStatementIO
@@ -23,7 +21,6 @@ import doobie.free.databasemetadata.DatabaseMetaDataIO
 import doobie.free.databasemetadata.DatabaseMetaDataOp
 import doobie.free.driver.DriverIO
 import doobie.free.driver.DriverOp
-// Algebras and free monads thereof referenced by our interpreter.
 import doobie.free.nclob.NClobIO
 import doobie.free.nclob.NClobOp
 import doobie.free.preparedstatement.PreparedStatementIO
@@ -41,7 +38,6 @@ import doobie.free.sqloutput.SQLOutputOp
 import doobie.free.statement.StatementIO
 import doobie.free.statement.StatementOp
 
-// Types referenced in the JDBC API
 import java.io.InputStream
 import java.io.Reader
 import java.math.BigDecimal
@@ -73,15 +69,14 @@ import java.util.Calendar
 import java.util.Map
 import java.util.Properties
 import java.util.concurrent.Executor
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object KleisliInterpreter {
-  def apply[M[_]: WeakAsync]: KleisliInterpreter[M] = new KleisliInterpreter[M]
+  def apply[M[_]: Sync]: KleisliInterpreter[M] = new KleisliInterpreter[M]
 }
 
 // Family of interpreters into Kleisli arrows for some monad M.
-class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
+class KleisliInterpreter[M[_]](implicit val syncM: Sync[M]) { outer =>
 
   // The 14 interpreters, with definitions below. These can be overridden to customize behavior.
   lazy val NClobInterpreter: NClobOp ~> Kleisli[M, NClob, *] = new NClobInterpreter {}
@@ -107,46 +102,42 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
     // primitive JDBC methods throw exceptions and so do we when reading values
     // so catch any non-fatal exceptions and lift them into the effect
     try {
-      asyncM.blocking(f(a))
+      syncM.blocking(f(a))
     } catch {
-      case scala.util.control.NonFatal(e) => asyncM.raiseError(e)
+      case e if scala.util.control.NonFatal(e) => syncM.raiseError(e)
     }
   }
   def raw[J, A](f: J => A): Kleisli[M, J, A] = primitive(f)
-  def raiseError[J, A](e: Throwable): Kleisli[M, J, A] = Kleisli(_ => asyncM.raiseError(e))
-  def monotonic[J]: Kleisli[M, J, FiniteDuration] = Kleisli(_ => asyncM.monotonic)
-  def realTime[J]: Kleisli[M, J, FiniteDuration] = Kleisli(_ => asyncM.realTime)
-  def delay[J, A](thunk: => A): Kleisli[M, J, A] = Kleisli(_ => asyncM.delay(thunk))
-  def suspend[J, A](hint: Sync.Type)(thunk: => A): Kleisli[M, J, A] = Kleisli(_ => asyncM.suspend(hint)(thunk))
-  def canceled[J]: Kleisli[M, J, Unit] = Kleisli(_ => asyncM.canceled)
+  def raiseError[J, A](e: Throwable): Kleisli[M, J, A] = Kleisli(_ => syncM.raiseError(e))
+  def monotonic[J]: Kleisli[M, J, FiniteDuration] = Kleisli(_ => syncM.monotonic)
+  def realTime[J]: Kleisli[M, J, FiniteDuration] = Kleisli(_ => syncM.realTime)
+  def delay[J, A](thunk: => A): Kleisli[M, J, A] = Kleisli(_ => syncM.delay(thunk))
+  def suspend[J, A](hint: Sync.Type)(thunk: => A): Kleisli[M, J, A] = Kleisli(_ => syncM.suspend(hint)(thunk))
+  def canceled[J]: Kleisli[M, J, Unit] = Kleisli(_ => syncM.canceled)
 
   // for operations using free structures we call the interpreter recursively
   def handleErrorWith[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(fa: Free[G, A])(f: Throwable => Free[
     G,
     A,
   ]): Kleisli[M, J, A] = Kleisli(j =>
-    asyncM.handleErrorWith(fa.foldMap(interpreter).run(j))(f.andThen(_.foldMap(interpreter).run(j))),
+    syncM.handleErrorWith(fa.foldMap(interpreter).run(j))(f.andThen(_.foldMap(interpreter).run(j))),
   )
   def forceR[G[_], J, A, B](interpreter: G ~> Kleisli[M, J, *])(fa: Free[G, A])(fb: Free[G, B]): Kleisli[M, J, B] =
     Kleisli(j =>
-      asyncM.forceR(fa.foldMap(interpreter).run(j))(fb.foldMap(interpreter).run(j)),
+      syncM.forceR(fa.foldMap(interpreter).run(j))(fb.foldMap(interpreter).run(j)),
     )
   def uncancelable[G[_], J, A](
     interpreter: G ~> Kleisli[M, J, *],
     capture: Poll[M] => Poll[Free[G, *]],
   )(body: Poll[Free[G, *]] => Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
-    asyncM.uncancelable(body.compose(capture).andThen(_.foldMap(interpreter).run(j))),
+    syncM.uncancelable(body.compose(capture).andThen(_.foldMap(interpreter).run(j))),
   )
   def poll[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(mpoll: Any, fa: Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
     mpoll.asInstanceOf[Poll[M]].apply(fa.foldMap(interpreter).run(j)),
   )
   def onCancel[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(fa: Free[G, A], fin: Free[G, Unit]): Kleisli[M, J, A] =
     Kleisli(j =>
-      asyncM.onCancel(fa.foldMap(interpreter).run(j), fin.foldMap(interpreter).run(j)),
-    )
-  def fromFuture[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(fut: Free[G, Future[A]]): Kleisli[M, J, A] =
-    Kleisli(j =>
-      asyncM.fromFuture(fut.foldMap(interpreter).run(j)),
+      syncM.onCancel(fa.foldMap(interpreter).run(j), fin.foldMap(interpreter).run(j)),
     )
   def embed[J, A](e: Embedded[A]): Kleisli[M, J, A] =
     e match {
@@ -186,7 +177,6 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       outer.uncancelable(this, doobie.free.nclob.capturePoll)(body)
     override def poll[A](poll: Any, fa: NClobIO[A]) = outer.poll(this)(poll, fa)
     override def onCancel[A](fa: NClobIO[A], fin: NClobIO[Unit]) = outer.onCancel(this)(fa, fin)
-    override def fromFuture[A](fut: NClobIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
     override def free = primitive(_.free)
@@ -224,7 +214,6 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       outer.uncancelable(this, doobie.free.blob.capturePoll)(body)
     override def poll[A](poll: Any, fa: BlobIO[A]) = outer.poll(this)(poll, fa)
     override def onCancel[A](fa: BlobIO[A], fin: BlobIO[Unit]) = outer.onCancel(this)(fa, fin)
-    override def fromFuture[A](fut: BlobIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
     override def free = primitive(_.free)
@@ -260,7 +249,6 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       outer.uncancelable(this, doobie.free.clob.capturePoll)(body)
     override def poll[A](poll: Any, fa: ClobIO[A]) = outer.poll(this)(poll, fa)
     override def onCancel[A](fa: ClobIO[A], fin: ClobIO[Unit]) = outer.onCancel(this)(fa, fin)
-    override def fromFuture[A](fut: ClobIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
     override def free = primitive(_.free)
@@ -299,7 +287,6 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       outer.uncancelable(this, doobie.free.databasemetadata.capturePoll)(body)
     override def poll[A](poll: Any, fa: DatabaseMetaDataIO[A]) = outer.poll(this)(poll, fa)
     override def onCancel[A](fa: DatabaseMetaDataIO[A], fin: DatabaseMetaDataIO[Unit]) = outer.onCancel(this)(fa, fin)
-    override def fromFuture[A](fut: DatabaseMetaDataIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
     override def allProceduresAreCallable = primitive(_.allProceduresAreCallable)
@@ -509,7 +496,6 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       outer.uncancelable(this, doobie.free.driver.capturePoll)(body)
     override def poll[A](poll: Any, fa: DriverIO[A]) = outer.poll(this)(poll, fa)
     override def onCancel[A](fa: DriverIO[A], fin: DriverIO[Unit]) = outer.onCancel(this)(fa, fin)
-    override def fromFuture[A](fut: DriverIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
     override def acceptsURL(a: String) = primitive(_.acceptsURL(a))
@@ -541,7 +527,6 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       outer.uncancelable(this, doobie.free.ref.capturePoll)(body)
     override def poll[A](poll: Any, fa: RefIO[A]) = outer.poll(this)(poll, fa)
     override def onCancel[A](fa: RefIO[A], fin: RefIO[Unit]) = outer.onCancel(this)(fa, fin)
-    override def fromFuture[A](fut: RefIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
     override def getBaseTypeName = primitive(_.getBaseTypeName)
@@ -570,7 +555,6 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       outer.uncancelable(this, doobie.free.sqldata.capturePoll)(body)
     override def poll[A](poll: Any, fa: SQLDataIO[A]) = outer.poll(this)(poll, fa)
     override def onCancel[A](fa: SQLDataIO[A], fin: SQLDataIO[Unit]) = outer.onCancel(this)(fa, fin)
-    override def fromFuture[A](fut: SQLDataIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
     override def getSQLTypeName = primitive(_.getSQLTypeName)
@@ -599,7 +583,6 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       outer.uncancelable(this, doobie.free.sqlinput.capturePoll)(body)
     override def poll[A](poll: Any, fa: SQLInputIO[A]) = outer.poll(this)(poll, fa)
     override def onCancel[A](fa: SQLInputIO[A], fin: SQLInputIO[Unit]) = outer.onCancel(this)(fa, fin)
-    override def fromFuture[A](fut: SQLInputIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
     override def readArray = primitive(_.readArray)
@@ -653,7 +636,6 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       outer.uncancelable(this, doobie.free.sqloutput.capturePoll)(body)
     override def poll[A](poll: Any, fa: SQLOutputIO[A]) = outer.poll(this)(poll, fa)
     override def onCancel[A](fa: SQLOutputIO[A], fin: SQLOutputIO[Unit]) = outer.onCancel(this)(fa, fin)
-    override def fromFuture[A](fut: SQLOutputIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
     override def writeArray(a: SqlArray) = primitive(_.writeArray(a))
@@ -707,7 +689,6 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       outer.uncancelable(this, doobie.free.connection.capturePoll)(body)
     override def poll[A](poll: Any, fa: ConnectionIO[A]) = outer.poll(this)(poll, fa)
     override def onCancel[A](fa: ConnectionIO[A], fin: ConnectionIO[Unit]) = outer.onCancel(this)(fa, fin)
-    override def fromFuture[A](fut: ConnectionIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
     override def abort(a: Executor) = primitive(_.abort(a))
@@ -787,7 +768,6 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       outer.uncancelable(this, doobie.free.statement.capturePoll)(body)
     override def poll[A](poll: Any, fa: StatementIO[A]) = outer.poll(this)(poll, fa)
     override def onCancel[A](fa: StatementIO[A], fin: StatementIO[Unit]) = outer.onCancel(this)(fa, fin)
-    override def fromFuture[A](fut: StatementIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
     override def addBatch(a: String) = primitive(_.addBatch(a))
@@ -865,7 +845,6 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       outer.uncancelable(this, doobie.free.preparedstatement.capturePoll)(body)
     override def poll[A](poll: Any, fa: PreparedStatementIO[A]) = outer.poll(this)(poll, fa)
     override def onCancel[A](fa: PreparedStatementIO[A], fin: PreparedStatementIO[Unit]) = outer.onCancel(this)(fa, fin)
-    override def fromFuture[A](fut: PreparedStatementIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
     override def addBatch = primitive(_.addBatch)
@@ -1000,7 +979,6 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       outer.uncancelable(this, doobie.free.callablestatement.capturePoll)(body)
     override def poll[A](poll: Any, fa: CallableStatementIO[A]) = outer.poll(this)(poll, fa)
     override def onCancel[A](fa: CallableStatementIO[A], fin: CallableStatementIO[Unit]) = outer.onCancel(this)(fa, fin)
-    override def fromFuture[A](fut: CallableStatementIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
     override def addBatch = primitive(_.addBatch)
@@ -1255,7 +1233,6 @@ class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
       outer.uncancelable(this, doobie.free.resultset.capturePoll)(body)
     override def poll[A](poll: Any, fa: ResultSetIO[A]) = outer.poll(this)(poll, fa)
     override def onCancel[A](fa: ResultSetIO[A], fin: ResultSetIO[Unit]) = outer.onCancel(this)(fa, fin)
-    override def fromFuture[A](fut: ResultSetIO[Future[A]]) = outer.fromFuture(this)(fut)
 
     // domain-specific operations are implemented in terms of `primitive`
     override def absolute(a: Int) = primitive(_.absolute(a))

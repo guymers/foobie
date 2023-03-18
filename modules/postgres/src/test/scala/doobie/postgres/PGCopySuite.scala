@@ -4,7 +4,7 @@
 
 package doobie.postgres
 
-import cats.effect.Sync
+import cats.effect.kernel.Sync
 import cats.syntax.applicative.*
 import cats.syntax.show.*
 import doobie.free.connection.ConnectionIO

@@ -4,12 +4,12 @@
 
 package doobie.postgres.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 import org.postgresql.PGConnection
 import org.postgresql.PGNotification
 import org.postgresql.copy.CopyManager as PGCopyManager
@@ -22,7 +22,6 @@ import java.lang.Class
 import java.lang.String
 import java.sql.Array as SqlArray
 import java.util.Map
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object pgconnection { module =>
@@ -63,7 +62,6 @@ object pgconnection { module =>
       def poll[A](poll: Any, fa: PGConnectionIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: PGConnectionIO[A], fin: PGConnectionIO[Unit]): F[A]
-      def fromFuture[A](fut: PGConnectionIO[Future[A]]): F[A]
 
       // PGConnection
       def addDataType(a: String, b: Class[? <: org.postgresql.util.PGobject]): F[Unit]
@@ -128,9 +126,6 @@ object pgconnection { module =>
     }
     case class OnCancel[A](fa: PGConnectionIO[A], fin: PGConnectionIO[Unit]) extends PGConnectionOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
-    }
-    case class FromFuture[A](fut: PGConnectionIO[Future[A]]) extends PGConnectionOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
     // PGConnection-specific operations.
@@ -224,7 +219,6 @@ object pgconnection { module =>
   }
   val canceled = FF.liftF[PGConnectionOp, Unit](Canceled)
   def onCancel[A](fa: PGConnectionIO[A], fin: PGConnectionIO[Unit]) = FF.liftF[PGConnectionOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: PGConnectionIO[Future[A]]) = FF.liftF[PGConnectionOp, A](FromFuture(fut))
 
   // Smart constructors for PGConnection-specific operations.
   def addDataType(a: String, b: Class[? <: org.postgresql.util.PGobject]): PGConnectionIO[Unit] =
@@ -251,13 +245,14 @@ object pgconnection { module =>
   def setDefaultFetchSize(a: Int): PGConnectionIO[Unit] = FF.liftF(SetDefaultFetchSize(a))
   def setPrepareThreshold(a: Int): PGConnectionIO[Unit] = FF.liftF(SetPrepareThreshold(a))
 
+  private val monad = FF.catsFreeMonadForFree[PGConnectionOp]
+
   // Typeclass instances for PGConnectionIO
-  implicit val WeakAsyncPGConnectionIO: WeakAsync[PGConnectionIO] =
-    new WeakAsync[PGConnectionIO] {
-      val monad = FF.catsFreeMonadForFree[PGConnectionOp]
-      override val applicative = monad
+  implicit val SyncPGConnectionIO: Sync[PGConnectionIO] =
+    new Sync[PGConnectionIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): PGConnectionIO[A] = monad.pure(x)
+      override def map[A, B](fa: PGConnectionIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: PGConnectionIO[A])(f: A => PGConnectionIO[B]): PGConnectionIO[B] =
         monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => PGConnectionIO[Either[A, B]]): PGConnectionIO[B] = monad.tailRecM(a)(f)
@@ -273,6 +268,12 @@ object pgconnection { module =>
       override def canceled: PGConnectionIO[Unit] = module.canceled
       override def onCancel[A](fa: PGConnectionIO[A], fin: PGConnectionIO[Unit]): PGConnectionIO[A] =
         module.onCancel(fa, fin)
-      override def fromFuture[A](fut: PGConnectionIO[Future[A]]): PGConnectionIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidPGConnectionIO[A](implicit M: Monoid[A]): Monoid[PGConnectionIO[A]] =
+    new Monoid[PGConnectionIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: PGConnectionIO[A], y: PGConnectionIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

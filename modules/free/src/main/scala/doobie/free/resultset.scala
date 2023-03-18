@@ -4,17 +4,15 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 
 import java.io.InputStream
 import java.io.Reader
-import java.lang.Class
-import java.lang.String
 import java.math.BigDecimal
 import java.net.URL
 import java.sql.Array as SqlArray
@@ -34,7 +32,6 @@ import java.sql.Time
 import java.sql.Timestamp
 import java.util.Calendar
 import java.util.Map
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object resultset { module =>
@@ -75,7 +72,6 @@ object resultset { module =>
       def poll[A](poll: Any, fa: ResultSetIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: ResultSetIO[A], fin: ResultSetIO[Unit]): F[A]
-      def fromFuture[A](fut: ResultSetIO[Future[A]]): F[A]
 
       // ResultSet
       def absolute(a: Int): F[Boolean]
@@ -308,9 +304,6 @@ object resultset { module =>
     }
     case class OnCancel[A](fa: ResultSetIO[A], fin: ResultSetIO[Unit]) extends ResultSetOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
-    }
-    case class FromFuture[A](fut: ResultSetIO[Future[A]]) extends ResultSetOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
     // ResultSet-specific operations.
@@ -911,7 +904,6 @@ object resultset { module =>
   }
   val canceled = FF.liftF[ResultSetOp, Unit](Canceled)
   def onCancel[A](fa: ResultSetIO[A], fin: ResultSetIO[Unit]) = FF.liftF[ResultSetOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: ResultSetIO[Future[A]]) = FF.liftF[ResultSetOp, A](FromFuture(fut))
 
   // Smart constructors for ResultSet-specific operations.
   def absolute(a: Int): ResultSetIO[Boolean] = FF.liftF(Absolute(a))
@@ -1107,13 +1099,14 @@ object resultset { module =>
   def updateTimestamp(a: String, b: Timestamp): ResultSetIO[Unit] = FF.liftF(UpdateTimestamp1(a, b))
   val wasNull: ResultSetIO[Boolean] = FF.liftF(WasNull)
 
+  private val monad = FF.catsFreeMonadForFree[ResultSetOp]
+
   // Typeclass instances for ResultSetIO
-  implicit val WeakAsyncResultSetIO: WeakAsync[ResultSetIO] =
-    new WeakAsync[ResultSetIO] {
-      val monad = FF.catsFreeMonadForFree[ResultSetOp]
-      override val applicative = monad
+  implicit val SyncResultSetIO: Sync[ResultSetIO] =
+    new Sync[ResultSetIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): ResultSetIO[A] = monad.pure(x)
+      override def map[A, B](fa: ResultSetIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: ResultSetIO[A])(f: A => ResultSetIO[B]): ResultSetIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => ResultSetIO[Either[A, B]]): ResultSetIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): ResultSetIO[A] = module.raiseError(e)
@@ -1126,6 +1119,12 @@ object resultset { module =>
       override def uncancelable[A](body: Poll[ResultSetIO] => ResultSetIO[A]): ResultSetIO[A] = module.uncancelable(body)
       override def canceled: ResultSetIO[Unit] = module.canceled
       override def onCancel[A](fa: ResultSetIO[A], fin: ResultSetIO[Unit]): ResultSetIO[A] = module.onCancel(fa, fin)
-      override def fromFuture[A](fut: ResultSetIO[Future[A]]): ResultSetIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidResultSetIO[A](implicit M: Monoid[A]): Monoid[ResultSetIO[A]] =
+    new Monoid[ResultSetIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: ResultSetIO[A], y: ResultSetIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

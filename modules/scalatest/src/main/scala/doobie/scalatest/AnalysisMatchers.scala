@@ -4,8 +4,8 @@
 
 package doobie.scalatest
 
-import cats.effect.Async
 import cats.effect.IO
+import cats.effect.kernel.Sync
 import doobie.syntax.connectionio.*
 import doobie.util.testing.*
 import org.scalatest.matchers.LazyArg
@@ -52,7 +52,7 @@ trait AnalysisMatchers[F[_]] extends CheckerBase[F] {
 
 trait IOAnalysisMatchers extends AnalysisMatchers[IO] {
   import cats.effect.unsafe.implicits.global
-  override implicit val M: Async[IO] = IO.asyncForIO
+  override implicit val M: Sync[IO] = IO.asyncForIO
   override implicit val U: UnsafeRun[IO] = new UnsafeRun[IO] {
     def unsafeRunSync[A](ioa: IO[A]) = ioa.unsafeRunSync()
   }

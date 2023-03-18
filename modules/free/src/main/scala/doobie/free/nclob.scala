@@ -4,21 +4,19 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.Reader
 import java.io.Writer
-import java.lang.String
 import java.sql.Clob
 import java.sql.NClob
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object nclob { module =>
@@ -59,7 +57,6 @@ object nclob { module =>
       def poll[A](poll: Any, fa: NClobIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: NClobIO[A], fin: NClobIO[Unit]): F[A]
-      def fromFuture[A](fut: NClobIO[Future[A]]): F[A]
 
       // NClob
       def free: F[Unit]
@@ -114,9 +111,6 @@ object nclob { module =>
     }
     case class OnCancel[A](fa: NClobIO[A], fin: NClobIO[Unit]) extends NClobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
-    }
-    case class FromFuture[A](fut: NClobIO[Future[A]]) extends NClobOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
     // NClob-specific operations.
@@ -183,7 +177,6 @@ object nclob { module =>
   }
   val canceled = FF.liftF[NClobOp, Unit](Canceled)
   def onCancel[A](fa: NClobIO[A], fin: NClobIO[Unit]) = FF.liftF[NClobOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: NClobIO[Future[A]]) = FF.liftF[NClobOp, A](FromFuture(fut))
 
   // Smart constructors for NClob-specific operations.
   val free: NClobIO[Unit] = FF.liftF(Free)
@@ -200,13 +193,14 @@ object nclob { module =>
   def setString(a: Long, b: String, c: Int, d: Int): NClobIO[Int] = FF.liftF(SetString1(a, b, c, d))
   def truncate(a: Long): NClobIO[Unit] = FF.liftF(Truncate(a))
 
+  private val monad = FF.catsFreeMonadForFree[NClobOp]
+
   // Typeclass instances for NClobIO
-  implicit val WeakAsyncNClobIO: WeakAsync[NClobIO] =
-    new WeakAsync[NClobIO] {
-      val monad = FF.catsFreeMonadForFree[NClobOp]
-      override val applicative = monad
+  implicit val SyncNClobIO: Sync[NClobIO] =
+    new Sync[NClobIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): NClobIO[A] = monad.pure(x)
+      override def map[A, B](fa: NClobIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: NClobIO[A])(f: A => NClobIO[B]): NClobIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => NClobIO[Either[A, B]]): NClobIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): NClobIO[A] = module.raiseError(e)
@@ -219,6 +213,12 @@ object nclob { module =>
       override def uncancelable[A](body: Poll[NClobIO] => NClobIO[A]): NClobIO[A] = module.uncancelable(body)
       override def canceled: NClobIO[Unit] = module.canceled
       override def onCancel[A](fa: NClobIO[A], fin: NClobIO[Unit]): NClobIO[A] = module.onCancel(fa, fin)
-      override def fromFuture[A](fut: NClobIO[Future[A]]): NClobIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidNClobIO[A](implicit M: Monoid[A]): Monoid[NClobIO[A]] =
+    new Monoid[NClobIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: NClobIO[A], y: NClobIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

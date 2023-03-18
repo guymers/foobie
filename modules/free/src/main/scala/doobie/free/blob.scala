@@ -4,17 +4,16 @@
 
 package doobie.free
 
+import cats.Monoid
 import cats.effect.kernel.CancelScope
 import cats.effect.kernel.Poll
 import cats.effect.kernel.Sync
 import cats.free.Free as FF // alias because some algebras have an op called Free
 import cats.~>
-import doobie.WeakAsync
 
 import java.io.InputStream
 import java.io.OutputStream
 import java.sql.Blob
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object blob { module =>
@@ -55,7 +54,6 @@ object blob { module =>
       def poll[A](poll: Any, fa: BlobIO[A]): F[A]
       def canceled: F[Unit]
       def onCancel[A](fa: BlobIO[A], fin: BlobIO[Unit]): F[A]
-      def fromFuture[A](fut: BlobIO[Future[A]]): F[A]
 
       // Blob
       def free: F[Unit]
@@ -108,9 +106,6 @@ object blob { module =>
     }
     case class OnCancel[A](fa: BlobIO[A], fin: BlobIO[Unit]) extends BlobOp[A] {
       def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
-    }
-    case class FromFuture[A](fut: BlobIO[Future[A]]) extends BlobOp[A] {
-      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
     }
 
     // Blob-specific operations.
@@ -171,7 +166,6 @@ object blob { module =>
   }
   val canceled = FF.liftF[BlobOp, Unit](Canceled)
   def onCancel[A](fa: BlobIO[A], fin: BlobIO[Unit]) = FF.liftF[BlobOp, A](OnCancel(fa, fin))
-  def fromFuture[A](fut: BlobIO[Future[A]]) = FF.liftF[BlobOp, A](FromFuture(fut))
 
   // Smart constructors for Blob-specific operations.
   val free: BlobIO[Unit] = FF.liftF(Free)
@@ -186,13 +180,14 @@ object blob { module =>
   def setBytes(a: Long, b: Array[Byte], c: Int, d: Int): BlobIO[Int] = FF.liftF(SetBytes1(a, b, c, d))
   def truncate(a: Long): BlobIO[Unit] = FF.liftF(Truncate(a))
 
+  private val monad = FF.catsFreeMonadForFree[BlobOp]
+
   // Typeclass instances for BlobIO
-  implicit val WeakAsyncBlobIO: WeakAsync[BlobIO] =
-    new WeakAsync[BlobIO] {
-      val monad = FF.catsFreeMonadForFree[BlobOp]
-      override val applicative = monad
+  implicit val SyncBlobIO: Sync[BlobIO] =
+    new Sync[BlobIO] {
       override val rootCancelScope = CancelScope.Cancelable
       override def pure[A](x: A): BlobIO[A] = monad.pure(x)
+      override def map[A, B](fa: BlobIO[A])(f: A => B) = monad.map(fa)(f)
       override def flatMap[A, B](fa: BlobIO[A])(f: A => BlobIO[B]): BlobIO[B] = monad.flatMap(fa)(f)
       override def tailRecM[A, B](a: A)(f: A => BlobIO[Either[A, B]]): BlobIO[B] = monad.tailRecM(a)(f)
       override def raiseError[A](e: Throwable): BlobIO[A] = module.raiseError(e)
@@ -205,6 +200,12 @@ object blob { module =>
       override def uncancelable[A](body: Poll[BlobIO] => BlobIO[A]): BlobIO[A] = module.uncancelable(body)
       override def canceled: BlobIO[Unit] = module.canceled
       override def onCancel[A](fa: BlobIO[A], fin: BlobIO[Unit]): BlobIO[A] = module.onCancel(fa, fin)
-      override def fromFuture[A](fut: BlobIO[Future[A]]): BlobIO[A] = module.fromFuture(fut)
+    }
+
+  implicit def MonoidBlobIO[A](implicit M: Monoid[A]): Monoid[BlobIO[A]] =
+    new Monoid[BlobIO[A]] {
+      override val empty = monad.pure(M.empty)
+      override def combine(x: BlobIO[A], y: BlobIO[A]) =
+        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
     }
 }

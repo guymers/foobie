@@ -17,13 +17,12 @@ object FreeGen2 {
     freeGen2Dir := (Compile / sourceManaged).value,
     freeGen2Package := "doobie.free",
     freeGen2Renames := Map(classOf[java.sql.Array] -> "SqlArray"),
-    freeGen2 :=
-      new FreeGen2(
-        freeGen2Classes.value,
-        freeGen2Package.value,
-        freeGen2Renames.value,
-        state.value.log,
-      ).gen(freeGen2Dir.value),
+    freeGen2 := new FreeGen2(
+      freeGen2Classes.value,
+      freeGen2Package.value,
+      freeGen2Renames.value,
+      state.value.log,
+    ).gen(freeGen2Dir.value),
   )
 
 }
@@ -215,8 +214,7 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |import cats.~>
     |import cats.effect.kernel.{ CancelScope, Poll, Sync }
     |import cats.free.Free as FF // alias because some algebras have an op called Free
-    |import doobie.WeakAsync
-    |import scala.concurrent.Future
+    |import cats.Monoid
     |import scala.concurrent.duration.FiniteDuration
     |
     |${imports[A].mkString("\n")}
@@ -259,7 +257,6 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |      def poll[A](poll: Any, fa: ${ioname}[A]): F[A]
     |      def canceled: F[Unit]
     |      def onCancel[A](fa: ${ioname}[A], fin: ${ioname}[Unit]): F[A]
-    |      def fromFuture[A](fut: ${ioname}[Future[A]]): F[A]
     |
     |      // $sname
           ${ctors[A].map(_.visitor).mkString("\n    ")}
@@ -303,15 +300,12 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |    case class OnCancel[A](fa: ${ioname}[A], fin: ${ioname}[Unit]) extends ${opname}[A] {
     |      def visit[F[_]](v: Visitor[F]) = v.onCancel(fa, fin)
     |    }
-    |    case class FromFuture[A](fut: ${ioname}[Future[A]]) extends ${opname}[A] {
-    |      def visit[F[_]](v: Visitor[F]) = v.fromFuture(fut)
-    |    }
     |
     |    // $sname-specific operations.
     |    ${ctors[A].map(_.ctor(opname)).mkString("\n    ")}
     |
     |  }
-    |  import ${opname}._
+    |  import ${opname}.*
     |
     |  // Smart constructors for operations common to all algebras.
     |  val unit: ${ioname}[Unit] = FF.pure[${opname}, Unit](())
@@ -331,18 +325,18 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |  }
     |  val canceled = FF.liftF[${opname}, Unit](Canceled)
     |  def onCancel[A](fa: ${ioname}[A], fin: ${ioname}[Unit]) = FF.liftF[${opname}, A](OnCancel(fa, fin))
-    |  def fromFuture[A](fut: ${ioname}[Future[A]]) = FF.liftF[${opname}, A](FromFuture(fut))
     |
     |  // Smart constructors for $oname-specific operations.
     |  ${ctors[A].map(_.lifted(ioname)).mkString("\n  ")}
     |
+    |  private val monad = FF.catsFreeMonadForFree[${opname}]
+    |
     |  // Typeclass instances for ${ioname}
-    |  implicit val WeakAsync${ioname}: WeakAsync[${ioname}] =
-    |    new WeakAsync[${ioname}] {
-    |      val monad = FF.catsFreeMonadForFree[${opname}]
-    |      override val applicative = monad
+    |  implicit val Sync${ioname}: Sync[${ioname}] =
+    |    new Sync[${ioname}] {
     |      override val rootCancelScope = CancelScope.Cancelable
     |      override def pure[A](x: A): ${ioname}[A] = monad.pure(x)
+    |      override def map[A, B](fa: ${ioname}[A])(f: A => B) = monad.map(fa)(f)
     |      override def flatMap[A, B](fa: ${ioname}[A])(f: A => ${ioname}[B]): ${ioname}[B] = monad.flatMap(fa)(f)
     |      override def tailRecM[A, B](a: A)(f: A => ${ioname}[Either[A, B]]): ${ioname}[B] = monad.tailRecM(a)(f)
     |      override def raiseError[A](e: Throwable): ${ioname}[A] = module.raiseError(e)
@@ -354,8 +348,14 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     |      override def uncancelable[A](body: Poll[${ioname}] => ${ioname}[A]): ${ioname}[A] = module.uncancelable(body)
     |      override def canceled: ${ioname}[Unit] = module.canceled
     |      override def onCancel[A](fa: ${ioname}[A], fin: ${ioname}[Unit]): ${ioname}[A] = module.onCancel(fa, fin)
-    |      override def fromFuture[A](fut: ${ioname}[Future[A]]): ${ioname}[A] = module.fromFuture(fut)
     |    }
+    |
+    |  implicit def Monoid${ioname}[A](implicit M: Monoid[A]): Monoid[${ioname}[A]] =
+    |    new Monoid[${ioname}[A]] {
+    |      override val empty = monad.pure(M.empty)
+    |      override def combine(x: ${ioname}[A], y: ${ioname}[A]) =
+    |        monad.product(x, y).map { case (x, y) => M.combine(x, y) }
+    |  }
     |}
     |""".trim.stripMargin
   }
@@ -418,7 +418,6 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
        |    override def uncancelable[A](body: Poll[${ioname}] => ${ioname}[A]) = outer.uncancelable(this, ${pkg}.${mname}.capturePoll)(body)
        |    override def poll[A](poll: Any, fa: ${ioname}[A]) = outer.poll(this)(poll, fa)
        |    override def onCancel[A](fa: ${ioname}[A], fin: ${ioname}[Unit]) = outer.onCancel(this)(fa, fin)
-       |    override def fromFuture[A](fut: ${ioname}[Future[A]]) = outer.fromFuture(this)(fut)
        |
        |    // domain-specific operations are implemented in terms of `primitive`
        |${ctors[A].map(_.kleisliImpl).mkString("\n")}
@@ -445,8 +444,6 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
       |import cats.data.Kleisli
       |import cats.effect.kernel.{ Poll, Sync }
       |import cats.free.Free
-      |import doobie.WeakAsync
-      |import scala.concurrent.Future
       |import scala.concurrent.duration.FiniteDuration
       |
       |${managed.map(ClassTag(_)).flatMap(imports(_)).distinct.sorted.mkString("\n")}
@@ -454,11 +451,11 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
       |${managed.map(_.getSimpleName).map(c => s"import ${pkg}.${c.toLowerCase}.{ ${c}IO, ${c}Op }").mkString("\n")}
       |
       |object KleisliInterpreter {
-      |  def apply[M[_]: WeakAsync]: KleisliInterpreter[M] = new KleisliInterpreter[M]
+      |  def apply[M[_]: Sync]: KleisliInterpreter[M] = new KleisliInterpreter[M]
       |}
       |
       |// Family of interpreters into Kleisli arrows for some monad M.
-      |class KleisliInterpreter[M[_]](implicit val asyncM: WeakAsync[M]) { outer =>
+      |class KleisliInterpreter[M[_]](implicit val syncM: Sync[M]) { outer =>
       |
       |  // The ${managed.length} interpreters, with definitions below. These can be overridden to customize behavior.
       |  ${managed.map(interpreterDef).mkString("\n  ")}
@@ -468,37 +465,34 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
       |    // primitive JDBC methods throw exceptions and so do we when reading values
       |    // so catch any non-fatal exceptions and lift them into the effect
       |    try {
-      |      asyncM.blocking(f(a))
+      |      syncM.blocking(f(a))
       |    } catch {
-      |      case scala.util.control.NonFatal(e) => asyncM.raiseError(e)
+      |      case e if scala.util.control.NonFatal(e) => syncM.raiseError(e)
       |    }
       |  }
       |  def raw[J, A](f: J => A): Kleisli[M, J, A] = primitive(f)
-      |  def raiseError[J, A](e: Throwable): Kleisli[M, J, A] = Kleisli(_ => asyncM.raiseError(e))
-      |  def monotonic[J]: Kleisli[M, J, FiniteDuration] = Kleisli(_ => asyncM.monotonic)
-      |  def realTime[J]: Kleisli[M, J, FiniteDuration] = Kleisli(_ => asyncM.realTime)
-      |  def delay[J, A](thunk: => A): Kleisli[M, J, A] = Kleisli(_ => asyncM.delay(thunk))
-      |  def suspend[J, A](hint: Sync.Type)(thunk: => A): Kleisli[M, J, A] = Kleisli(_ => asyncM.suspend(hint)(thunk))
-      |  def canceled[J]: Kleisli[M, J, Unit] = Kleisli(_ => asyncM.canceled)
+      |  def raiseError[J, A](e: Throwable): Kleisli[M, J, A] = Kleisli(_ => syncM.raiseError(e))
+      |  def monotonic[J]: Kleisli[M, J, FiniteDuration] = Kleisli(_ => syncM.monotonic)
+      |  def realTime[J]: Kleisli[M, J, FiniteDuration] = Kleisli(_ => syncM.realTime)
+      |  def delay[J, A](thunk: => A): Kleisli[M, J, A] = Kleisli(_ => syncM.delay(thunk))
+      |  def suspend[J, A](hint: Sync.Type)(thunk: => A): Kleisli[M, J, A] = Kleisli(_ => syncM.suspend(hint)(thunk))
+      |  def canceled[J]: Kleisli[M, J, Unit] = Kleisli(_ => syncM.canceled)
       |
       |  // for operations using free structures we call the interpreter recursively
       |  def handleErrorWith[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(fa: Free[G, A])(f: Throwable => Free[G, A]): Kleisli[M, J, A] = Kleisli (j =>
-      |    asyncM.handleErrorWith(fa.foldMap(interpreter).run(j))(f.andThen(_.foldMap(interpreter).run(j)))
+      |    syncM.handleErrorWith(fa.foldMap(interpreter).run(j))(f.andThen(_.foldMap(interpreter).run(j)))
       |  )
       |  def forceR[G[_], J, A, B](interpreter: G ~> Kleisli[M, J, *])(fa: Free[G, A])(fb: Free[G, B]): Kleisli[M, J, B] = Kleisli (j =>
-      |    asyncM.forceR(fa.foldMap(interpreter).run(j))(fb.foldMap(interpreter).run(j))
+      |    syncM.forceR(fa.foldMap(interpreter).run(j))(fb.foldMap(interpreter).run(j))
       |  )
       |  def uncancelable[G[_], J, A](interpreter: G ~> Kleisli[M, J, *], capture: Poll[M] => Poll[Free[G, *]])(body: Poll[Free[G, *]] => Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
-      |    asyncM.uncancelable(body.compose(capture).andThen(_.foldMap(interpreter).run(j)))
+      |    syncM.uncancelable(body.compose(capture).andThen(_.foldMap(interpreter).run(j)))
       |  )
       |  def poll[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(mpoll: Any, fa: Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
       |    mpoll.asInstanceOf[Poll[M]].apply(fa.foldMap(interpreter).run(j))
       |  )
       |  def onCancel[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(fa: Free[G, A], fin: Free[G, Unit]): Kleisli[M, J, A] = Kleisli (j =>
-      |    asyncM.onCancel(fa.foldMap(interpreter).run(j), fin.foldMap(interpreter).run(j))
-      |  )
-      |  def fromFuture[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(fut: Free[G, Future[A]]): Kleisli[M, J, A] = Kleisli(j =>
-      |    asyncM.fromFuture(fut.foldMap(interpreter).run(j))
+      |    syncM.onCancel(fa.foldMap(interpreter).run(j), fin.foldMap(interpreter).run(j))
       |  )
       |  def embed[J, A](e: Embedded[A]): Kleisli[M, J, A] =
       |    e match {
