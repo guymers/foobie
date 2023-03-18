@@ -16,7 +16,7 @@ object QuerySuite extends H2DatabaseSpec {
   private val q = Query[String, Int]("select 123 where ? = 'foo'", None)
   private val pairQuery = Query[String, (String, Int)]("select 'xxx', 123 where ? = 'foo'", None)
 
-  override val spec = suite("Fragment")(
+  override val spec = suite("Query")(
     suite("Query (non-empty)")(
       test("to") {
         q.to[List]("foo").transact.map { result =>
@@ -139,27 +139,27 @@ object QuerySuite extends H2DatabaseSpec {
       val q0n = Query0[Int]("select 123 where 'foo' = 'foo'", None)
       val pairQ0n = Query0[(String, Int)]("select 'xxx', 123 where 'foo' = 'foo'", None)
 
-      test("Query0 via constructor (non-empty) to") {
+      test("to") {
         q0n.to[List].transact.map { result =>
           assertTrue(result == List(123))
         }
       } ::
-      test("Query0 via constructor (non-empty) toMap") {
+      test("toMap") {
         pairQ0n.toMap[String, Int].transact.map { result =>
           assertTrue(result == Map("xxx" -> 123))
         }
       } ::
-      test("Query0 via constructor (non-empty) unique") {
+      test("unique") {
         q0n.unique.transact.map { result =>
           assertTrue(result == 123)
         }
       } ::
-      test("Query0 via constructor (non-empty) option") {
+      test("option") {
         q0n.option.transact.map { result =>
           assertTrue(result == Some(123))
         }
       } ::
-      test("Query0 via constructor (non-empty) map") {
+      test("map") {
         q0n.map(_ * 2).to[List].transact.map { result =>
           assertTrue(result == List(246))
         }
@@ -169,33 +169,33 @@ object QuerySuite extends H2DatabaseSpec {
       val q0e = Query0[Int]("select 123 where 'bar' = 'foo'", None)
       val pairQ0e = Query0[(String, Int)]("select 'xxx', 123 where 'bar' = 'foo'", None)
 
-      test("Query0 via constructor (empty) to") {
+      test("to") {
         q0e.to[List].transact.map { result =>
           assertTrue(result == Nil)
         }
       } ::
-      test("Query0 via constructor (empty) toMap") {
+      test("toMap") {
         pairQ0e.toMap[String, Int].transact.map { result =>
           assertTrue(result == Map.empty[String, Int])
         }
       } ::
-      test("Query0 via constructor (empty) unique") {
+      test("unique") {
         q0e.unique.transact.either.map { result =>
           assertTrue(result == Left(invariant.UnexpectedEnd))
         }
       } ::
-      test("Query0 via constructor (empty) option") {
+      test("option") {
         q0e.option.transact.map { result =>
           assertTrue(result == None)
         }
       } ::
-      test("Query0 via constructor (empty) map") {
+      test("map") {
         q0e.map(_ * 2).to[List].transact.map { result =>
           assertTrue(result == Nil)
         }
       } :: Nil
     }),
-    test("Query to Fragment and back") {
+    test("to Fragment and back") {
       val qf = fr"select 'foo', ${1: Int}, ${Option.empty[Int]}, ${Option(42)}".query[String] // wrong!
       val qf_ = qf.toFragment.query[(String, Int, Option[Int], Option[Int])]
       qf_.unique.transact.map { result =>
