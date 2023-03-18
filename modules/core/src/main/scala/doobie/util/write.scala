@@ -107,7 +107,10 @@ sealed trait Write1 extends WritePlatform { this: Write.type =>
       override val puts = W.puts.map { case (g, _) => (g, Nullable) }
       override def values(a: Option[A]) = a match {
         case None => puts.map(_ => None)
-        case Some(a) => W.values(a)
+        case Some(a) => W.values(a).map {
+            case o: Option[t] => o
+            case o => Option(o)
+          }
       }
       override def unsafeSet(ps: PreparedStatement, i: Int, a: Option[A]) = {
         a.foreach(W.unsafeSet(ps, i, _))
