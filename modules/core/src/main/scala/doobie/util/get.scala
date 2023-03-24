@@ -27,6 +27,7 @@ sealed abstract class Get[A](
   protected def mapImpl[B](f: A => B, typ: Option[String]): Get[B]
 
   @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+  @throws[NonNullableColumnRead]
   final def unsafeGetNonNullable(rs: ResultSet, n: Int): A = {
     val i = get.fi(rs, n)
     if (rs.wasNull) throw NonNullableColumnRead(n, jdbcSources.head)

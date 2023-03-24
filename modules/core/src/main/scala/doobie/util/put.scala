@@ -32,10 +32,11 @@ sealed abstract class Put[A](
   final def tcontramap[B](f: B => A)(implicit ev: TypeName[B]): Put[B] =
     contramapImpl(f, Some(ev.value))
 
-  @SuppressWarnings(Array("org.wartremover.warts.Equals"))
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+  @throws[NullPointerException]("if `a` is null")
   def unsafeSetNonNullable(ps: PreparedStatement, n: Int, a: A): Unit =
-    if (a == null) sys.error("oops, null")
-    else put.fi.apply(ps, n, (put.k(a)))
+    if (a == null) throw new NullPointerException("null passed to Put unsafeSetNonNullable")
+    else put.fi.apply(ps, n, put.k(a))
 
   def unsafeSetNullable(ps: PreparedStatement, n: Int, oa: Option[A]): Unit =
     oa match {
@@ -43,10 +44,11 @@ sealed abstract class Put[A](
       case None => unsafeSetNull(ps, n)
     }
 
-  @SuppressWarnings(Array("org.wartremover.warts.Equals"))
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+  @throws[NullPointerException]("if `a` is null")
   def unsafeUpdateNonNullable(rs: ResultSet, n: Int, a: A): Unit =
-    if (a == null) sys.error("oops, null")
-    else update.fi.apply(rs, n, (update.k(a)))
+    if (a == null) throw new NullPointerException("null passed to Put unsafeUpdateNonNullable")
+    else update.fi.apply(rs, n, update.k(a))
 
   def unsafeUpdateNullable(rs: ResultSet, n: Int, oa: Option[A]): Unit =
     oa match {

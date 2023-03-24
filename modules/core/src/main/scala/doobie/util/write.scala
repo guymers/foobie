@@ -41,11 +41,11 @@ trait Write[A] { self =>
     override def values(ab: (A, B)) = self.values(ab._1) ++ fb.values(ab._2)
     override def unsafeSet(ps: PreparedStatement, i: Int, ab: (A, B)) = {
       self.unsafeSet(ps, i, ab._1)
-      fb.unsafeSet(ps, i, ab._2)
+      fb.unsafeSet(ps, i + self.length, ab._2)
     }
     override def unsafeUpdate(rs: ResultSet, i: Int, ab: (A, B)) = {
       self.unsafeUpdate(rs, i, ab._1)
-      fb.unsafeUpdate(rs, i, ab._2)
+      fb.unsafeUpdate(rs, i + self.length, ab._2)
     }
   }
 
@@ -76,7 +76,7 @@ object Write extends Write1 {
     override def product[A, B](fa: Write[A], fb: Write[B]) = fa.product(fb)
   }
 
-  implicit val unitComposite: Write[Unit] = new Write[Unit] {
+  implicit val unit: Write[Unit] = new Write[Unit] {
     override val puts = ArraySeq.empty
     override def values(a: Unit) = Seq.empty
     override def unsafeSet(ps: PreparedStatement, i: Int, a: Unit) = ()
