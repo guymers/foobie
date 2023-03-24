@@ -119,15 +119,7 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
       val _ = Write[Option[(Int, (Woozle, Woozle, String))]]
       assertCompletes
     },
-    suite("write correctly")({
-      case class Test(v: Option[Int], s: Option[String])
-      object Test {
-        implicit val read: Read[Test] = Read.derived
-        val write: Write[Test] = Write.derived
-      }
-
-      val writeTuple = (Write[Option[Int]], Write[Option[String]]).tupled
-
+    suite("write correctly")(
       test("fragment") {
         def insert[A](a: A)(implicit W: Write[A]) = {
           fr"INSERT INTO test_write (v, s) VALUES ($a)".update.withUniqueGeneratedKeys[Test]("v", "s")
@@ -146,9 +138,9 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
             insert(Test(Some(3), Some("str")))
           }
 
-          tup1 <- insert[(Option[Int], Option[String])]((None, None))(writeTuple)
-          tup2 <- insert[(Option[Int], Option[String])]((None, Some("str")))(writeTuple)
-          tup3 <- insert[(Option[Int], Option[String])]((Some(3), Some("str")))(writeTuple)
+          tup1 <- insert[(Option[Int], Option[String])]((None, None))(Test.writeTuple)
+          tup2 <- insert[(Option[Int], Option[String])]((None, Some("str")))(Test.writeTuple)
+          tup3 <- insert[(Option[Int], Option[String])]((Some(3), Some("str")))(Test.writeTuple)
         } yield {
           assertTrue(t1 == Test(None, None)) &&
           assertTrue(t2 == Test(None, Some("str"))) &&
@@ -159,7 +151,7 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
           assertTrue(tup3 == Test(Some(3), Some("str")))
         }
         conn.transact
-      } ::
+      },
       test("parameterized") {
 
         def insert[A](a: A)(implicit W: Write[A]) = {
@@ -181,9 +173,9 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
             insert(Test(Some(3), Some("str")))
           }
 
-          tup1 <- insert[(Option[Int], Option[String])]((None, None))(writeTuple)
-          tup2 <- insert[(Option[Int], Option[String])]((None, Some("str")))(writeTuple)
-          tup3 <- insert[(Option[Int], Option[String])]((Some(3), Some("str")))(writeTuple)
+          tup1 <- insert[(Option[Int], Option[String])]((None, None))(Test.writeTuple)
+          tup2 <- insert[(Option[Int], Option[String])]((None, Some("str")))(Test.writeTuple)
+          tup3 <- insert[(Option[Int], Option[String])]((Some(3), Some("str")))(Test.writeTuple)
         } yield {
           assertTrue(t1 == Test(None, None)) &&
           assertTrue(t2 == Test(None, Some("str"))) &&
@@ -194,8 +186,16 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
           assertTrue(tup3 == Test(Some(3), Some("str")))
         }
         conn.transact
-      } :: Nil
-    }),
+      },
+    ),
     suite("platform specific")(platformTests*),
   )
+
+  case class Test(v: Option[Int], s: Option[String])
+  object Test {
+    implicit val read: Read[Test] = Read.derived
+    val write: Write[Test] = Write.derived
+    val writeTuple = (Write[Option[Int]], Write[Option[String]]).tupled
+  }
+
 }
