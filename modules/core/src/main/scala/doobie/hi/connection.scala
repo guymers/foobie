@@ -8,6 +8,7 @@ import cats.Foldable
 import cats.data.Ior
 import cats.effect.kernel.syntax.monadCancel.*
 import cats.syntax.apply.*
+import cats.syntax.foldable.*
 import doobie.FC
 import doobie.FCS
 import doobie.FDMD
@@ -34,12 +35,11 @@ import doobie.util.analysis.ColumnMeta
 import doobie.util.analysis.ParameterMeta
 import doobie.util.stream.repeatEvalChunks
 import fs2.Stream
-import fs2.Stream.bracket
-import fs2.Stream.eval
 
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Savepoint
+import scala.collection.Factory
 import scala.jdk.CollectionConverters.*
 
 /**
@@ -60,7 +60,7 @@ object connection {
   ): Stream[ConnectionIO, A] = {
 
     def prepared(ps: PreparedStatement): Stream[ConnectionIO, PreparedStatement] =
-      eval[ConnectionIO, PreparedStatement] {
+      Stream.eval[ConnectionIO, PreparedStatement] {
         val fs = FPS.setFetchSize(chunkSize)
         FC.embed(ps, fs *> prep).map(_ => ps)
       }
@@ -69,10 +69,10 @@ object connection {
       repeatEvalChunks(FC.embed(rs, resultset.getNextChunk[A](chunkSize)))
 
     val preparedStatement: Stream[ConnectionIO, PreparedStatement] =
-      bracket(create)(FC.embed(_, FPS.close)).flatMap(prepared)
+      Stream.bracket(create)(FC.embed(_, FPS.close)).flatMap(prepared)
 
     def results(ps: PreparedStatement): Stream[ConnectionIO, A] =
-      bracket(FC.embed(ps, exec))(FC.embed(_, FRS.close)).flatMap(unrolled)
+      Stream.bracket(FC.embed(ps, exec))(FC.embed(_, FRS.close)).flatMap(unrolled)
 
     preparedStatement.flatMap(results)
 
@@ -113,6 +113,21 @@ object connection {
       prep,
       HPS.addBatchesAndExecute(fa) *> FPS.getGeneratedKeys,
     )
+
+  def updateManyReturningGeneratedKeys[F[_]: Foldable, A: Write, K: Read](cols: List[String])(
+    sql: String,
+    fa: F[A],
+  )(implicit B: Factory[K, F[K]]): ConnectionIO[F[K]] = {
+    if (fa.isEmpty) {
+      FC.delay(B.newBuilder.result())
+    } else {
+      val readRows = FPS.getGeneratedKeys.bracket { rs =>
+        FPS.embed(rs, resultset.build[F, K])
+      }(FPS.embed(_, FRS.close))
+
+      prepareStatementS(sql, cols)(HPS.addBatches(fa) *> FPS.executeBatch *> readRows)
+    }
+  }
 
   /** @group Transaction Control */
   val commit: ConnectionIO[Unit] =

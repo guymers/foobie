@@ -7,7 +7,6 @@ package doobie.util
 import cats.Contravariant
 import cats.Foldable
 import cats.syntax.apply.*
-import cats.syntax.foldable.*
 import doobie.FPS
 import doobie.HC
 import doobie.HPS
@@ -18,10 +17,16 @@ import doobie.util.fragment.Fragment
 import doobie.util.pos.Pos
 import fs2.Stream
 
+import scala.collection.Factory
+
 /** Module defining updates parameterized by input type. */
 object update {
 
   val DefaultChunkSize = query.DefaultChunkSize
+
+  trait UpdateManyReturningGeneratedKeysPartiallyApplied[A, K] {
+    def apply[F[_]](as: F[A])(implicit F: Foldable[F], K: Read[K], B: Factory[K, F[K]]): ConnectionIO[F[K]]
+  }
 
   /**
    * Partial application hack to allow calling updateManyWithGeneratedKeys
@@ -105,7 +110,20 @@ object update {
       HC.prepareStatement(sql)(HPS.addBatchesAndExecute(fa))
 
     /**
-     * Construct a stream that performs a batch update as with `updateMany`,
+     * Perform a batch update as with [[updateMany]] yielding generated keys of
+     * readable type `K`, identified by the specified columns. Note that not all
+     * drivers support generated keys, and some support only a single key
+     * column.
+     * @group Execution
+     */
+    def updateManyReturningGeneratedKeys[K](columns: String*): UpdateManyReturningGeneratedKeysPartiallyApplied[A, K] =
+      new UpdateManyReturningGeneratedKeysPartiallyApplied[A, K] {
+        override def apply[F[_]](fa: F[A])(implicit F: Foldable[F], K: Read[K], B: Factory[K, F[K]]) =
+          HC.updateManyReturningGeneratedKeys(columns.toList)(sql, fa)
+      }
+
+    /**
+     * Construct a stream that performs a batch update as with [[updateMany]],
      * yielding generated keys of readable type `K`, identified by the specified
      * columns. Note that not all drivers support generated keys, and some
      * support only a single key column.
@@ -113,11 +131,8 @@ object update {
      */
     def updateManyWithGeneratedKeys[K](columns: String*): UpdateManyWithGeneratedKeysPartiallyApplied[A, K] =
       new UpdateManyWithGeneratedKeysPartiallyApplied[A, K] {
-        def withChunkSize[F[_]](as: F[A], chunkSize: Int)(implicit
-          F: Foldable[F],
-          K: Read[K],
-        ): Stream[ConnectionIO, K] =
-          HC.updateManyWithGeneratedKeys[List, A, K](columns.toList)(sql, FPS.unit, as.toList, chunkSize)
+        override def withChunkSize[F[_]](as: F[A], chunkSize: Int)(implicit F: Foldable[F], K: Read[K]) =
+          HC.updateManyWithGeneratedKeys(columns.toList)(sql, FPS.unit, as, chunkSize)
       }
 
     /**

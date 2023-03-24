@@ -32,7 +32,7 @@ object statement {
 
   /** @group Execution */
   val executeBatch: StatementIO[List[Int]] =
-    FS.executeBatch.map(_.toIndexedSeq.toList) // intArrayOps does not have `toList` in 2.13
+    FS.executeBatch.map(_.toList)
 
   /** @group Execution */
   def executeQuery[A](sql: String)(k: ResultSetIO[A]): StatementIO[A] =
