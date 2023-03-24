@@ -46,10 +46,10 @@ package object doobie {
   val FSO = doobie.free.sqloutput
   val FS = doobie.free.statement
 
-  val HC = doobie.hi.connection
-  val HS = doobie.hi.statement
-  val HPS = doobie.hi.preparedstatement
-  val HRS = doobie.hi.resultset
+  val HC = doobie.hi.HC
+  val HS = doobie.hi.HS
+  val HPS = doobie.hi.HPS
+  val HRS = doobie.hi.HRS
 
   type Meta[A] = doobie.util.meta.Meta[A]
   val Meta = doobie.util.meta.Meta

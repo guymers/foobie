@@ -6,7 +6,7 @@ package doobie.util
 
 import doobie.H2DatabaseSpec
 import doobie.syntax.string.*
-import doobie.util.update.Update0
+import doobie.util.update.Update
 import zio.test.assertTrue
 
 object UpdateSuite extends H2DatabaseSpec {
@@ -18,11 +18,10 @@ object UpdateSuite extends H2DatabaseSpec {
         val noneInt: Option[Int] = None
 
         val conn = for {
-          _ <-
-            Update0("CREATE LOCAL TEMPORARY TABLE IF NOT EXISTS test_update (v INT) NOT PERSISTENT", None).run
-          a <- fr"INSERT INTO test_update VALUES (${1})".update.withUniqueGeneratedKeys[Option[Int]]("v")
-          b <- fr"INSERT INTO test_update VALUES ($someInt)".update.withUniqueGeneratedKeys[Option[Int]]("v")
-          c <- fr"INSERT INTO test_update VALUES ($noneInt)".update.withUniqueGeneratedKeys[Option[Int]]("v")
+          _ <- fr"CREATE LOCAL TEMPORARY TABLE IF NOT EXISTS test_update_put (v INT) NOT PERSISTENT".update.run
+          a <- fr"INSERT INTO test_update_put VALUES (${1})".update.withUniqueGeneratedKeys[Option[Int]]("v")
+          b <- fr"INSERT INTO test_update_put VALUES ($someInt)".update.withUniqueGeneratedKeys[Option[Int]]("v")
+          c <- fr"INSERT INTO test_update_put VALUES ($noneInt)".update.withUniqueGeneratedKeys[Option[Int]]("v")
         } yield {
           assertTrue(a == Some(1)) &&
           assertTrue(b == someInt) &&
@@ -39,15 +38,45 @@ object UpdateSuite extends H2DatabaseSpec {
         val noneId: Option[Id] = None
 
         val conn = for {
-          _ <-
-            Update0("CREATE LOCAL TEMPORARY TABLE IF NOT EXISTS test_update (v INT) NOT PERSISTENT", None).run
-          a <- fr"INSERT INTO test_update VALUES (${Id(1)})".update.withUniqueGeneratedKeys[Option[Id]]("v")
-          b <- fr"INSERT INTO test_update VALUES ($someId)".update.withUniqueGeneratedKeys[Option[Id]]("v")
-          c <- fr"INSERT INTO test_update VALUES ($noneId)".update.withUniqueGeneratedKeys[Option[Id]]("v")
+          _ <- fr"CREATE LOCAL TEMPORARY TABLE IF NOT EXISTS test_update_write (v INT) NOT PERSISTENT".update.run
+          a <- fr"INSERT INTO test_update_write VALUES (${Id(1)})".update.withUniqueGeneratedKeys[Option[Id]]("v")
+          b <- fr"INSERT INTO test_update_write VALUES ($someId)".update.withUniqueGeneratedKeys[Option[Id]]("v")
+          c <- fr"INSERT INTO test_update_write VALUES ($noneId)".update.withUniqueGeneratedKeys[Option[Id]]("v")
         } yield {
           assertTrue(a == Some(Id(1))) &&
           assertTrue(b == someId) &&
           assertTrue(c == noneId)
+        }
+        conn.transact
+      },
+    ),
+    suite("many")(
+      test("many") {
+        val conn = for {
+          _ <- fr"CREATE LOCAL TEMPORARY TABLE IF NOT EXISTS test_update_many (v INT) NOT PERSISTENT".update.run
+          result <- Update[Int]("INSERT INTO test_update_many VALUES (?)").updateMany((1 to 10).toList)
+        } yield {
+          assertTrue(result == 10)
+        }
+        conn.transact
+      },
+      test("many returning returning generated keys") {
+        val conn = for {
+          _ <- fr"CREATE LOCAL TEMPORARY TABLE IF NOT EXISTS test_update_many_r (v INT) NOT PERSISTENT".update.run
+          result <- Update[Int]("INSERT INTO test_update_many_r VALUES (?)")
+            .updateManyReturningGeneratedKeys[Int]("v")((1 to 10).toList)
+        } yield {
+          assertTrue(result == (1 to 10).toList)
+        }
+        conn.transact
+      },
+      test("many returning with generated keys") {
+        val conn = for {
+          _ <- fr"CREATE LOCAL TEMPORARY TABLE IF NOT EXISTS test_update_many_w (v INT) NOT PERSISTENT".update.run
+          result <- Update[Int]("INSERT INTO test_update_many_w VALUES (?)")
+            .updateManyWithGeneratedKeys[Int]("v")((1 to 10).toList).compile.toList
+        } yield {
+          assertTrue(result == (1 to 10).toList)
         }
         conn.transact
       },

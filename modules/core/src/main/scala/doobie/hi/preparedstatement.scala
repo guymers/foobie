@@ -7,7 +7,6 @@ package doobie.hi
 import cats.Foldable
 import cats.data.Ior
 import cats.effect.kernel.syntax.monadCancel.*
-import cats.syntax.applicative.*
 import cats.syntax.apply.*
 import cats.syntax.foldable.*
 import cats.syntax.traverse.*
@@ -63,7 +62,7 @@ object preparedstatement {
 
   /** @group Batching */
   val executeBatch: PreparedStatementIO[List[Int]] =
-    FPS.executeBatch.map(_.toIndexedSeq.toList) // intArrayOps does not have `toList` in 2.13
+    FPS.executeBatch.map(_.toList)
 
   /** @group Batching */
   val addBatch: PreparedStatementIO[Unit] =
@@ -76,17 +75,29 @@ object preparedstatement {
    * change.
    * @group Batching
    */
-  def addBatchesAndExecute[F[_]: Foldable, A: Write](fa: F[A]): PreparedStatementIO[Int] =
-    fa.toList
-      .foldRight(executeBatch)((a, b) => set(a) *> addBatch *> b)
-      .map(_.foldLeft(0)((acc, n) => acc + n.max(0))) // treat negatives (failures) as no rows updated
+  def addBatchesAndExecute[F[_]: Foldable, A: Write](fa: F[A]): PreparedStatementIO[Int] = {
+    val ps = if (fa.isEmpty) {
+      delay(Nil)
+    } else {
+      addBatches(fa) *> executeBatch
+    }
+    ps.map(_.foldLeft(0)((acc, n) => acc + n.max(0))) // treat negatives (failures) as no rows updated
+  }
 
   /**
    * Add many sets of parameters.
    * @group Batching
    */
   def addBatches[F[_]: Foldable, A: Write](fa: F[A]): PreparedStatementIO[Unit] =
-    fa.toList.foldRight(().pure[PreparedStatementIO])((a, b) => set(a) *> addBatch *> b)
+    addBatchesIterable(fa.toIterable)
+
+  private def addBatchesIterable[A](fa: Iterable[A])(implicit W: Write[A]): PreparedStatementIO[Unit] =
+    FPS.raw { ps =>
+      fa.foreach { a =>
+        W.unsafeSet(ps, 1, a)
+        ps.addBatch()
+      }
+    }
 
   /** @group Execution */
   def executeQuery[A](k: ResultSetIO[A]): PreparedStatementIO[A] =
@@ -98,7 +109,7 @@ object preparedstatement {
 
   /** @group Execution */
   def executeUpdateWithUniqueGeneratedKeys[A: Read]: PreparedStatementIO[A] =
-    executeUpdate.flatMap(_ => getUniqueGeneratedKeys[A])
+    executeUpdate *> getUniqueGeneratedKeys[A]
 
   /** @group Execution */
   def executeUpdateWithGeneratedKeys[A: Read](chunkSize: Int): Stream[PreparedStatementIO, A] =
