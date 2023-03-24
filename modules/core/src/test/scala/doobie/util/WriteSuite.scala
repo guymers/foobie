@@ -4,9 +4,13 @@
 
 package doobie.util
 
+import cats.syntax.apply.*
 import doobie.H2DatabaseSpec
+import doobie.syntax.string.*
 import doobie.test.illTyped
 import doobie.util.meta.Meta
+import doobie.util.update.Update
+import doobie.util.update.Update0
 import zio.test.assertCompletes
 import zio.test.assertTrue
 
@@ -115,6 +119,83 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
       val _ = Write[Option[(Int, (Woozle, Woozle, String))]]
       assertCompletes
     },
+    suite("write correctly")({
+      case class Test(v: Option[Int], s: Option[String])
+      object Test {
+        implicit val read: Read[Test] = Read.derived
+        val write: Write[Test] = Write.derived
+      }
+
+      val writeTuple = (Write[Option[Int]], Write[Option[String]]).tupled
+
+      test("fragment") {
+        def insert[A](a: A)(implicit W: Write[A]) = {
+          fr"INSERT INTO test_write (v, s) VALUES ($a)".update.withUniqueGeneratedKeys[Test]("v", "s")
+        }
+
+        val conn = for {
+          _ <-
+            Update0("CREATE LOCAL TEMPORARY TABLE IF NOT EXISTS test_write(v INT, s VARCHAR) NOT PERSISTENT", None).run
+
+          t1 <- insert(Test(None, None))(Test.write)
+          t2 <- insert(Test(None, Some("str")))(Test.write)
+          t3 <- insert(Test(Some(3), Some("str")))(Test.write)
+
+          tAuto <- {
+            import doobie.util.Write.Auto.*
+            insert(Test(Some(3), Some("str")))
+          }
+
+          tup1 <- insert[(Option[Int], Option[String])]((None, None))(writeTuple)
+          tup2 <- insert[(Option[Int], Option[String])]((None, Some("str")))(writeTuple)
+          tup3 <- insert[(Option[Int], Option[String])]((Some(3), Some("str")))(writeTuple)
+        } yield {
+          assertTrue(t1 == Test(None, None)) &&
+          assertTrue(t2 == Test(None, Some("str"))) &&
+          assertTrue(t3 == Test(Some(3), Some("str"))) &&
+          assertTrue(tAuto == Test(Some(3), Some("str"))) &&
+          assertTrue(tup1 == Test(None, None)) &&
+          assertTrue(tup2 == Test(None, Some("str"))) &&
+          assertTrue(tup3 == Test(Some(3), Some("str")))
+        }
+        conn.transact
+      } ::
+      test("parameterized") {
+
+        def insert[A](a: A)(implicit W: Write[A]) = {
+          Update[A]("INSERT INTO test_write_p (v, s) VALUES (?, ?)").withUniqueGeneratedKeys[Test]("v", "s")(a)
+        }
+
+        val conn = for {
+          _ <- Update0(
+            "CREATE LOCAL TEMPORARY TABLE IF NOT EXISTS test_write_p(v INT, s VARCHAR) NOT PERSISTENT",
+            None,
+          ).run
+
+          t1 <- insert(Test(None, None))(Test.write)
+          t2 <- insert(Test(None, Some("str")))(Test.write)
+          t3 <- insert(Test(Some(3), Some("str")))(Test.write)
+
+          tAuto <- {
+            import doobie.util.Write.Auto.*
+            insert(Test(Some(3), Some("str")))
+          }
+
+          tup1 <- insert[(Option[Int], Option[String])]((None, None))(writeTuple)
+          tup2 <- insert[(Option[Int], Option[String])]((None, Some("str")))(writeTuple)
+          tup3 <- insert[(Option[Int], Option[String])]((Some(3), Some("str")))(writeTuple)
+        } yield {
+          assertTrue(t1 == Test(None, None)) &&
+          assertTrue(t2 == Test(None, Some("str"))) &&
+          assertTrue(t3 == Test(Some(3), Some("str"))) &&
+          assertTrue(tAuto == Test(Some(3), Some("str"))) &&
+          assertTrue(tup1 == Test(None, None)) &&
+          assertTrue(tup2 == Test(None, Some("str"))) &&
+          assertTrue(tup3 == Test(Some(3), Some("str")))
+        }
+        conn.transact
+      } :: Nil
+    }),
     suite("platform specific")(platformTests*),
   )
 }

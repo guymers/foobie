@@ -55,22 +55,22 @@ object ReadSuite extends H2DatabaseSpec with ReadSuitePlatform {
       val _ = Read[(Int, (Int, String))]
       assertCompletes
     },
-    test("Read is not auto derived without an import") {
+    test("not auto derived without an import") {
       val _ = illTyped("Read[(Int, Int)]")
       val _ = illTyped("Read[(Int, Int, String)]")
       val _ = illTyped("Read[(Int, (Int, String))]")
       assertCompletes
     },
-    test("Read auto derives nested types") {
+    test("auto derives nested types") {
       import doobie.util.Read.Auto.*
 
       assertTrue(Read[Widget].length == 3)
     },
-    test("Read does not auto derive nested types without an import") {
+    test("does not auto derive nested types without an import") {
       val _ = illTyped("Read.derived[Widget]")
       assertCompletes
     },
-    test("Read can be manually derived") {
+    test("can be manually derived") {
       assertTrue(Read.derived[LenStr1].length == 2)
     },
     test("exist for Unit") {
