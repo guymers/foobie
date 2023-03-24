@@ -117,7 +117,7 @@ object connection {
   def updateManyReturningGeneratedKeys[F[_]: Foldable, A: Write, K: Read](cols: List[String])(
     sql: String,
     fa: F[A],
-  )(implicit B: Factory[K, F[K]]) = {
+  )(implicit B: Factory[K, F[K]]): ConnectionIO[F[K]] = {
     if (fa.isEmpty) {
       FC.delay(B.newBuilder.result())
     } else {

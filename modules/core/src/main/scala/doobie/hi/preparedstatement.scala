@@ -31,7 +31,6 @@ import doobie.util.Write
 import doobie.util.analysis.*
 import doobie.util.stream.repeatEvalChunks
 import fs2.Stream
-import fs2.Stream.bracket
 
 import java.sql.ParameterMetaData
 import java.sql.ResultSetMetaData
@@ -51,7 +50,7 @@ object preparedstatement {
 
   /** @group Execution */
   def stream[A: Read](chunkSize: Int): Stream[PreparedStatementIO, A] =
-    bracket(FPS.executeQuery)(FPS.embed(_, FRS.close)).flatMap(unrolled[A](_, chunkSize))
+    Stream.bracket(FPS.executeQuery)(FPS.embed(_, FRS.close)).flatMap(unrolled[A](_, chunkSize))
 
   /**
    * Non-strict unit for capturing effects.
@@ -113,7 +112,7 @@ object preparedstatement {
 
   /** @group Execution */
   def executeUpdateWithGeneratedKeys[A: Read](chunkSize: Int): Stream[PreparedStatementIO, A] =
-    bracket(FPS.executeUpdate *> FPS.getGeneratedKeys)(FPS.embed(_, FRS.close)).flatMap(unrolled[A](_, chunkSize))
+    Stream.bracket(FPS.executeUpdate *> FPS.getGeneratedKeys)(FPS.embed(_, FRS.close)).flatMap(unrolled[A](_, chunkSize))
 
   /**
    * Compute the column `JdbcMeta` list for this `PreparedStatement`.
