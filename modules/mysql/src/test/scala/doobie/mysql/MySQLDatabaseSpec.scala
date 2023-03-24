@@ -75,7 +75,7 @@ object MySQLDatabaseSpec {
     dataSource.setPassword("password")
     dataSource.setMinimumIdle(poolSize.min(4))
     dataSource.setMaximumPoolSize(poolSize)
-    dataSource.setConnectionTimeout(5000)
+    dataSource.setConnectionTimeout(15.seconds.toMillis)
     dataSource
   }
 }
