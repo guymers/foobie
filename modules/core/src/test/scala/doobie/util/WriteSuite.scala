@@ -121,6 +121,7 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
     },
     suite("write correctly")(
       test("fragment") {
+
         def insert[A](a: A)(implicit W: Write[A]) = {
           fr"INSERT INTO test_write (v, s) VALUES ($a)".update.withUniqueGeneratedKeys[Test]("v", "s")
         }
@@ -187,6 +188,30 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
         }
         conn.transact
       },
+      test("nested") {
+
+        def insert(a: TestNested) = {
+          fr"INSERT INTO test_write_n (v, s) VALUES ($a)".update.withUniqueGeneratedKeys[TestNested]("v", "s")
+        }
+
+        val conn = for {
+          _ <- Update0(
+            "CREATE LOCAL TEMPORARY TABLE IF NOT EXISTS test_write_n(v INT, s VARCHAR) NOT PERSISTENT",
+            None,
+          ).run
+
+          t0 <- insert(TestNested(None))
+          t1 <- insert(TestNested(Some(Test(None, None))))
+          t2 <- insert(TestNested(Some(Test(None, Some("str")))))
+          t3 <- insert(TestNested(Some(Test(Some(3), Some("str")))))
+        } yield {
+          assertTrue(t0 == TestNested(None)) &&
+          assertTrue(t1 == TestNested(None)) &&
+          assertTrue(t2 == TestNested(Some(Test(None, Some("str"))))) &&
+          assertTrue(t3 == TestNested(Some(Test(Some(3), Some("str")))))
+        }
+        conn.transact
+      },
     ),
     suite("platform specific")(platformTests*),
   )
@@ -196,6 +221,13 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
     implicit val read: Read[Test] = Read.derived
     val write: Write[Test] = Write.derived
     val writeTuple = (Write[Option[Int]], Write[Option[String]]).tupled
+  }
+
+  case class TestNested(n: Option[Test])
+  object TestNested {
+    implicit val read: Read[TestNested] = Read.derived
+    implicit val writeTest: Write[Test] = Test.write
+    implicit val write: Write[TestNested] = Write.derived
   }
 
 }

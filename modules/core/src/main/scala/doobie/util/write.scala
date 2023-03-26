@@ -112,11 +112,13 @@ sealed trait Write1 extends WritePlatform { this: Write.type =>
             case o => Option(o)
           }
       }
-      override def unsafeSet(ps: PreparedStatement, i: Int, a: Option[A]) = {
-        a.foreach(W.unsafeSet(ps, i, _))
+      override def unsafeSet(ps: PreparedStatement, i: Int, a: Option[A]) = a match {
+        case None => W.puts.zipWithIndex.foreach { case ((p, _), o) => p.unsafeSetNullable(ps, i + o, None) }
+        case Some(a) => W.unsafeSet(ps, i, a)
       }
-      override def unsafeUpdate(rs: ResultSet, i: Int, a: Option[A]) = {
-        a.foreach(W.unsafeUpdate(rs, i, _))
+      override def unsafeUpdate(rs: ResultSet, i: Int, a: Option[A]) = a match {
+        case None => W.puts.zipWithIndex.foreach { case ((p, _), o) => p.unsafeUpdateNullable(rs, i + o, None) }
+        case Some(a) => W.unsafeUpdate(rs, i, a)
       }
     }
   }
