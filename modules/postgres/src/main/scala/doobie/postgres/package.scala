@@ -28,7 +28,7 @@ package object postgres {
 
   object implicits
     extends Instances
-    with syntax.ToPostgresMonadErrorOps
+    with syntax.ToPostgresApplicativeErrorOps
     with syntax.ToFragmentOps
     with syntax.ToPostgresExplainOps
 }

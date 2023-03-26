@@ -7,7 +7,8 @@ package doobie.postgres.syntax
 import cats.Foldable
 import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
-import cats.syntax.all.*
+import cats.syntax.applicative.*
+import cats.syntax.foldable.*
 import doobie.free.connection.ConnectionIO
 import doobie.postgres.*
 import doobie.util.fragment.Fragment
