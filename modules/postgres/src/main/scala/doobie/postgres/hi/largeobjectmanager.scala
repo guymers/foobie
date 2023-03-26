@@ -4,7 +4,9 @@
 
 package doobie.postgres.hi
 
-import cats.syntax.all.*
+import cats.syntax.apply.*
+import cats.syntax.flatMap.*
+import cats.syntax.functor.*
 import doobie.postgres.PFLO
 import doobie.postgres.PFLOM
 import doobie.postgres.free.largeobject.LargeObjectIO

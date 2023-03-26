@@ -8,7 +8,7 @@ import cats.syntax.applicative.*
 import cats.syntax.functor.*
 import doobie.FC
 import doobie.free.connection.ConnectionIO
-import doobie.postgres.syntax.monaderror.*
+import doobie.postgres.syntax.applicativeerror.*
 import zio.test.ZIOSpecDefault
 import zio.test.assertCompletes
 
