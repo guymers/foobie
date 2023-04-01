@@ -12,21 +12,39 @@ object PostgisGeographyInstanceSuite extends PostgresDatabaseSpec {
   import doobie.postgis.instances.geography.*
   import doobie.postgres.PostgresTypesSuite.suiteGetPut
 
-  private def createPoint(lat: Double, lon: Double): Point = {
-    val p = new Point(lon, lat)
+  private val genPoint = for {
+    x <- Gen.double
+    y <- Gen.double
+  } yield {
+    val p = new Point(x, y)
     p.setSrid(4326)
     p
   }
-  private val point1 = createPoint(1, 2)
-  private val point2 = createPoint(1, 3)
-  private val lineString = {
-    val ls = new LineString(Array[Point](point1, point2))
+
+  private val genLineString = for {
+    points <- Gen.listOfN(3)(genPoint)
+  } yield {
+    val ls = new LineString(points.toArray)
     ls.setSrid(4326)
     ls
   }
 
+  private val genLinearRing = for {
+    point <- genPoint
+    points <- Gen.listOfN(3)(genPoint)
+  } yield new LinearRing(point +: points.toArray :+ point)
+
+  private val genPolygon = for {
+    ring <- genLinearRing
+  } yield {
+    val p = new Polygon(Array(ring))
+    p.setSrid(4326)
+    p
+  }
+
   override val spec = suite("PostgisGeometryInstances")(
-    suiteGetPut("GEOGRAPHY(POINT)", Gen.const(point1)),
-    suiteGetPut("GEOGRAPHY(LINESTRING)", Gen.const(lineString)),
+    suiteGetPut("GEOGRAPHY(POINT)", genPoint),
+    suiteGetPut("GEOGRAPHY(LINESTRING)", genLineString),
+    suiteGetPut("GEOGRAPHY(POLYGON)", genPolygon),
   )
 }

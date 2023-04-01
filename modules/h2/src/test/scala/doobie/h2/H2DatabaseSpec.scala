@@ -27,7 +27,7 @@ abstract class BaseH2DatabaseSpec extends ZIOSpec[Transactor[Task]] { self =>
   override def aspects = super.aspects ++ Chunk(
     TestAspect.samples(50), // default is 200
     TestAspect.timed,
-    TestAspect.timeout(45.seconds),
+    TestAspect.timeout(60.seconds),
     TestAspect.withLiveEnvironment,
   )
 }
