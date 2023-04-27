@@ -10,6 +10,7 @@ import doobie.syntax.string.*
 import doobie.util.invariant.*
 import doobie.util.meta.Meta
 import zio.test.assertTrue
+import zoobie.DatabaseError
 
 object ReadErrorSuite extends PostgresDatabaseSpec {
 
@@ -31,17 +32,17 @@ object ReadErrorSuite extends PostgresDatabaseSpec {
   override val spec = suite("ReadError")(
     test("pgEnumStringOpt") {
       fr"select 'invalid'".query[MyEnum].unique.transact.either.map { result =>
-        assertTrue(result == Left(InvalidEnum[MyEnum]("invalid")))
+        assertTrue(result == Left(DatabaseError.Utilization.Invariant(InvalidEnum[MyEnum]("invalid"))))
       }
     },
     test("pgEnum") {
       fr"select 'invalid' :: myenum".query[MyScalaEnum.Value].unique.transact.either.map { result =>
-        assertTrue(result == Left(InvalidEnum[MyScalaEnum.Value]("invalid")))
+        assertTrue(result == Left(DatabaseError.Utilization.Invariant(InvalidEnum[MyScalaEnum.Value]("invalid"))))
       }
     },
     test("pgJavaEnum") {
       fr"select 'invalid' :: myenum".query[MyJavaEnum].unique.transact.either.map { result =>
-        assertTrue(result == Left(InvalidEnum[MyJavaEnum]("invalid")))
+        assertTrue(result == Left(DatabaseError.Utilization.Invariant(InvalidEnum[MyJavaEnum]("invalid"))))
       }
     },
   )

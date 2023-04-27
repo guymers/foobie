@@ -4,11 +4,10 @@
 
 package doobie.postgis
 
-import doobie.postgres.PostgresDatabaseSpec
 import net.postgis.jdbc.geometry.*
 import zio.test.Gen
 
-object PostgisGeographyInstanceSuite extends PostgresDatabaseSpec {
+object PostgisGeographyInstanceSuite extends PostgisDatabaseSpec {
   import doobie.postgis.instances.geography.*
   import doobie.postgres.PostgresTypesSuite.suiteGetPut
 

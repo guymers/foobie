@@ -4,14 +4,13 @@
 
 package doobie.postgis
 
-import doobie.postgres.PostgresDatabaseSpec
 import doobie.postgres.PostgresTypesSuite
 import doobie.util.Get
 import doobie.util.Put
 import net.postgis.jdbc.geometry.*
 import zio.test.Gen
 
-object PostgisGeometryInstanceSuite extends PostgresDatabaseSpec {
+object PostgisGeometryInstanceSuite extends PostgisDatabaseSpec {
   import doobie.postgis.instances.geometry.*
 
   private val genPoint = for {

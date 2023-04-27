@@ -9,8 +9,6 @@ import doobie.util.Get
 import doobie.util.Put
 import doobie.util.Read
 import doobie.util.Write
-import doobie.util.transactor.Transactor
-import zio.Task
 import zio.ZIO
 import zio.ZLayer
 import zio.test.Gen
@@ -19,6 +17,7 @@ import zio.test.TestAspect
 import zio.test.assertCompletes
 import zio.test.assertTrue
 import zio.test.check
+import zoobie.Transactor
 
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -75,7 +74,7 @@ object MySQLTypesSuite extends MySQLDatabaseSpec {
           assertTrue(result == Right(None))
         }
       } @@ (if (skipNone) TestAspect.ignore else TestAspect.identity),
-    ).provideSomeLayerShared[Transactor[Task]](ZLayer.scoped(withTables(columnType)))
+    ).provideSomeLayerShared[Transactor](ZLayer.scoped(withTables(columnType)))
   }
 
   private def insertNotNull[A: Get: Put](a: A) = for {

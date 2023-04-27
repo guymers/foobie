@@ -7,10 +7,9 @@ package doobie.postgres
 import cats.syntax.apply.*
 import doobie.syntax.string.*
 import doobie.util.Read
-import doobie.util.transactor.Transactor
-import zio.Task
 import zio.ZIO
 import zio.test.assertTrue
+import zoobie.Transactor
 
 object ManyRowsSuite extends PostgresDatabaseSpec {
 
@@ -19,9 +18,9 @@ object ManyRowsSuite extends PostgresDatabaseSpec {
   override val spec = suite("ManyRows")(
     test("select should take consistent memory") {
       for {
-        transactor <- ZIO.service[Transactor[Task]]
+        transactor <- ZIO.service[Transactor]
         q = fr"SELECT a.name, b.name FROM city a, city b".query[(String, String)]
-        count <- transactor.transP(instance)(q.stream).compile.count
+        count <- transactor.streamSingleConnection(q.stream).runCount
       } yield {
         assertTrue(count == 16_638_241)
       }
