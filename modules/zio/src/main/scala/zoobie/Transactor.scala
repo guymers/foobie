@@ -59,7 +59,7 @@ sealed abstract class Transactor { self =>
 
     ZStream.scoped[Any](connection).flatMap { conn =>
       Stream.resource(strategy.resource).flatMap(_ => s)
-        .translate(translate(conn)).toZStream().mapError(DatabaseError(_))
+        .translate(translate(conn)).toZStream(1024).mapError(DatabaseError(_))
     }
   }
 
