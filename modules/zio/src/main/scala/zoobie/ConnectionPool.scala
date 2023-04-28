@@ -66,7 +66,7 @@ object ConnectionPool {
     for {
       numQueuedRef <- Ref.make[Int](0)
       pool <- ZPool.make(conn, config.size)
-      invalidate = (c: ConnectionWrapper) => pool.invalidate(c).tap(_ => invalidated.increment)
+      invalidate = (c: ConnectionWrapper) => pool.invalidate(c) <* invalidated.increment
     } yield {
       new ConnectionPool {
         override def get(implicit trace: Trace) = for {
@@ -76,9 +76,9 @@ object ConnectionPool {
           _ <- ZIO.fail(DatabaseError.Connection.Rejected(config.queueSize)).when(atQueueSize).uninterruptible
 
           _ <- waiting.increment.uninterruptible
-          c <- pool.get
-          _ <- waiting.decrement.uninterruptible
-          _ <- numQueuedRef.update(_ - 1).uninterruptible
+          c <- pool.get.onExit { _ =>
+            waiting.decrement *> numQueuedRef.update(_ - 1)
+          }
 
           _ <- ZIO.acquireRelease(inUse.increment)(_ => inUse.decrement)
 

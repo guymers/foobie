@@ -1,7 +1,7 @@
 package zoobie
 
 import cats.Monad
-import cats.effect.kernel.Async
+import cats.effect.kernel.Sync
 import cats.~>
 import doobie.free.KleisliInterpreter
 import doobie.free.connection.ConnectionIO
@@ -17,6 +17,8 @@ import zio.stream.ZStream
 import java.sql.Connection
 
 sealed abstract class Transactor { self =>
+
+  private val chunkSize = doobie.util.query.DefaultChunkSize
 
   def connection: ZIO[Scope, DatabaseError.Connection, Connection]
 
@@ -43,7 +45,7 @@ sealed abstract class Transactor { self =>
 
     s.translate(new (ConnectionIO ~> Task) {
       override def apply[T](io: ConnectionIO[T]): ZIO[Any, DatabaseError, T] = run(io)
-    }).toZStream().mapError(DatabaseError(_))
+    }).toZStream(chunkSize).mapError(DatabaseError(_))
   }
 
   /**
@@ -59,12 +61,12 @@ sealed abstract class Transactor { self =>
 
     ZStream.scoped[Any](connection).flatMap { conn =>
       Stream.resource(strategy.resource).flatMap(_ => s)
-        .translate(translate(conn)).toZStream(1024).mapError(DatabaseError(_))
+        .translate(translate(conn)).toZStream(chunkSize).mapError(DatabaseError(_))
     }
   }
 
   def translate(c: Connection): ConnectionIO ~> Task = {
-    implicit val monad: Monad[Task] = Transactor.async
+    implicit val monad: Monad[Task] = Transactor.sync
 
     new (ConnectionIO ~> Task) {
       override def apply[T](io: ConnectionIO[T]) = io.foldMap(interpreter).run(c)
@@ -81,9 +83,9 @@ sealed abstract class Transactor { self =>
 
 object Transactor {
 
-  private val async: Async[Task] = zio.interop.catz.asyncInstance[Any]
+  private val sync: Sync[Task] = zio.interop.catz.asyncInstance[Any]
 
-  val interpreter: Interpreter[Task] = KleisliInterpreter(async).ConnectionInterpreter
+  val interpreter: Interpreter[Task] = KleisliInterpreter(sync).ConnectionInterpreter
 
   object strategies {
     val noop: Strategy = Strategy.void
