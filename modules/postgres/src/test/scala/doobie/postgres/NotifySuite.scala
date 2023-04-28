@@ -7,20 +7,15 @@ package doobie.postgres
 import cats.syntax.apply.*
 import cats.syntax.show.*
 import cats.syntax.traverse.*
-import cats.~>
 import doobie.FC
 import doobie.free.connection.ConnectionIO
-import doobie.util.transactor.Transactor
 import zio.Promise
-import zio.Task
 import zio.ZIO
 import zio.test.Live
 import zio.test.assertTrue
-
-import java.sql.Connection
+import zoobie.Transactor
 
 object NotifySuite extends PostgresDatabaseSpec {
-  import zio.interop.catz.zioResourceSyntax
 
   override val spec = suite("Notify")(
     test("LISTEN/NOTIFY should allow cross-connection notification") {
@@ -54,13 +49,13 @@ object NotifySuite extends PostgresDatabaseSpec {
   )
 
   private def listen[A](channel: String, notify: ConnectionIO[A]) = for {
-    transactor <- ZIO.service[Transactor[Task]]
+    transactor <- ZIO.service[Transactor]
     listenConfigured <- Promise.make[Nothing, Unit]
     notifySent <- Promise.make[Nothing, Unit]
 
     fiber <- ZIO.scoped[Any](for {
-      conn <- transactor.connect(transactor.kernel).toScopedZIO
-      run = runWithConn(transactor, conn)
+      conn <- transactor.connection
+      run = transactor.translate(conn)
       _ <- run(FC.setAutoCommit(false) *> PHC.pgListen(channel) *> FC.commit)
       _ <- listenConfigured.succeed(())
       _ <- notifySent.await
@@ -75,9 +70,5 @@ object NotifySuite extends PostgresDatabaseSpec {
 
   private def randomChannelName = Live.live(zio.Random.nextUUID).map { uuid =>
     show"cha_${uuid.toString.replaceAll("-", "")}"
-  }
-
-  private def runWithConn(transactor: Transactor[Task], c: Connection) = new (ConnectionIO ~> Task) {
-    override def apply[T](f: ConnectionIO[T]) = f.foldMap(transactor.interpret).run(c)
   }
 }

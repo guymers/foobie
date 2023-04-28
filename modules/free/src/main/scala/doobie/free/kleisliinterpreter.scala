@@ -73,7 +73,7 @@ import java.util.concurrent.Executor
 import scala.concurrent.duration.FiniteDuration
 
 object KleisliInterpreter {
-  def apply[M[_]: Sync]: KleisliInterpreter[M] = new KleisliInterpreter[M]
+  def apply[M[_]](implicit M: Sync[M]): KleisliInterpreter[M] = new KleisliInterpreter[M]
 }
 
 // Family of interpreters into Kleisli arrows for some monad M.

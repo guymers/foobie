@@ -38,6 +38,9 @@ inThisBuild(Seq(
   sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
 ))
 
+// allow Test and IntegrationTest to compile together
+val AllTests = sbt.config("tt") extend (Test, IntegrationTest)
+
 lazy val commonSettings = Seq(
   scalaVersion := Scala213,
   crossScalaVersions := Seq(Scala213, Scala3),
@@ -132,6 +135,11 @@ def module(name: String) = Project(name, file(s"modules/$name"))
   .settings(
     mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet
   )
+  .configs(IntegrationTest)
+  .settings(inConfig(IntegrationTest)(Defaults.testSettings))
+  .settings(inConfig(IntegrationTest)(org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings))
+  .configs(AllTests)
+  .settings(inConfig(AllTests)(Defaults.testSettings))
 
 lazy val foobie = project.in(file("."))
   .settings(commonSettings)
@@ -144,8 +152,10 @@ lazy val foobie = project.in(file("."))
     hikari,
     refined,
     munit, scalatest, specs2, weaver,
+    zio,
     example, bench, docs,
   )
+  .configs(AllTests, IntegrationTest)
   .disablePlugins(MimaPlugin)
 
 lazy val free = module("free")
@@ -210,7 +220,6 @@ lazy val postgres = module("postgres")
       "co.fs2" %% "fs2-io" % fs2Version,
       "org.postgresql" % "postgresql" % postgresVersion,
 
-      "dev.zio" %% "zio-interop-cats" % zioInteropCats % Test,
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
     ),
@@ -248,7 +257,7 @@ lazy val postgres = module("postgres")
     """,
     consoleQuick / initialCommands := "",
   )
-  .dependsOn(core % "compile->compile;test->test", hikari % "test->test")
+  .dependsOn(core % "compile->compile;test->test", zio % "test->compile")
 
 lazy val postgis = module("postgis")
   .settings(
@@ -272,12 +281,11 @@ lazy val mysql = module("mysql")
     libraryDependencies ++= Seq(
       "com.mysql" % "mysql-connector-j" % mysqlVersion,
 
-      "dev.zio" %% "zio-interop-cats" % zioInteropCats % Test,
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
     ),
   )
-  .dependsOn(core % "compile->compile;test->test", hikari % "test->test")
+  .dependsOn(core % "compile->compile;test->test", zio % "test->compile")
 
 lazy val h2 = module("h2")
   .settings(
@@ -364,6 +372,26 @@ lazy val weaver = module("weaver")
   )
   .dependsOn(core, h2 % "test->test")
 
+lazy val zio = module("zio")
+  .settings(moduleName := "zoobie")
+  .settings(
+    libraryDependencies ++= Seq(
+      "dev.zio" %% "zio" % zioVersion,
+      "dev.zio" %% "zio-streams" % zioVersion,
+      "dev.zio" %% "zio-interop-cats" % zioInteropCats,
+
+      "dev.zio" %% "zio-test" % zioVersion % Optional,
+      "com.mysql" % "mysql-connector-j" % mysqlVersion % Optional,
+      "org.postgresql" % "postgresql" % postgresVersion % Optional,
+      "net.postgis" % "postgis-jdbc" % postgisVersion % Optional,
+
+      "dev.zio" %% "zio-test" % zioVersion % Test,
+      "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+      "dev.zio" %% "zio-test" % zioVersion % IntegrationTest,
+      "dev.zio" %% "zio-test-sbt" % zioVersion % IntegrationTest,
+    ),
+  )
+  .dependsOn(core)
 
 lazy val example = project.in(file("modules/example"))
   .settings(commonSettings)
