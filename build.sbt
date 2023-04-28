@@ -2,24 +2,24 @@
 import FreeGen2._
 
 val catsVersion = "2.9.0"
-val catsEffectVersion = "3.4.8"
+val catsEffectVersion = "3.4.9"
 val circeVersion = "0.14.5"
 val fs2Version = "3.6.1"
 val h2Version = "2.1.214"
 val hikariVersion = "5.0.1"
 val magnoliaVersion = "1.1.3"
 val munitVersion = "1.0.0-M7"
-val mysqlVersion = "8.0.32"
+val mysqlVersion = "8.0.33"
 val postgisVersion = "2021.1.0"
-val postgresVersion = "42.5.4"
-val refinedVersion = "0.10.2"
+val postgresVersion = "42.6.0"
+val refinedVersion = "0.10.3"
 val scalatestVersion = "3.2.15"
 val shapelessVersion = "2.3.10"
 val specs2Version = "4.19.2"
-val slf4jVersion = "2.0.6"
-val weaverVersion = "0.8.1"
-val zioInteropCats = "23.0.0.2"
-val zioVersion = "2.0.10"
+val slf4jVersion = "2.0.7"
+val weaverVersion = "0.8.3"
+val zioInteropCats = "23.0.0.4"
+val zioVersion = "2.0.13"
 
 val Scala213 = "2.13.10"
 val Scala3 = "3.2.2"
@@ -44,7 +44,7 @@ val AllTests = sbt.config("tt") extend (Test, IntegrationTest)
 lazy val commonSettings = Seq(
   scalaVersion := Scala213,
   crossScalaVersions := Seq(Scala213, Scala3),
-  versionScheme := Some("early-semver"),
+  versionScheme := Some("pvp"),
 
   scalacOptions ++= Seq(
     "-deprecation",
@@ -196,7 +196,7 @@ lazy val core = module("core")
       "org.typelevel" %% "cats-core" % catsVersion,
       "org.typelevel" %% "cats-effect-kernel" % catsEffectVersion,
       "co.fs2" %% "fs2-core" % fs2Version,
-      "org.tpolecat" %% "typename" % "1.0.0",
+      "org.tpolecat" %% "typename" % "1.1.0",
 
       "com.h2database" % "h2" % h2Version % Test,
       "dev.zio" %% "zio-interop-cats" % zioInteropCats % Test,
