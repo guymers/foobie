@@ -1,9 +1,7 @@
 package doobie.mysql
 
-import cats.effect.kernel.Async
 import doobie.free.connection.ConnectionIO
 import zio.Chunk
-import zio.Task
 import zio.ZIO
 import zio.ZLayer
 import zio.durationInt
@@ -15,8 +13,6 @@ import zoobie.Transactor
 import zoobie.mysql.MySQLConnectionConfig
 
 abstract class MySQLDatabaseSpec extends ZIOSpec[Transactor] { self =>
-
-  protected implicit val instance: Async[Task] = MySQLDatabaseSpec.instance
 
   def transact[A](io: ConnectionIO[A]): ZIO[Transactor, DatabaseError, A] = {
     ZIO.serviceWithZIO[Transactor](_.run(io))
@@ -36,7 +32,6 @@ abstract class MySQLDatabaseSpec extends ZIOSpec[Transactor] { self =>
   )
 }
 object MySQLDatabaseSpec {
-  private implicit val instance: Async[Task] = zio.interop.catz.asyncInstance[Any]
 
   private val availableProcessors = Runtime.getRuntime.availableProcessors
   private val poolSize = (availableProcessors * 2).max(4)

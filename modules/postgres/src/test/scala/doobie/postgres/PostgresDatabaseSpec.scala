@@ -1,10 +1,8 @@
 package doobie.postgres
 
-import cats.effect.kernel.Async
 import doobie.free.connection.ConnectionIO
 import fs2.Stream
 import zio.Chunk
-import zio.Task
 import zio.ZIO
 import zio.ZLayer
 import zio.durationInt
@@ -17,8 +15,6 @@ import zoobie.Transactor
 import zoobie.postgres.PostgreSQLConnectionConfig
 
 abstract class PostgresDatabaseSpec extends ZIOSpec[Transactor] { self =>
-
-  protected implicit val instance: Async[Task] = PostgresDatabaseSpec.instance
 
   def transact[A](io: ConnectionIO[A]): ZIO[Transactor, DatabaseError, A] = {
     ZIO.serviceWithZIO[Transactor](_.run(io))
@@ -42,7 +38,6 @@ abstract class PostgresDatabaseSpec extends ZIOSpec[Transactor] { self =>
   )
 }
 object PostgresDatabaseSpec {
-  private val instance: Async[Task] = zio.interop.catz.asyncInstance[Any]
 
   private val availableProcessors = Runtime.getRuntime.availableProcessors
   private val poolSize = (availableProcessors * 2).max(4)
