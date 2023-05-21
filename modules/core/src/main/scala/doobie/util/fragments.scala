@@ -22,9 +22,10 @@ object fragments {
 
   /** Returns `ANY(fa0, fa1, ...)` */
   def any[F[_]: Reducible, A: ClassTag](fa: F[A])(implicit P: Put[Array[A]]): Fragment =
-    anyIterable(fa.toIterable)
+    fr"ANY(${Array.from(fa.toIterable)})"
 
   /** Returns `ANY(fa0, fa1, ...)` */
+  @deprecated("Using `any` instead to force handling a non-empty collection", "0.14.3")
   def anyIterable[A: ClassTag](fa: Iterable[A])(implicit P: Put[Array[A]]): Fragment =
     fr"ANY(${Array.from(fa)})"
 
