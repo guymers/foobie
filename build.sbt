@@ -1,28 +1,28 @@
 // format: off
-import FreeGen2._
+import FreeGen2.*
 
 val catsVersion = "2.9.0"
-val catsEffectVersion = "3.5.0"
+val catsEffectVersion = "3.5.1"
 val circeVersion = "0.14.5"
 val fs2Version = "3.7.0"
 val h2Version = "2.1.214"
 val hikariVersion = "5.0.1"
 val magnoliaVersion = "1.1.3"
-val munitVersion = "1.0.0-M7"
+val munitVersion = "1.0.0-M8"
 val mysqlVersion = "8.0.33"
 val postgisVersion = "2021.1.0"
 val postgresVersion = "42.6.0"
-val refinedVersion = "0.10.3"
+val refinedVersion = "0.11.0"
 val scalatestVersion = "3.2.16"
 val shapelessVersion = "2.3.10"
 val specs2Version = "4.20.0"
 val slf4jVersion = "2.0.7"
 val weaverVersion = "0.8.3"
-val zioInteropCats = "23.0.0.4"
-val zioVersion = "2.0.13"
+val zioInteropCats = "23.0.0.8"
+val zioVersion = "2.0.15"
 
-val Scala213 = "2.13.10"
-val Scala3 = "3.2.2"
+val Scala213 = "2.13.11"
+val Scala3 = "3.3.0"
 
 inThisBuild(Seq(
   organization := "io.github.guymers",
@@ -37,9 +37,6 @@ inThisBuild(Seq(
   sonatypeCredentialHost := "s01.oss.sonatype.org",
   sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
 ))
-
-// allow Test and IntegrationTest to compile together
-val AllTests = sbt.config("tt") extend (Test, IntegrationTest)
 
 lazy val commonSettings = Seq(
   scalaVersion := Scala213,
@@ -84,7 +81,10 @@ lazy val commonSettings = Seq(
 
       "-Xlint:_,-byname-implicit", // exclude byname-implicit https://github.com/scala/bug/issues/12072
     )
-    case _ => Seq.empty
+    case _ => Seq(
+      "-Wunused:all",
+      "-Wvalue-discard"
+    )
   }),
   Test / scalacOptions --= Seq("-Wperformance"),
 
@@ -135,13 +135,32 @@ def module(name: String) = Project(name, file(s"modules/$name"))
   .settings(
     mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet
   )
-  .configs(IntegrationTest)
-  .settings(inConfig(IntegrationTest)(Defaults.testSettings))
-  .settings(inConfig(IntegrationTest)(org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings))
-  .configs(AllTests)
-  .settings(inConfig(AllTests)(Defaults.testSettings))
+
+def moduleIT(name: String) = Project(s"$name-it", file(s"modules/$name-it"))
+  .settings(moduleName := s"foobie-$name-it")
+  .settings(commonSettings)
+  .settings(
+    publish / skip := true,
+    Compile / javaSource := baseDirectory.value / ".." / name / "src" / "main-it" / "java",
+    Compile / scalaSource := baseDirectory.value / ".." / name / "src" / "main-it" / "scala",
+    Test / javaSource := baseDirectory.value / ".." / name / "src" / "it" / "java",
+    Test / scalaSource := baseDirectory.value / ".." / name / "src" / "it" / "scala",
+  )
+  .disablePlugins(MimaPlugin)
 
 lazy val foobie = project.in(file("."))
+  .settings(commonSettings)
+  .settings(publish / skip := true)
+  .settings(
+    addCommandAlias("testUnit", ";modules/test"),
+    addCommandAlias("testIntegration", ";integrationTests/test"),
+  )
+  .aggregate(
+    modules, integrationTests,
+    example, bench, docs,
+  )
+
+lazy val modules = project.in(file("project/.root"))
   .settings(commonSettings)
   .settings(publish / skip := true)
   .aggregate(
@@ -153,10 +172,13 @@ lazy val foobie = project.in(file("."))
     refined,
     munit, scalatest, specs2, weaver,
     zio,
-    example, bench, docs,
   )
-  .configs(AllTests, IntegrationTest)
   .disablePlugins(MimaPlugin)
+
+lazy val integrationTests = project.in(file("project/.root-integration"))
+  .settings(commonSettings)
+  .settings(publish / skip := true)
+  .aggregate(`zio-it`)
 
 lazy val free = module("free")
   .settings(freeGen2Settings)
@@ -387,11 +409,19 @@ lazy val zio = module("zio")
 
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
-      "dev.zio" %% "zio-test" % zioVersion % IntegrationTest,
-      "dev.zio" %% "zio-test-sbt" % zioVersion % IntegrationTest,
     ),
   )
   .dependsOn(core)
+
+lazy val `zio-it` = moduleIT("zio")
+  .settings(moduleName := "zoobie-it")
+  .settings(
+    libraryDependencies ++= Seq(
+      "dev.zio" %% "zio-test" % zioVersion % Test,
+      "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+    ),
+  )
+  .dependsOn(zio, postgres)
 
 lazy val example = project.in(file("modules/example"))
   .settings(commonSettings)
