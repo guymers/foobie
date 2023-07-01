@@ -36,13 +36,13 @@ jobs:
         run: sbt --client "++${{ matrix.scala }} scalafmtCheckAll"
 
       - name: Compile
-        run: sbt --client "++${{ matrix.scala }} AllTests/compile"
+        run: sbt --client "++${{ matrix.scala }} Test/compile"
 
       - name: Start Containers
         run: docker-compose up -d
 
       - name: Test
-        run: sbt --client "++${{ matrix.scala }} test"
+        run: sbt --client "++${{ matrix.scala }} modules/test"
 
       - name: Check Doc Site
         if: ${{ startsWith(matrix.scala, '2.13.') }}

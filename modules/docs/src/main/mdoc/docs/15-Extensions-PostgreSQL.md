@@ -108,29 +108,13 @@ See the previous chapter on **SQL Arrays** for usage examples.
 create type myenum as enum ('foo', 'bar')
 ```
 
-The first option is to map `myenum` to an instance of the execrable `scala.Enumeration` class via the `pgEnum` constructor.
-
-```scala mdoc:silent
-object MyEnum extends Enumeration {
-  val foo, bar = Value
-}
-
-implicit val MyEnumMeta = pgEnum(MyEnum, "myenum")
-```
-
-```scala mdoc
-sql"select 'foo'::myenum".query[MyEnum.Value].unique.transact(xa).unsafeRunSync()
-```
-
-It works, but `Enumeration` is terrible so it's unlikely you will want to do this. A better option, perhaps surprisingly, is to map `myenum` to a **Java** `enum` via the `pgJavaEnum` constructor.
-
 ```java
 // This is Java code
 public enum MyJavaEnum { foo, bar; }
 ```
 
 ```scala
-implicit val MyJavaEnumMeta = pgJavaEnum[MyJavaEnum]("myenum")
+implicit val MyJavaEnumMeta: Meta[MyJavaEnum] = pgJavaEnum[MyJavaEnum]("myenum")
 ```
 
 And the final, most general construction simply requires evidence that your target type can be translated to and from `String`.
