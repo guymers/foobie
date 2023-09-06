@@ -19,13 +19,13 @@ object lostreaming {
   def createLOFromStream(data: Stream[ConnectionIO, Byte]): ConnectionIO[Long] =
     createLO.flatMap { oid =>
       Stream.bracket(openLO(oid))(closeLO)
-        .flatMap(lo => data.through(fs2.io.writeOutputStream(getOutputStream(lo))))
+        .flatMap(lo => data.through(doobie.postgres.fs2io.writeOutputStream(getOutputStream(lo))))
         .compile.drain.as(oid)
     }
 
   def createStreamFromLO(oid: Long, chunkSize: Int): Stream[ConnectionIO, Byte] =
     Stream.bracket(openLO(oid))(closeLO)
-      .flatMap(lo => fs2.io.readInputStream(getInputStream(lo), chunkSize))
+      .flatMap(lo => doobie.postgres.fs2io.readInputStream(getInputStream(lo), chunkSize))
 
   private val createLO: ConnectionIO[Long] =
     connection.pgGetLargeObjectAPI(PFLOM.createLO)
