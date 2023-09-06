@@ -5,6 +5,7 @@
 package doobie.util
 
 import cats.ContravariantSemigroupal
+import cats.syntax.apply.*
 import doobie.FPS
 import doobie.FRS
 import doobie.enumerated.Nullability.*
@@ -68,6 +69,18 @@ trait Write[A] { self =>
 object Write extends Write1 {
 
   def apply[A](implicit A: Write[A]): Write[A] = A
+
+  def tuple2[A, B](implicit A: Write[A], B: Write[B]): Write[(A, B)] = (A, B).tupled
+  def tuple3[A, B, C](implicit A: Write[A], B: Write[B], C: Write[C]): Write[(A, B, C)] = (A, B, C).tupled
+  def tuple4[A, B, C, D](implicit A: Write[A], B: Write[B], C: Write[C], D: Write[D]): Write[(A, B, C, D)] =
+    (A, B, C, D).tupled
+  def tuple5[A, B, C, D, E](implicit
+    A: Write[A],
+    B: Write[B],
+    C: Write[C],
+    D: Write[D],
+    E: Write[E],
+  ): Write[(A, B, C, D, E)] = (A, B, C, D, E).tupled
 
   object Auto extends WriteAutoPlatform
 
