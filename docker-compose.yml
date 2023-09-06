@@ -1,13 +1,12 @@
-version: '3.1'
-
 services:
 
   postgres:
-    image: docker.io/postgis/postgis:11-3.3
+    image: docker.io/postgis/postgis:12-3.3
     shm_size: 128m
     command: [
       "postgres",
       #"-c", "log_statement=all"
+      "-c", "max_connections=400",
       "-c", "shared_buffers=250MB", # 25% of RAM
       "-c", "effective_cache_size=700MB", # 70% of RAM
       "-c", "work_mem=5MB", # 50% of RAM / active connections (100)
