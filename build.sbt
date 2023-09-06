@@ -240,7 +240,7 @@ lazy val postgres = module("postgres")
   .settings(freeGen2Settings)
   .settings(
     libraryDependencies ++= Seq(
-      "co.fs2" %% "fs2-io" % fs2Version,
+      "co.fs2" %% "fs2-core" % fs2Version,
       "org.postgresql" % "postgresql" % postgresVersion,
 
       "dev.zio" %% "zio-test" % zioVersion % Test,
