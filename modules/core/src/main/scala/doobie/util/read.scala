@@ -72,17 +72,25 @@ object Read extends Read1 {
 
   def apply[A](implicit ev: Read[A]): ev.type = ev
 
-  def tuple2[A, B](implicit A: Read[A], B: Read[B]): Read[(A, B)] = (A, B).tupled
-  def tuple3[A, B, C](implicit A: Read[A], B: Read[B], C: Read[C]): Read[(A, B, C)] = (A, B, C).tupled
-  def tuple4[A, B, C, D](implicit A: Read[A], B: Read[B], C: Read[C], D: Read[D]): Read[(A, B, C, D)] =
+  implicit def tuple2[A, B](implicit A: Read[A], B: Read[B]): Read[(A, B)] = (A, B).tupled
+  implicit def tuple3[A, B, C](implicit A: Read[A], B: Read[B], C: Read[C]): Read[(A, B, C)] = (A, B, C).tupled
+  implicit def tuple4[A, B, C, D](implicit A: Read[A], B: Read[B], C: Read[C], D: Read[D]): Read[(A, B, C, D)] =
     (A, B, C, D).tupled
-  def tuple5[A, B, C, D, E](implicit
+  implicit def tuple5[A, B, C, D, E](implicit
     A: Read[A],
     B: Read[B],
     C: Read[C],
     D: Read[D],
     E: Read[E],
   ): Read[(A, B, C, D, E)] = (A, B, C, D, E).tupled
+  implicit def tuple6[A, B, C, D, E, F](implicit
+    A: Read[A],
+    B: Read[B],
+    C: Read[C],
+    D: Read[D],
+    E: Read[E],
+    F: Read[F],
+  ): Read[(A, B, C, D, E, F)] = (A, B, C, D, E, F).tupled
 
   object Auto extends ReadAutoPlatform
 

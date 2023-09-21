@@ -36,19 +36,11 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
   case class Woozle(a: (String, Int), b: (Int, String), c: Boolean)
 
   override val spec = suite("Write")(
-    test("exist for some fancy types") {
-      import doobie.util.Write.Auto.*
-
+    test("tuples derive") {
       val _ = Write[Int]
       val _ = Write[(Int, Int)]
       val _ = Write[(Int, Int, String)]
       val _ = Write[(Int, (Int, String))]
-      assertCompletes
-    },
-    test("is not auto derived without an import") {
-      val _ = illTyped("Write[(Int, Int)]")
-      val _ = illTyped("Write[(Int, Int, String)]")
-      val _ = illTyped("Write[(Int, (Int, String))]")
       assertCompletes
     },
     test("can be manually derived") {
@@ -70,9 +62,7 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
       val _ = Write[Unit]
       assertTrue(Write[(Int, Unit)].length == 1)
     },
-    test("exist for option of some fancy types") {
-      import doobie.util.Write.Auto.*
-
+    test("option tuples derive") {
       val _ = Write[Option[Int]]
       val _ = Write[Option[(Int, Int)]]
       val _ = Write[Option[(Int, Int, String)]]

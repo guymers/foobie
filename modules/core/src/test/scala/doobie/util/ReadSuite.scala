@@ -46,25 +46,12 @@ object ReadSuite extends H2DatabaseSpec with ReadSuitePlatform {
   case class Woozle(a: (String, Int), b: (Int, String), c: Boolean)
 
   override val spec = suite("Read")(
-    test("exist for some fancy types") {
-      import doobie.util.Read.Auto.*
-
+    test("tuples derive") {
       val _ = Read[Int]
       val _ = Read[(Int, Int)]
       val _ = Read[(Int, Int, String)]
       val _ = Read[(Int, (Int, String))]
       assertCompletes
-    },
-    test("not auto derived without an import") {
-      val _ = illTyped("Read[(Int, Int)]")
-      val _ = illTyped("Read[(Int, Int, String)]")
-      val _ = illTyped("Read[(Int, (Int, String))]")
-      assertCompletes
-    },
-    test("auto derives nested types") {
-      import doobie.util.Read.Auto.*
-
-      assertTrue(Read[Widget].length == 3)
     },
     test("does not auto derive nested types without an import") {
       val _ = illTyped("Read.derived[Widget]")
@@ -79,9 +66,7 @@ object ReadSuite extends H2DatabaseSpec with ReadSuitePlatform {
       assertTrue(Read[Unit].length == 0) &&
       assertTrue(Read[(Int, Unit)].length == 1)
     },
-    test("exist for option of some fancy types") {
-      import doobie.util.Read.Auto.*
-
+    test("option tuples derive") {
       val _ = Read[Option[Int]]
       val _ = Read[Option[(Int, Int)]]
       val _ = Read[Option[(Int, Int, String)]]
