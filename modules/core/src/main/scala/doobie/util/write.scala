@@ -70,17 +70,25 @@ object Write extends Write1 {
 
   def apply[A](implicit A: Write[A]): Write[A] = A
 
-  def tuple2[A, B](implicit A: Write[A], B: Write[B]): Write[(A, B)] = (A, B).tupled
-  def tuple3[A, B, C](implicit A: Write[A], B: Write[B], C: Write[C]): Write[(A, B, C)] = (A, B, C).tupled
-  def tuple4[A, B, C, D](implicit A: Write[A], B: Write[B], C: Write[C], D: Write[D]): Write[(A, B, C, D)] =
+  implicit def tuple2[A, B](implicit A: Write[A], B: Write[B]): Write[(A, B)] = (A, B).tupled
+  implicit def tuple3[A, B, C](implicit A: Write[A], B: Write[B], C: Write[C]): Write[(A, B, C)] = (A, B, C).tupled
+  implicit def tuple4[A, B, C, D](implicit A: Write[A], B: Write[B], C: Write[C], D: Write[D]): Write[(A, B, C, D)] =
     (A, B, C, D).tupled
-  def tuple5[A, B, C, D, E](implicit
+  implicit def tuple5[A, B, C, D, E](implicit
     A: Write[A],
     B: Write[B],
     C: Write[C],
     D: Write[D],
     E: Write[E],
   ): Write[(A, B, C, D, E)] = (A, B, C, D, E).tupled
+  implicit def tuple6[A, B, C, D, E, F](implicit
+    A: Write[A],
+    B: Write[B],
+    C: Write[C],
+    D: Write[D],
+    E: Write[E],
+    F: Write[F],
+  ): Write[(A, B, C, D, E, F)] = (A, B, C, D, E, F).tupled
 
   object Auto extends WriteAutoPlatform
 
