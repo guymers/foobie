@@ -12,7 +12,6 @@ val munitVersion = "1.0.0-M10"
 val mysqlVersion = "8.1.0"
 val postgisVersion = "2021.1.0"
 val postgresVersion = "42.6.0"
-val refinedVersion = "0.11.0"
 val scalatestVersion = "3.2.17"
 val shapelessVersion = "2.3.10"
 val slf4jVersion = "2.0.9"
@@ -170,7 +169,6 @@ lazy val modules = project.in(file("project/.root"))
     mysql,
     postgres, `postgres-circe`, postgis,
     hikari,
-    refined,
     munit, scalatest, weaver,
     zio,
   )
@@ -343,17 +341,6 @@ lazy val hikari = module("hikari")
     )
   )
   .dependsOn(core)
-
-lazy val refined = module("refined")
-  .settings(
-    libraryDependencies ++= Seq(
-      "eu.timepit" %% "refined" % refinedVersion,
-
-      "dev.zio" %% "zio-test" % zioVersion % Test,
-      "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
-    )
-  )
-  .dependsOn(core, h2 % "test->test")
 
 lazy val munit = module("munit")
   .settings(
