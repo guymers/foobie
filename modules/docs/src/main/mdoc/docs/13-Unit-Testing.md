@@ -1,10 +1,10 @@
 ## Unit Testing
 
-The YOLO-mode query checking feature demonstated in an earlier chapter is also available as a trait you can mix into your [Specs2](http://etorreborre.github.io/specs2/), [ScalaTest](http://www.scalatest.org/), [MUnit](https://scalameta.org/munit) or [Weaver](https://disneystreaming.github.io/weaver-test/) unit tests.
+The YOLO-mode query checking feature demonstrated in an earlier chapter is also available as a trait you can mix into your [ScalaTest](http://www.scalatest.org/), [MUnit](https://scalameta.org/munit) or [Weaver](https://disneystreaming.github.io/weaver-test/) unit tests.
 
 ### Setting Up
 
-As with earlier chapters we set up a `Transactor` and YOLO mode. We will also use the `doobie-specs2` and `doobie-scalatest` add-ons.
+As with earlier chapters we set up a `Transactor` and YOLO mode. We will also use the `doobie-scalatest` module.
 
 ```scala mdoc:silent
 import doobie.*
@@ -70,41 +70,9 @@ val update: Update0 =
 
 ```
 
-### The Specs2 Package
-
-The `doobie-specs2` add-on provides a mix-in trait that we can add to a `Specification` to allow for typechecking of queries, interpreted as a set of specifications.
-
-Our unit test needs to extend `AnalysisSpec` and must define a `Transactor[IO]`. To construct a testcase for a query, pass it to the `check` method. Note that query arguments are never used, so they can be any values that typecheck.
-
-```scala mdoc:silent
-import org.specs2.mutable.Specification
-
-class AnalysisTestSpec extends Specification with doobie.specs2.IOChecker {
-
-  val transactor = Transactor.fromDriverManager[IO](
-    "org.postgresql.Driver", "jdbc:postgresql:world", "postgres", "password"
-  )
-
-  check(trivial)
-  checkOutput(biggerThan(0))
-  check(update)
-
-}
-```
-
-When we run the test we get output similar to what we saw in the previous chapter on checking queries, but each item is now a test. Note that doing this in the REPL is a little awkward; in real source you would get the source file and line number associated with each query.
-
-```scala mdoc
-import _root_.specs2.{ run => runTest }
-import _root_.org.specs2.main.{ Arguments, Report }
-
-// Run a test programmatically. Usually you would do this from sbt, bloop, etc.
-runTest(new AnalysisTestSpec)(Arguments(report = Report(_color = Some(false))))
-```
-
 ### The ScalaTest Package
 
-The `doobie-scalatest` add-on provides a mix-in trait that we can add to any `Assertions` implementation (like `AnyFunSuite`) much like the Specs2 package above.
+The `doobie-scalatest` add-on provides a mix-in trait that we can add to any `Assertions` implementation (like `AnyFunSuite`).
 
 ```scala mdoc:silent
 import org.scalatest.*

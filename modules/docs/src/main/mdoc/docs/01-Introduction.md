@@ -72,7 +72,6 @@ lazy val doobieVersion = "$version$"
 libraryDependencies ++= Seq(
   "org.tpolecat" %% "doobie-core"     % doobieVersion,
   "org.tpolecat" %% "doobie-postgres" % doobieVersion,
-  "org.tpolecat" %% "doobie-specs2"   % doobieVersion
 )
 ```
 @@@
