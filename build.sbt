@@ -455,7 +455,7 @@ lazy val docs = project.in(file("modules/docs"))
   .enablePlugins(MdocPlugin)
   .settings(
     scalacOptions := (CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, _)) => Seq("-Xsource:3")
+      case Some((2, _)) => Seq("-Xsource:3", "-Wconf:cat=scala3-migration:silent")
       case Some((3, _)) => Seq("-Ykind-projector")
       case _ => Seq.empty
     }),
