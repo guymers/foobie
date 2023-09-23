@@ -15,7 +15,6 @@ val postgresVersion = "42.6.0"
 val refinedVersion = "0.11.0"
 val scalatestVersion = "3.2.17"
 val shapelessVersion = "2.3.10"
-val specs2Version = "4.20.2"
 val slf4jVersion = "2.0.9"
 val weaverVersion = "0.8.3"
 val zioInteropCats = "23.0.0.8"
@@ -172,7 +171,7 @@ lazy val modules = project.in(file("project/.root"))
     postgres, `postgres-circe`, postgis,
     hikari,
     refined,
-    munit, scalatest, specs2, weaver,
+    munit, scalatest, weaver,
     zio,
   )
   .disablePlugins(MimaPlugin)
@@ -376,17 +375,6 @@ lazy val scalatest = module("scalatest")
   )
   .dependsOn(core)
 
-lazy val specs2 = module("specs2")
-  .settings(
-    libraryDependencies ++= Seq(
-      "org.specs2" %% "specs2-core" % specs2Version,
-
-      "com.h2database" % "h2" % h2Version % Test,
-    ),
-    Test / compile / wartremoverErrors --= Seq(Wart.NonUnitStatements),
-  )
-  .dependsOn(core)
-
 lazy val weaver = module("weaver")
   .settings(
     libraryDependencies ++= Seq(
@@ -435,7 +423,7 @@ lazy val example = project.in(file("modules/example"))
       "co.fs2" %% "fs2-io" % fs2Version,
     )
   )
-  .dependsOn(core, postgres, specs2, scalatest, hikari, h2)
+  .dependsOn(core, postgres, scalatest, hikari, h2)
 
 lazy val bench = project.in(file("modules/bench"))
   .settings(commonSettings)
@@ -445,7 +433,7 @@ lazy val bench = project.in(file("modules/bench"))
   .dependsOn(core, postgres)
 
 lazy val docs = project.in(file("modules/docs"))
-  .dependsOn(core, postgres, postgis, h2, hikari, munit, scalatest, specs2, weaver)
+  .dependsOn(core, postgres, postgis, h2, hikari, munit, scalatest, weaver)
   .settings(commonSettings)
   .settings(publish / skip := true)
   .settings(Compile / compile / wartremoverErrors := Nil)
