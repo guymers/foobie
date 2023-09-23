@@ -4,25 +4,25 @@ import FreeGen2.*
 val catsVersion = "2.10.0"
 val catsEffectVersion = "3.5.1"
 val circeVersion = "0.14.6"
-val fs2Version = "3.9.1"
-val h2Version = "2.2.222"
+val fs2Version = "3.9.2"
+val h2Version = "2.2.224"
 val hikariVersion = "5.0.1"
 val magnoliaVersion = "1.1.3"
-val munitVersion = "1.0.0-M8"
+val munitVersion = "1.0.0-M10"
 val mysqlVersion = "8.1.0"
 val postgisVersion = "2021.1.0"
 val postgresVersion = "42.6.0"
 val refinedVersion = "0.11.0"
-val scalatestVersion = "3.2.16"
+val scalatestVersion = "3.2.17"
 val shapelessVersion = "2.3.10"
 val specs2Version = "4.20.2"
 val slf4jVersion = "2.0.9"
 val weaverVersion = "0.8.3"
 val zioInteropCats = "23.0.0.8"
-val zioVersion = "2.0.15"
+val zioVersion = "2.0.17"
 
-val Scala213 = "2.13.11"
-val Scala3 = "3.3.0"
+val Scala213 = "2.13.12"
+val Scala3 = "3.3.1"
 
 inThisBuild(Seq(
   organization := "io.github.guymers",
@@ -71,6 +71,7 @@ lazy val commonSettings = Seq(
     case Some((2, 13)) => Seq(
       "-Vimplicits",
       "-Vtype-diffs",
+      "-Wconf:cat=scala3-migration:silent", // these warnings dont stop compiling under Scala 3
       "-Wdead-code",
       "-Wextra-implicit",
       "-Wnonunit-statement",
@@ -79,10 +80,10 @@ lazy val commonSettings = Seq(
       "-Wunused:_",
       "-Wperformance",
       "-Wvalue-discard",
-
       "-Xlint:_,-byname-implicit", // exclude byname-implicit https://github.com/scala/bug/issues/12072
     )
     case _ => Seq(
+      "-Wnonunit-statement",
       "-Wunused:all",
       "-Wvalue-discard"
     )
