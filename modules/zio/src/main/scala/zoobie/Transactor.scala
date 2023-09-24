@@ -87,7 +87,9 @@ object Transactor {
 
   private val sync: Sync[Task] = zio.interop.catz.asyncInstance[Any]
 
-  val interpreter: Interpreter[Task] = KleisliInterpreter(sync).ConnectionInterpreter
+  val kleisliInterpreter: KleisliInterpreter[Task] = KleisliInterpreter(sync)
+
+  val interpreter: Interpreter[Task] = kleisliInterpreter.ConnectionInterpreter
 
   object strategies {
     val noop: Strategy = Strategy.void

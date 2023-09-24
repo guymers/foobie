@@ -77,7 +77,7 @@ object PostgreSQLIntegrationSpec extends ZIOSpecDefault {
       p <- pool(connectionConfig, config)
       transactor = Transactor.fromPoolTransactional(p)
       results <- run(transactor)
-      metrics = zio.internal.metrics.MetricRegistryExposed.snapshot
+      metrics <- ZIO.metrics.map(_.metrics)
     } yield {
       val metricPairs = metrics.map { p =>
         val tags = p.metricKey.tags.toList.sortBy(_.key)

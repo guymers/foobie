@@ -2,22 +2,23 @@
 import FreeGen2.*
 
 val catsVersion = "2.10.0"
-val catsEffectVersion = "3.5.1"
+val catsEffectVersion = "3.5.2"
 val circeVersion = "0.14.6"
-val fs2Version = "3.9.2"
+val fs2Version = "3.9.3"
 val h2Version = "2.2.224"
-val hikariVersion = "5.0.1"
+val hikariVersion = "5.1.0"
 val magnoliaVersion = "1.1.3"
 val munitVersion = "1.0.0-M10"
-val mysqlVersion = "8.1.0"
+val mysqlVersion = "8.2.0"
+val openTelemetryVersion = "1.32.0"
 val postgisVersion = "2021.1.0"
 val postgresVersion = "42.6.0"
 val scalatestVersion = "3.2.17"
 val shapelessVersion = "2.3.10"
 val slf4jVersion = "2.0.9"
 val weaverVersion = "0.8.3"
-val zioInteropCats = "23.0.0.8"
-val zioVersion = "2.0.17"
+val zioInteropCats = "23.1.0.0"
+val zioVersion = "2.0.19"
 
 val Scala213 = "2.13.12"
 val Scala3 = "3.3.1"
@@ -130,6 +131,8 @@ lazy val noPublishSettings = Seq(
   mimaPreviousArtifacts := Set.empty,
 )
 
+lazy val runningInIntelliJ = System.getProperty("idea.managed", "false").toBoolean
+
 def filterScalacConsoleOpts(options: Seq[String]) = {
   options.filterNot { opt =>
     opt == "-Xfatal-warnings" || opt.startsWith("-Xlint") || opt.startsWith("-W")
@@ -142,16 +145,28 @@ def module(name: String) = Project(name, file(s"modules/$name"))
   .settings(
     mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet
   )
+  .settings(
+    if (runningInIntelliJ) Seq(
+      Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "it" / "scala",
+    ) else Seq.empty
+  )
 
 def moduleIT(name: String) = Project(s"$name-it", file(s"modules/$name-it"))
   .settings(moduleName := s"foobie-$name-it")
   .settings(commonSettings)
   .settings(
     publish / skip := true,
-    Compile / javaSource := baseDirectory.value / ".." / name / "src" / "main-it" / "java",
-    Compile / scalaSource := baseDirectory.value / ".." / name / "src" / "main-it" / "scala",
-    Test / javaSource := baseDirectory.value / ".." / name / "src" / "it" / "java",
-    Test / scalaSource := baseDirectory.value / ".." / name / "src" / "it" / "scala",
+    Test / fork := true,
+    Test / javaOptions += "-Xmx1000m",
+  )
+  .settings(
+    // intellij complains about shared content roots, so it gets the source appended in `module`
+    if (runningInIntelliJ) Seq.empty else Seq(
+      Compile / javaSource := baseDirectory.value / ".." / name / "src" / "main-it" / "java",
+      Compile / scalaSource := baseDirectory.value / ".." / name / "src" / "main-it" / "scala",
+      Test / javaSource := baseDirectory.value / ".." / name / "src" / "it" / "java",
+      Test / scalaSource := baseDirectory.value / ".." / name / "src" / "it" / "scala",
+    )
   )
   .disablePlugins(MimaPlugin)
 
@@ -390,6 +405,7 @@ lazy val zio = module("zio")
       "com.mysql" % "mysql-connector-j" % mysqlVersion % Optional,
       "org.postgresql" % "postgresql" % postgresVersion % Optional,
       "net.postgis" % "postgis-jdbc" % postgisVersion % Optional,
+      "io.opentelemetry" % "opentelemetry-api" % openTelemetryVersion % Optional,
 
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
@@ -403,6 +419,7 @@ lazy val `zio-it` = moduleIT("zio")
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+      "io.opentelemetry" % "opentelemetry-api" % openTelemetryVersion % Test,
     ),
   )
   .dependsOn(zio, postgres)
