@@ -123,6 +123,13 @@ lazy val commonSettings = Seq(
   ),
 )
 
+Global / excludeLintKeys += mimaPreviousArtifacts
+
+lazy val noPublishSettings = Seq(
+  publish / skip := true,
+  mimaPreviousArtifacts := Set.empty,
+)
+
 def filterScalacConsoleOpts(options: Seq[String]) = {
   options.filterNot { opt =>
     opt == "-Xfatal-warnings" || opt.startsWith("-Xlint") || opt.startsWith("-W")
@@ -150,7 +157,7 @@ def moduleIT(name: String) = Project(s"$name-it", file(s"modules/$name-it"))
 
 lazy val foobie = project.in(file("."))
   .settings(commonSettings)
-  .settings(publish / skip := true)
+  .settings(noPublishSettings)
   .settings(
     addCommandAlias("testUnit", ";modules/test"),
     addCommandAlias("testIntegration", ";integrationTests/test"),
@@ -162,7 +169,7 @@ lazy val foobie = project.in(file("."))
 
 lazy val modules = project.in(file("project/.root"))
   .settings(commonSettings)
-  .settings(publish / skip := true)
+  .settings(noPublishSettings)
   .aggregate(
     free, core,
     h2, `h2-circe`,
@@ -176,7 +183,7 @@ lazy val modules = project.in(file("project/.root"))
 
 lazy val integrationTests = project.in(file("project/.root-integration"))
   .settings(commonSettings)
-  .settings(publish / skip := true)
+  .settings(noPublishSettings)
   .aggregate(`zio-it`)
 
 lazy val free = module("free")
@@ -402,7 +409,7 @@ lazy val `zio-it` = moduleIT("zio")
 
 lazy val example = project.in(file("modules/example"))
   .settings(commonSettings)
-  .settings(publish / skip := true)
+  .settings(noPublishSettings)
   .settings(Compile / compile / wartremoverErrors := Nil)
   .settings(Test / compile / wartremoverErrors := Nil)
   .settings(
@@ -414,15 +421,16 @@ lazy val example = project.in(file("modules/example"))
 
 lazy val bench = project.in(file("modules/bench"))
   .settings(commonSettings)
-  .settings(publish / skip := true)
+  .settings(noPublishSettings)
   .settings(Compile / compile / wartremoverErrors := Nil)
+  .settings(mimaPreviousArtifacts := Set.empty)
   .enablePlugins(JmhPlugin)
   .dependsOn(core, postgres)
 
 lazy val docs = project.in(file("modules/docs"))
   .dependsOn(core, postgres, postgis, h2, hikari, munit, scalatest, weaver)
   .settings(commonSettings)
-  .settings(publish / skip := true)
+  .settings(noPublishSettings)
   .settings(Compile / compile / wartremoverErrors := Nil)
   .enablePlugins(GhpagesPlugin)
   .enablePlugins(ParadoxPlugin)

@@ -12,23 +12,23 @@ import scala.deriving.Mirror
 
 trait ReadPlatform {
 
-  inline def summonAll[T <: Tuple]: List[Read[?]] = {
-    inline erasedValue[T] match {
-      case _: EmptyTuple => Nil
-      case _: (t *: ts) => summonInline[Read[t]] :: summonAll[ts]
-    }
+  inline def summonAll[T <: Tuple]: List[Read[?]] = inline erasedValue[T] match {
+    case _: EmptyTuple => Nil
+    case _: (t *: ts) => summonInline[Read[t]] :: summonAll[ts]
   }
 
   inline def derived[A](using m: Mirror.ProductOf[A]): Read[A] = {
-    lazy val typeclasses = summonAll[m.MirroredElemTypes].to(ArraySeq)
+    lazy val typeclasses = summonAll[m.MirroredElemTypes]
+    new ReadPlatformInstance[A](m, typeclasses)
+  }
+}
 
-    new Read[A] {
-      override val gets = typeclasses.to(ArraySeq).flatMap(_.gets)
-      override def unsafeGet(rs: ResultSet, i: Int) = {
-        val values = Read.build(typeclasses)(rs, i)
-        m.fromProduct(Tuple.fromArray(values))
-      }
-    }
+class ReadPlatformInstance[A](m: Mirror.ProductOf[A], typeclasses: => List[Read[?]]) extends Read[A] {
+  private lazy val instances = typeclasses
+  override lazy val gets = instances.to(ArraySeq).flatMap(_.gets)
+  override def unsafeGet(rs: ResultSet, i: Int) = {
+    val values = Read.build(instances)(rs, i)
+    m.fromProduct(Tuple.fromArray(values))
   }
 }
 
