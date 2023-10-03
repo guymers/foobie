@@ -29,8 +29,8 @@ object ConnectionPoolSpec extends ZIOSpecDefault {
 
   override val spec = suite("ConnectionPool")(
     test("connection fails to acquire") {
+      // FIXME this test only passes due to being lucky with the connection order
       for {
-        _ <- ZIO.unit
         ref <- Ref.make(1)
         create = ref.modify { i =>
           val conn = if (i % 2 == 0) {
@@ -150,7 +150,7 @@ object ConnectionPoolSpec extends ZIOSpecDefault {
         _ <- ZIO.foreachDiscard((1 to config.size).toList)(_ => ZIO.scoped(pool.get))
         createdInitial <- createdRef.get
 
-        _ <- TestClock.adjust((config.maxConnectionLifetime.toNanos * 1.11).toLong.nanos) // jittered 0.9-1.1
+        _ <- TestClock.adjust(config.maxConnectionLifetime)
 
         _ <- ZIO.foreachDiscard((1 to config.size).toList)(_ => ZIO.scoped(pool.get))
         createdRefreshed <- createdRef.get
