@@ -70,6 +70,19 @@ object ConnectionPool {
     } yield {
       new ConnectionPool {
         override def get(implicit trace: Trace) = for {
+          tuple <- _get.withEarlyRelease
+          (close, i) = tuple
+          now <- zio.Clock.nanoTime
+          age = (now - i.acquired).nanoseconds
+          c <- {
+            if (age > config.maxConnectionLifetime) {
+              // been idle and missed invalidation, close and let the finalizer invalidate
+              close *> _get
+            } else ZIO.succeed(i)
+          }
+        } yield c.connection
+
+        private def _get(implicit trace: Trace) = for {
           atQueueSize <- numQueuedRef.modify { i =>
             if (i >= config.queueSize) (true, config.queueSize) else (false, i + 1)
           }.uninterruptible
@@ -83,20 +96,22 @@ object ConnectionPool {
           _ <- ZIO.acquireRelease(inUse.increment)(_ => inUse.decrement)
 
           _ <- ZIO.addFinalizerExit {
-            case Exit.Success(_) => for {
-                now <- zio.Clock.nanoTime
-                age = (now - c.acquired).nanoseconds
-                maxLifetimeJitter <- zio.Random.nextDoubleBetween(0.9, 1.1)
-                maxLifetime = (config.maxConnectionLifetime.toNanos * maxLifetimeJitter).toLong.nanoseconds
-                _ <- invalidate(c).when(age > maxLifetime)
-              } yield ()
+            case Exit.Success(_) =>
+              invalidate(c).whenZIO {
+                for {
+                  now <- zio.Clock.nanoTime
+                  age = (now - c.acquired).nanoseconds
+                  maxLifetimeJitter <- zio.Random.nextDoubleBetween(0.89, 0.99)
+                  maxLifetime = (config.maxConnectionLifetime.toNanos * maxLifetimeJitter).toLong.nanoseconds
+                } yield age > maxLifetime
+              }
 
             case Exit.Failure(_) =>
               invalidate(c).unlessZIO {
                 c.isValid(config.validationTimeout).catchAll(_ => ZIO.succeed(false))
               }
           }
-        } yield c.connection
+        } yield c
       }
     }
   }

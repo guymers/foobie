@@ -30,10 +30,7 @@ sealed abstract class Transactor { self =>
    * Execute the given [[ConnectionIO]] on a connection using the strategy.
    */
   def run[A](io: ConnectionIO[A])(implicit trace: Trace): ZIO[Any, DatabaseError, A] = ZIO.scoped {
-    connection.flatMap { conn =>
-      translate(conn) { strategy.resource.use(_ => io) }
-        .mapError(DatabaseError(_))
-    }
+    connection.flatMap(interpret(io)(_))
   }
 
   /**
@@ -44,7 +41,7 @@ sealed abstract class Transactor { self =>
     import zio.stream.interop.fs2z.*
 
     s.translate(new (ConnectionIO ~> Task) {
-      override def apply[T](io: ConnectionIO[T]): ZIO[Any, DatabaseError, T] = run(io)
+      override def apply[T](io: ConnectionIO[T]) = run(io)
     }).toZStream(chunkSize).mapError(DatabaseError(_))
   }
 
@@ -63,6 +60,11 @@ sealed abstract class Transactor { self =>
       Stream.resource(strategy.resource).flatMap(_ => s)
         .translate(translate(conn)).toZStream(chunkSize).mapError(DatabaseError(_))
     }
+  }
+
+  def interpret[A](io: ConnectionIO[A])(c: Connection): ZIO[Any, DatabaseError, A] = {
+    translate(c) { strategy.resource.use(_ => io) }
+      .mapError(DatabaseError(_))
   }
 
   def translate(c: Connection): ConnectionIO ~> Task = {
