@@ -1,10 +1,10 @@
 ## Unit Testing
 
-The YOLO-mode query checking feature demonstrated in an earlier chapter is also available as a trait you can mix into your [ScalaTest](http://www.scalatest.org/), [MUnit](https://scalameta.org/munit) or [Weaver](https://disneystreaming.github.io/weaver-test/) unit tests.
+Query checking is available as a trait you can mix into your [ScalaTest](http://www.scalatest.org/), [MUnit](https://scalameta.org/munit) or [Weaver](https://disneystreaming.github.io/weaver-test/) unit tests.
 
 ### Setting Up
 
-As with earlier chapters we set up a `Transactor` and YOLO mode. We will also use the `doobie-scalatest` module.
+As with earlier chapters we set up a `Transactor`. We will also use the `doobie-scalatest` module.
 
 ```scala mdoc:silent
 import doobie.*

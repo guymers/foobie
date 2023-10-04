@@ -36,7 +36,7 @@ implicit val mdocColors: doobie.util.Colors = doobie.util.Colors.None
 
 ### How do I do an `IN` clause?
 
-This used to be very irritating, but as of 0.4.0 there is a good solution. See the section on `IN` clauses in [Chapter 5](05-Parameterized.html) and [Chapter 8](08-Fragments.html) on statement fragments.
+This used to be very irritating, but as of 0.4.0 there is a good solution. See the section on `IN` clauses in [Chapter 5](05-Parameterized.md) and [Chapter 8](08-Fragments.md) on statement fragments.
 
 ### How do I ascribe an SQL type to an interpolated parameter?
 
@@ -44,11 +44,9 @@ Interpolated parameters are replaced with `?` placeholders, so if you need to as
 
 ```scala mdoc
 {
-  val y = xa.yolo
-  import y.*
   val s = "foo"
-  sql"select $s".query[String].check.unsafeRunSync()
-  sql"select $s :: char".query[String].check.unsafeRunSync()
+  sql"select $s".query[String].unique.transact(xa).unsafeRunSync()
+  sql"select $s :: char".query[String].unique.transact(xa).unsafeRunSync()
 }
 ```
 
@@ -75,7 +73,7 @@ Note that you need both of these operations if you are using a `Transactor` beca
 
 ### How do I turn an arbitrary SQL string into a `Query0/Update0`?
 
-As of **doobie** 0.4.0 this is done via [statement fragments](08-Fragments.html). Here we choose the sort order dynamically.
+As of **doobie** 0.4.0 this is done via [statement fragments](08-Fragments.md). Here we choose the sort order dynamically.
 
 ```scala mdoc:silent
 case class Code(country: String)
@@ -143,7 +141,7 @@ Some examples, filtered for size.
 
 ### How do I log the SQL produced for my query after interpolation?
 
-As of **doobie** 0.4 there is a reasonable solution to the logging/instrumentation question. See [Chapter 10](10-Logging.html) for more details.
+As of **doobie** 0.4 there is a reasonable solution to the logging/instrumentation question. See [Chapter 10](10-Logging.md) for more details.
 
 ### Why is there no `Get` or `Put` for `SQLXML`?
 
@@ -174,7 +172,7 @@ implicit val XmlMeta: Meta[Elem] =
 
 By default streams constructed with the `sql` interpolator are fetched `Query.DefaultChunkSize` rows at a time (currently 512). If you wish to change this chunk size you can use `streamWithChunkSize` for queries, and `withGeneratedKeysWithChunkSize` for updates that return results.
 
-## My Postgres domains are all type checking as DISTINCT! How can I get my Yolo tests to pass?
+## My Postgres domains are all type checking as DISTINCT! How can I get my tests to pass?
 
 Domains with check constraints will type check as DISTINCT. For Doobie later than 0.4.4, in order to get the type checks to pass, you can define a `Meta` of with target type Distinct and `xmap` that instances. For example,
 

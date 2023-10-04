@@ -28,9 +28,6 @@ val xa = Transactor.fromDriverManager[IO](
   "postgres",                  // user
   "password"                   // password
 )
-
-val y = xa.yolo
-import y.*
 ```
 
 ```scala mdoc:invisible

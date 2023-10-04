@@ -20,7 +20,6 @@ import doobie.free.connection.rollback
 import doobie.free.connection.setAutoCommit
 import doobie.free.connection.unit
 import doobie.util.lens.*
-import doobie.util.yolo.Yolo
 import fs2.Stream
 
 import java.sql.Connection
@@ -123,9 +122,6 @@ object transactor {
 
     /** A `Strategy` for running a program on a connection * */
     def strategy: Strategy
-
-    /** Construct a [[doobie.util.yolo.Yolo]] for REPL experimentation. */
-    def yolo(implicit ev: MonadCancelThrow[M]): Yolo[M] = new Yolo(this)
 
     /**
      * Construct a program to perform arbitrary configuration on the kernel

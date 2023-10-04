@@ -4,7 +4,7 @@ This chapter shows how we can map Scala sequence types to SQL `ARRAY` types, for
 
 ### Setting Up
 
-Again we set up a transactor and pull in YOLO mode. We also need an import to get PostgreSQL-specific type mappings.
+Again we set up a transactor. We also need an import to get PostgreSQL-specific type mappings.
 
 ```scala mdoc:silent
 import doobie.*
@@ -30,9 +30,6 @@ val xa = Transactor.fromDriverManager[IO](
   "postgres",                  // user
   "password"                   // password
 )
-
-val y = xa.yolo
-import y.*
 ```
 
 ```scala mdoc:invisible
@@ -75,8 +72,8 @@ def insert(name: String, pets: List[String]): ConnectionIO[Person] = {
 Insert works fine, as does reading the result. No surprises.
 
 ```scala mdoc
-insert("Bob", List("Nixon", "Slappy")).quick.unsafeRunSync()
-insert("Alice", Nil).quick.unsafeRunSync()
+insert("Bob", List("Nixon", "Slappy")).to[List].transact(xa).unsafeRunSync()
+insert("Alice", Nil).to[List].transact(xa).unsafeRunSync()
 ```
 
 ### Lamentations of `NULL`
@@ -88,8 +85,8 @@ However there is another axis of variation here: the *array cells* themselves ma
 So there are actually four ways to map an array, and you should carefully consider which is appropriate for your schema. In the first two cases reading a `NULL` cell would result in a `NullableCellRead` exception.
 
 ```scala mdoc
-sql"select array['foo','bar','baz']".query[List[String]].quick.unsafeRunSync()
-sql"select array['foo','bar','baz']".query[Option[List[String]]].quick.unsafeRunSync()
-sql"select array['foo',NULL,'baz']".query[List[Option[String]]].quick.unsafeRunSync()
-sql"select array['foo',NULL,'baz']".query[Option[List[Option[String]]]].quick.unsafeRunSync()
+sql"select array['foo','bar','baz']".query[List[String]].to[List].transact(xa).unsafeRunSync()
+sql"select array['foo','bar','baz']".query[Option[List[String]]].to[List].transact(xa).unsafeRunSync()
+sql"select array['foo',NULL,'baz']".query[List[Option[String]]].to[List].transact(xa).unsafeRunSync()
+sql"select array['foo',NULL,'baz']".query[Option[List[Option[String]]]].to[List].transact(xa).unsafeRunSync()
 ```

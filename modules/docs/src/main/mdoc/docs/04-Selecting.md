@@ -1,6 +1,6 @@
 ## Selecting Data
 
-In this chapter we will write some programs to read from the database, mapping rows to Scala types on the way. We also introduce YOLO mode for experimenting with **doobie** in the REPL.
+In this chapter we will write some programs to read from the database, mapping rows to Scala types on the way. 
 
 ### Setting Up
 
@@ -35,7 +35,7 @@ val xa = Transactor.fromDriverManager[IO](
 implicit val mdocColors: doobie.util.Colors = doobie.util.Colors.None
 ```
 
-We will be playing with the `country` table, shown here for reference. If you don't have the `world` database set up, go back to the [Introduction](01-Introduction.html) for instructions.
+We will be playing with the `country` table, shown here for reference. If you don't have the `world` database set up, go back to the [Introduction](01-Introduction.md) for instructions.
 
 ```sql
 CREATE TABLE country (
@@ -56,7 +56,7 @@ sql"select name from country"
   .query[String]    // Query0[String]
   .to[List]         // ConnectionIO[List[String]]
   .transact(xa)     // IO[List[String]]
-  .unsafeRunSync()    // List[String]
+  .unsafeRunSync()  // List[String]
   .take(5)          // List[String]
   .foreach(println) // Unit
 ```
@@ -82,7 +82,7 @@ sql"select name from country"
   .take(5)          // Stream[ConnectionIO, String]
   .compile.toList   // ConnectionIO[List[String]]
   .transact(xa)     // IO[List[String]]
-  .unsafeRunSync()    // List[String]
+  .unsafeRunSync()  // List[String]
   .foreach(println) // Unit
 ```
 
@@ -91,31 +91,6 @@ that emits rows as they arrive from the database. By applying `take(5)` we instr
 
 Of course a server-side `LIMIT` would be an even better way to do this (for databases that support it), but in cases where you need client-side filtering or other custom postprocessing, `Stream` is a very general and powerful tool.
 For more information see the [fs2](https://github.com/functional-streams-for-scala/fs2) repo, which has a good list of learning resources.
-
-### YOLO Mode
-
-The API we have seen so far is ok, but it's tiresome to keep saying `transact(xa)` and doing `foreach(println)` to see what the results look like. So **just for REPL exploration** there is a module of extra syntax provided on your `Transactor` that you can import.
-
-```scala mdoc:silent
-val y = xa.yolo // a stable reference is required
-import y.*
-```
-
-We can now run our previous query in an abbreviated form.
-
-```scala mdoc
-sql"select name from country"
-  .query[String] // Query0[String]
-  .stream        // Stream[ConnectionIO, String]
-  .take(5)       // Stream[ConnectionIO, String]
-  .quick         // IO[Unit]
-  .unsafeRunSync()
-```
-
-This syntax allows you to quickly run a `Query0[A]` or `Stream[ConnectionIO, A]` and see the results printed to the console. This isn't a huge deal but it can save you some keystrokes when you're just messing around.
-
-- The `.quick` method sinks the stream to standard out (adding ANSI coloring for fun) and then calls `.transact`, yielding a `IO[Unit]`.
-- The `.check` method returns a `IO[Unit]` that performs a metadata analysis on the provided query and asserted types and prints out a report. This is covered in detail in the chapter on typechecking queries.
 
 ### Multi-Column Queries
 
@@ -126,7 +101,8 @@ sql"select code, name, population, gnp from country"
   .query[(String, String, Int, Option[Double])]
   .stream
   .take(5)
-  .quick
+  .compile.toList
+  .transact(xa)
   .unsafeRunSync()
 ```
 **doobie** supports row mappings for atomic column types, as well as options, tuples, and case classes thereof.
@@ -142,7 +118,8 @@ sql"select code, name, population, gnp from country"
   .query[Country]
   .stream
   .take(5)
-  .quick
+  .compile.toList
+  .transact(xa)
   .unsafeRunSync()
 ```
 
@@ -158,7 +135,8 @@ sql"select code, name, population, gnp from country"
   .query[(Code, Country2)]
   .stream
   .take(5)
-  .quick
+  .compile.toList
+  .transact(xa)
   .unsafeRunSync()
 ```
 
@@ -170,7 +148,7 @@ sql"select code, name, population, gnp from country"
   .stream.take(5)
   .compile.toList
   .map(_.toMap)
-  .quick
+  .transact(xa)
   .unsafeRunSync()
 ```
 
@@ -206,7 +184,7 @@ val proc = HC.stream[(Code, Country2)](
 proc.take(5)        // Stream[ConnectionIO, (Code, Country2)]
     .compile.toList // ConnectionIO[List[(Code, Country2)]]
     .map(_.toMap)   // ConnectionIO[Map[Code, Country2]]
-    .quick
+    .transact(xa)
     .unsafeRunSync()
 ```
 

@@ -61,18 +61,16 @@ object OtherSchema extends IOApp.Simple {
       "postgres",
       "password",
     )
-    val y = xa.yolo
-    import y.*
 
     // Check as column value only
     val q1 = sql"SELECT 'INITIAL'::returns_data.return_status".query[ReturnStatus.Value]
-    val p1 = q1.check *> q1.unique.quick
+    val p1 = q1.unique.transact(xa)
 
     // Check as parameter too
     val q2 = sql"SELECT ${ReturnStatus.IN_PROGRESS}::returns_data.return_status".query[ReturnStatus.Value]
-    val p2 = q2.check *> q2.unique.quick
+    val p2 = q2.unique.transact(xa)
 
-    (p1 *> p2)
+    (p1 *> p2).void
 
   }
 

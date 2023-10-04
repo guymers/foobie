@@ -60,12 +60,9 @@ object FragmentExample extends IOApp.Simple {
     select(Some("U%"), None, List("USA", "GBR", "FRA"), 10),
     select(Some("U%"), Some(100000000), List("USA", "GBR", "FRA"), 10),
   ).traverse { q =>
-    val y = xa.yolo
-    import y.*
-    q.check *> q.quick
+    q.to[List].transact(xa)
   }
 
-  def run: IO[Unit] =
-    prog.void
+  def run: IO[Unit] = prog.void
 
 }

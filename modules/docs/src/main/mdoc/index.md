@@ -65,13 +65,13 @@ libraryDependencies ++= Seq(
 ```
 @@@
 
-See the [**documentation**](docs/01-Introduction.html) for more information on these add-ons.
+See the [**documentation**](docs/01-Introduction.md) for more information on these add-ons.
 
 Note that **doobie** is pre-1.0 software and is still undergoing active development. New versions are **not** binary compatible with prior versions, although in most cases user code will be source compatible. Starting with the 0.5.x we're trying to be a bit more careful about versioning.
 
 ## Documentation and Support
 
-- Behold the sparkly [**documentation**](docs/01-Introduction.html) ← start here
+- Behold the sparkly [**documentation**](docs/01-Introduction.md) <- start here
 - The [**Scaladoc**](https://www.javadoc.io/doc/org.tpolecat/doobie-core_$scala.binary.version$) will be handy once you get your feet wet.
 - See [**releases**](https://github.com/tpolecat/doobie/releases) for an overview of changes in this and previous versions.
 - The [**Gitter Channel**](https://gitter.im/tpolecat/doobie) is a great place to chat!
