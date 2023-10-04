@@ -25,7 +25,6 @@ import java.sql.Savepoint
 import java.sql.ShardingKey
 import java.sql.Statement
 import java.sql.Struct
-import java.util.Map
 import java.util.Properties
 import java.util.concurrent.Executor
 import scala.concurrent.duration.FiniteDuration
@@ -95,7 +94,7 @@ object connection { module =>
       def getNetworkTimeout: F[Int]
       def getSchema: F[String]
       def getTransactionIsolation: F[Int]
-      def getTypeMap: F[Map[String, Class[?]]]
+      def getTypeMap: F[java.util.Map[String, Class[?]]]
       def getWarnings: F[SQLWarning]
       def isClosed: F[Boolean]
       def isReadOnly: F[Boolean]
@@ -129,7 +128,7 @@ object connection { module =>
       def setShardingKeyIfValid(a: ShardingKey, b: Int): F[Boolean]
       def setShardingKeyIfValid(a: ShardingKey, b: ShardingKey, c: Int): F[Boolean]
       def setTransactionIsolation(a: Int): F[Unit]
-      def setTypeMap(a: Map[String, Class[?]]): F[Unit]
+      def setTypeMap(a: java.util.Map[String, Class[?]]): F[Unit]
       def unwrap[T](a: Class[T]): F[T]
 
     }
@@ -245,7 +244,7 @@ object connection { module =>
     case object GetTransactionIsolation extends ConnectionOp[Int] {
       def visit[F[_]](v: Visitor[F]) = v.getTransactionIsolation
     }
-    case object GetTypeMap extends ConnectionOp[Map[String, Class[?]]] {
+    case object GetTypeMap extends ConnectionOp[java.util.Map[String, Class[?]]] {
       def visit[F[_]](v: Visitor[F]) = v.getTypeMap
     }
     case object GetWarnings extends ConnectionOp[SQLWarning] {
@@ -347,7 +346,7 @@ object connection { module =>
     final case class SetTransactionIsolation(a: Int) extends ConnectionOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.setTransactionIsolation(a)
     }
-    final case class SetTypeMap(a: Map[String, Class[?]]) extends ConnectionOp[Unit] {
+    final case class SetTypeMap(a: java.util.Map[String, Class[?]]) extends ConnectionOp[Unit] {
       def visit[F[_]](v: Visitor[F]) = v.setTypeMap(a)
     }
     final case class Unwrap[T](a: Class[T]) extends ConnectionOp[T] {
@@ -403,7 +402,7 @@ object connection { module =>
   val getNetworkTimeout: ConnectionIO[Int] = FF.liftF(GetNetworkTimeout)
   val getSchema: ConnectionIO[String] = FF.liftF(GetSchema)
   val getTransactionIsolation: ConnectionIO[Int] = FF.liftF(GetTransactionIsolation)
-  val getTypeMap: ConnectionIO[Map[String, Class[?]]] = FF.liftF(GetTypeMap)
+  val getTypeMap: ConnectionIO[java.util.Map[String, Class[?]]] = FF.liftF(GetTypeMap)
   val getWarnings: ConnectionIO[SQLWarning] = FF.liftF(GetWarnings)
   val isClosed: ConnectionIO[Boolean] = FF.liftF(IsClosed)
   val isReadOnly: ConnectionIO[Boolean] = FF.liftF(IsReadOnly)
@@ -440,7 +439,7 @@ object connection { module =>
   def setShardingKeyIfValid(a: ShardingKey, b: ShardingKey, c: Int): ConnectionIO[Boolean] =
     FF.liftF(SetShardingKeyIfValid1(a, b, c))
   def setTransactionIsolation(a: Int): ConnectionIO[Unit] = FF.liftF(SetTransactionIsolation(a))
-  def setTypeMap(a: Map[String, Class[?]]): ConnectionIO[Unit] = FF.liftF(SetTypeMap(a))
+  def setTypeMap(a: java.util.Map[String, Class[?]]): ConnectionIO[Unit] = FF.liftF(SetTypeMap(a))
   def unwrap[T](a: Class[T]): ConnectionIO[T] = FF.liftF(Unwrap(a))
 
   private val monad = FF.catsFreeMonadForFree[ConnectionOp]

@@ -8,7 +8,6 @@ import zio.Schedule
 import zio.Scope
 import zio.ZIO
 import zio.durationInt
-import zio.durationLong
 import zio.test.TestAspect
 import zio.test.TestClock
 import zio.test.ZIOSpecDefault

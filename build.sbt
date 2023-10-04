@@ -200,7 +200,7 @@ lazy val free = module("free")
     }),
     freeGen2Dir := (Compile / scalaSource).value / "doobie" / "free",
     freeGen2Package := "doobie.free",
-    freeGen2Classes := List[Class[_]](
+    freeGen2Classes := List[Class[?]](
       classOf[java.sql.NClob],
       classOf[java.sql.Blob],
       classOf[java.sql.Clob],
@@ -257,7 +257,7 @@ lazy val postgres = module("postgres")
     }),
     freeGen2Dir := (Compile / scalaSource).value / "doobie" / "postgres" / "free",
     freeGen2Package := "doobie.postgres.free",
-    freeGen2Classes := List[Class[_]](
+    freeGen2Classes := List[Class[?]](
       classOf[org.postgresql.copy.CopyIn],
       classOf[org.postgresql.copy.CopyManager],
       classOf[org.postgresql.copy.CopyOut],

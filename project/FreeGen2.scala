@@ -1,15 +1,15 @@
-import sbt.Keys._
-import sbt._
+import sbt.*
+import sbt.Keys.*
 
-import java.lang.reflect._
+import java.lang.reflect.*
 import scala.reflect.ClassTag
 
 object FreeGen2 {
 
-  lazy val freeGen2Classes = settingKey[List[Class[_]]]("classes for which free algebras should be generated")
+  lazy val freeGen2Classes = settingKey[List[Class[?]]]("classes for which free algebras should be generated")
   lazy val freeGen2Dir = settingKey[File]("directory where free algebras go")
   lazy val freeGen2Package = settingKey[String]("package where free algebras go")
-  lazy val freeGen2Renames = settingKey[Map[Class[_], String]]("map of imports that must be renamed")
+  lazy val freeGen2Renames = settingKey[Map[Class[?], String]]("map of imports that must be renamed")
   lazy val freeGen2 = taskKey[Seq[File]]("generate free algebras")
 
   lazy val freeGen2Settings = Seq(
@@ -27,7 +27,7 @@ object FreeGen2 {
 
 }
 
-class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], String], log: Logger) {
+class FreeGen2(managed: List[Class[?]], pkg: String, renames: Map[Class[?], String], log: Logger) {
 
   // These Java classes will have non-Java names in our generated code
   val ClassBoolean = classOf[Boolean]
@@ -40,38 +40,42 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
   val ClassObject = classOf[Object]
   val ClassVoid = Void.TYPE
 
-  def tparams(t: Type): List[String] =
-    t match {
-      case t: GenericArrayType => tparams(t.getGenericComponentType)
-      case t: ParameterizedType => t.getActualTypeArguments.toList.flatMap(tparams)
-      case t: TypeVariable[_] => List(t.toString)
-      case _ => Nil
-    }
+  def tparams(t: Type): List[String] = t match {
+    case t: GenericArrayType => tparams(t.getGenericComponentType)
+    case t: ParameterizedType => t.getActualTypeArguments.toList.flatMap(tparams)
+    case t: TypeVariable[_] => List(t.toString)
+    case _ => Nil
+  }
 
-  def toScalaType(t: Type): String =
-    t match {
-      case t: GenericArrayType => s"Array[${toScalaType(t.getGenericComponentType)}]"
-      case t: ParameterizedType =>
-        s"${toScalaType(t.getRawType)}${t.getActualTypeArguments.map(toScalaType).mkString("[", ", ", "]")}"
-      case t: WildcardType =>
-        t.getUpperBounds.toList.filterNot(_ == classOf[Object]) match {
-          case (c: Class[_]) :: Nil => s"? <: ${c.getName}"
-          case Nil => "?"
-          case cs => sys.error("unhandled upper bounds: " + cs)
-        }
-      case t: TypeVariable[_] => t.toString
-      case ClassVoid => "Unit"
-      case ClassBoolean => "Boolean"
-      case ClassByte => "Byte"
-      case ClassShort => "Short"
-      case ClassInt => "Int"
-      case ClassLong => "Long"
-      case ClassFloat => "Float"
-      case ClassDouble => "Double"
-      case ClassObject => "AnyRef"
-      case x: Class[_] if x.isArray => s"Array[${toScalaType(x.getComponentType)}]"
-      case x: Class[_] => renames.getOrElse(x, x.getSimpleName)
-    }
+  def toScalaType(t: Type): String = t match {
+    case t: GenericArrayType => s"Array[${toScalaType(t.getGenericComponentType)}]"
+    case t: ParameterizedType =>
+      s"${toScalaType(t.getRawType)}${t.getActualTypeArguments.map(toScalaType).mkString("[", ", ", "]")}"
+    case t: WildcardType =>
+      t.getUpperBounds.toList.filterNot(_ == classOf[Object]) match {
+        case (c: Class[_]) :: Nil => s"? <: ${c.getName}"
+        case Nil => "?"
+        case cs => sys.error("unhandled upper bounds: " + cs)
+      }
+    case t: TypeVariable[_] => t.toString
+    case ClassVoid => "Unit"
+    case ClassBoolean => "Boolean"
+    case ClassByte => "Byte"
+    case ClassShort => "Short"
+    case ClassInt => "Int"
+    case ClassLong => "Long"
+    case ClassFloat => "Float"
+    case ClassDouble => "Double"
+    case ClassObject => "AnyRef"
+    case x: Class[_] =>
+      if (x.isArray) {
+        s"Array[${toScalaType(x.getComponentType)}]"
+      } else if (x.getName == "java.util.Map") {
+        x.getName
+      } else {
+        renames.getOrElse(x, x.getSimpleName)
+      }
+  }
 
   // Each constructor for our algebra maps to an underlying method, and an index is provided to
   // disambiguate in cases of overloading.
@@ -152,14 +156,14 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
           ", ",
         )}): F[$ret] = sys.error("Not implemented: $mname$ctparams(${cparams.mkString(", ")})")"""
 
-    def kleisliImpl: String =
-      if (cargs.isEmpty) s"|    override def $mname = primitive(_.$mname)"
+    def kleisliImpl(oname: String): String =
+      if (cargs.isEmpty) s"|    override def $mname: Kleisli[M, $oname, $ret] = primitive(_.$mname)"
       else s"|    override def $mname$ctparams(${cargs.mkString(", ")}) = primitive(_.$mname($args))"
 
   }
 
   // This class, plus any superclasses and interfaces, "all the way up"
-  def closure(c: Class[_]): List[Class[_]] =
+  def closure(c: Class[?]): List[Class[?]] =
     (c :: (Option(c.getSuperclass).toList ++ c.getInterfaces.toList).flatMap(closure)).distinct
       .filterNot(_.getName == "java.lang.AutoCloseable") // not available in jdk1.6
       .filterNot(_.getName == "java.lang.Object") // we don't want .equals, etc.
@@ -170,7 +174,7 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
   }
 
   // All non-deprecated methods for this class and any superclasses/interfaces
-  def methods(c: Class[_]): List[Method] =
+  def methods(c: Class[?]): List[Method] =
     closure(c).flatMap(_.getDeclaredMethods.toList).distinct
       .filterNot(_.isStatic)
       .filter(_.getAnnotation(classOf[Deprecated]) == null)
@@ -184,22 +188,28 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     }.sortBy(c => (c.mname, c.index))
 
   // Fully qualified rename, if any
-  def renameImport(c: Class[_]): String = {
-    val sn = c.getSimpleName
-    val an = renames.getOrElse(c, sn)
-    if (sn == an) s"import ${c.getName}"
-    else s"import ${c.getPackage.getName}.$sn as $an"
+  def renameImport(c: Class[?]): String = {
+    renames.get(c) match {
+      case None => s"import ${c.getName}"
+      case Some(renamed) => s"import ${c.getPackage.getName}.${c.getSimpleName} as $renamed"
+    }
   }
 
   // All types referenced by all methods on A, superclasses, interfaces, etc.
-  def imports[A](implicit ev: ClassTag[A]): List[String] =
+  def imports[A](implicit ev: ClassTag[A]): List[String] = {
     (renameImport(ev.runtimeClass) :: ctors.map(_.method).flatMap { m =>
       m.getReturnType :: m.getParameterTypes.toList
     }.map { t =>
       if (t.isArray) t.getComponentType else t
-    }.filterNot(t => t.isPrimitive || t == classOf[Object]).map { c =>
+    }.filterNot { t =>
+      t.isPrimitive ||
+      t == classOf[Object] ||
+      t.getSimpleName == "Class" ||
+      t.getSimpleName == "String"
+    }.map { c =>
       renameImport(c)
     }).distinct.sorted
+  }
 
   // The algebra module for A
   def module[A](implicit ev: ClassTag[A]): String = {
@@ -209,10 +219,16 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     val ioname = s"${oname}IO"
     val mname = oname.toLowerCase
     s"""
+    |// Copyright (c) 2013-2020 Rob Norris and Contributors
+    |// This software is licensed under the MIT License (MIT).
+    |// For more information see LICENSE or https://opensource.org/licenses/MIT
+    |
     |package $pkg
     |
     |import cats.~>
-    |import cats.effect.kernel.{ CancelScope, Poll, Sync }
+    |import cats.effect.kernel.CancelScope
+    |import cats.effect.kernel.Poll
+    |import cats.effect.kernel.Sync
     |import cats.free.Free as FF // alias because some algebras have an op called Free
     |import cats.Monoid
     |import scala.concurrent.duration.FiniteDuration
@@ -367,7 +383,7 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
   }
 
   // Import for the IO type for a carrer type, with renaming
-  def ioImport(c: Class[_]): String = {
+  def ioImport(c: Class[?]): String = {
     val sn = c.getSimpleName
     s"import ${sn.toLowerCase}.${sn}IO"
   }
@@ -375,6 +391,10 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
   // The Embedded definition for all modules.
   def embeds: String =
     s"""
+     |// Copyright (c) 2013-2020 Rob Norris and Contributors
+     |// This software is licensed under the MIT License (MIT).
+     |// For more information see LICENSE or https://opensource.org/licenses/MIT
+     |
      |package $pkg
      |
      |import cats.free.Free
@@ -400,34 +420,38 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
     val opname = s"${oname}Op"
     val ioname = s"${oname}IO"
     val mname = oname.toLowerCase
+
+    def kles(retType: String) = s"Kleisli[M, $sname, $retType]"
+    val klesA = kles("A")
+    val klesUnit = kles("Unit")
     s"""
        |  trait ${oname}Interpreter extends ${oname}Op.Visitor[Kleisli[M, $sname, *]] {
        |
        |    // common operations delegate to outer interpreter
-       |    override def raw[A](f: ${sname} => A) = outer.raw(f)
-       |    override def embed[A](e: Embedded[A]) = outer.embed(e)
-       |    override def raiseError[A](e: Throwable) = outer.raiseError(e)
-       |    override def monotonic = outer.monotonic[${sname}]
-       |    override def realTime = outer.realTime[${sname}]
-       |    override def delay[A](thunk: => A) = outer.delay(thunk)
-       |    override def suspend[A](hint: Sync.Type)(thunk: => A) = outer.suspend(hint)(thunk)
-       |    override def canceled = outer.canceled[${sname}]
+       |    override def raw[A](f: ${sname} => A): $klesA = outer.raw(f)
+       |    override def embed[A](e: Embedded[A]): $klesA = outer.embed(e)
+       |    override def raiseError[A](e: Throwable): $klesA = outer.raiseError(e)
+       |    override def monotonic: ${kles("FiniteDuration")} = outer.monotonic[${sname}]
+       |    override def realTime: ${kles("FiniteDuration")} = outer.realTime[${sname}]
+       |    override def delay[A](thunk: => A): $klesA = outer.delay(thunk)
+       |    override def suspend[A](hint: Sync.Type)(thunk: => A): $klesA = outer.suspend(hint)(thunk)
+       |    override def canceled: $klesUnit = outer.canceled[${sname}]
        |
        |    // for operations using ${ioname} we must call ourself recursively
-       |    override def handleErrorWith[A](fa: ${ioname}[A])(f: Throwable => ${ioname}[A]) = outer.handleErrorWith(this)(fa)(f)
-       |    override def forceR[A, B](fa: ${ioname}[A])(fb: ${ioname}[B]) = outer.forceR(this)(fa)(fb)
-       |    override def uncancelable[A](body: Poll[${ioname}] => ${ioname}[A]) = outer.uncancelable(this, ${pkg}.${mname}.capturePoll)(body)
-       |    override def poll[A](poll: Any, fa: ${ioname}[A]) = outer.poll(this)(poll, fa)
-       |    override def onCancel[A](fa: ${ioname}[A], fin: ${ioname}[Unit]) = outer.onCancel(this)(fa, fin)
+       |    override def handleErrorWith[A](fa: ${ioname}[A])(f: Throwable => ${ioname}[A]): $klesA = outer.handleErrorWith(this)(fa)(f)
+       |    override def forceR[A, B](fa: ${ioname}[A])(fb: ${ioname}[B]): ${kles("B")} = outer.forceR(this)(fa)(fb)
+       |    override def uncancelable[A](body: Poll[${ioname}] => ${ioname}[A]): $klesA = outer.uncancelable(this, ${pkg}.${mname}.capturePoll)(body)
+       |    override def poll[A](poll: Any, fa: ${ioname}[A]): $klesA = outer.poll(this)(poll, fa)
+       |    override def onCancel[A](fa: ${ioname}[A], fin: ${ioname}[Unit]): $klesA = outer.onCancel(this)(fa, fin)
        |
        |    // domain-specific operations are implemented in terms of `primitive`
-       |${ctors[A].map(_.kleisliImpl).mkString("\n")}
+       |${ctors[A].map(_.kleisliImpl(sname)).mkString("\n")}
        |
        |  }
        |""".trim.stripMargin
   }
 
-  def interpreterDef(c: Class[_]): String = {
+  def interpreterDef(c: Class[?]): String = {
     val oname = c.getSimpleName // original name, without name mapping
     val sname = toScalaType(c)
     val opname = s"${oname}Op"
@@ -439,11 +463,16 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
   // template for a kleisli interpreter
   def kleisliInterpreter: String =
     s"""
+      |// Copyright (c) 2013-2020 Rob Norris and Contributors
+      |// This software is licensed under the MIT License (MIT).
+      |// For more information see LICENSE or https://opensource.org/licenses/MIT
+      |
       |package $pkg
       |
       |import cats.~>
       |import cats.data.Kleisli
-      |import cats.effect.kernel.{ Poll, Sync }
+      |import cats.effect.kernel.Poll
+      |import cats.effect.kernel.Sync
       |import cats.free.Free
       |import scala.concurrent.duration.FiniteDuration
       |
@@ -452,7 +481,7 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
       |${managed.map(_.getSimpleName).map(c => s"import ${pkg}.${c.toLowerCase}.{ ${c}IO, ${c}Op }").mkString("\n")}
       |
       |object KleisliInterpreter {
-      |  def apply[M[_]: Sync]: KleisliInterpreter[M] = new KleisliInterpreter[M]
+      |  def apply[M[_]](implicit M: Sync[M]): KleisliInterpreter[M] = new KleisliInterpreter[M]
       |}
       |
       |// Family of interpreters into Kleisli arrows for some monad M.
@@ -480,28 +509,27 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
       |  def canceled[J]: Kleisli[M, J, Unit] = Kleisli(_ => syncM.canceled)
       |
       |  // for operations using free structures we call the interpreter recursively
-      |  def handleErrorWith[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(fa: Free[G, A])(f: Throwable => Free[G, A]): Kleisli[M, J, A] = Kleisli (j =>
+      |  def handleErrorWith[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(fa: Free[G, A])(f: Throwable => Free[G, A]): Kleisli[M, J, A] = Kleisli { j =>
       |    syncM.handleErrorWith(fa.foldMap(interpreter).run(j))(f.andThen(_.foldMap(interpreter).run(j)))
-      |  )
-      |  def forceR[G[_], J, A, B](interpreter: G ~> Kleisli[M, J, *])(fa: Free[G, A])(fb: Free[G, B]): Kleisli[M, J, B] = Kleisli (j =>
+      |  }
+      |  def forceR[G[_], J, A, B](interpreter: G ~> Kleisli[M, J, *])(fa: Free[G, A])(fb: Free[G, B]): Kleisli[M, J, B] = Kleisli { j =>
       |    syncM.forceR(fa.foldMap(interpreter).run(j))(fb.foldMap(interpreter).run(j))
-      |  )
-      |  def uncancelable[G[_], J, A](interpreter: G ~> Kleisli[M, J, *], capture: Poll[M] => Poll[Free[G, *]])(body: Poll[Free[G, *]] => Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
+      |  }
+      |  def uncancelable[G[_], J, A](interpreter: G ~> Kleisli[M, J, *], capture: Poll[M] => Poll[Free[G, *]])(body: Poll[Free[G, *]] => Free[G, A]): Kleisli[M, J, A] = Kleisli { j =>
       |    syncM.uncancelable(body.compose(capture).andThen(_.foldMap(interpreter).run(j)))
-      |  )
+      |  }
       |  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-      |  def poll[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(mpoll: Any, fa: Free[G, A]): Kleisli[M, J, A] = Kleisli(j =>
+      |  def poll[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(mpoll: Any, fa: Free[G, A]): Kleisli[M, J, A] = Kleisli { j =>
       |    mpoll.asInstanceOf[Poll[M]].apply(fa.foldMap(interpreter).run(j))
-      |  )
-      |  def onCancel[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(fa: Free[G, A], fin: Free[G, Unit]): Kleisli[M, J, A] = Kleisli (j =>
+      |  }
+      |  def onCancel[G[_], J, A](interpreter: G ~> Kleisli[M, J, *])(fa: Free[G, A], fin: Free[G, Unit]): Kleisli[M, J, A] = Kleisli { j =>
       |    syncM.onCancel(fa.foldMap(interpreter).run(j), fin.foldMap(interpreter).run(j))
-      |  )
-      |  def embed[J, A](e: Embedded[A]): Kleisli[M, J, A] =
-      |    e match {
-      |      ${managed.map(_.getSimpleName).map(n =>
+      |  }
+      |  def embed[J, A](e: Embedded[A]): Kleisli[M, J, A] = e match {
+      |    ${managed.map(_.getSimpleName).map(n =>
         s"case Embedded.${n}(j, fa) => Kleisli(_ => fa.foldMap(${n}Interpreter).run(j))",
       ).mkString("\n      ")}
-      |    }
+      |  }
       |
       |  // Interpreters
       |${managed.map(ClassTag(_)).map(interp(_)).mkString("\n")}
@@ -509,36 +537,34 @@ class FreeGen2(managed: List[Class[_]], pkg: String, renames: Map[Class[_], Stri
       |}
       |""".trim.stripMargin
 
-  def gen(base: File): Seq[java.io.File] = {
-    import java.io._
+  def gen(base: File): Seq[File] = {
     log.info("Generating free algebras into " + base)
     val fs = managed.map { c =>
       base.mkdirs
       val mod = module(ClassTag(c))
-      val file = new File(base, s"${c.getSimpleName.toLowerCase}.scala")
-      val pw = new PrintWriter(file)
-      pw.println(mod)
-      pw.close()
+      val file = printToFile(base, s"${c.getSimpleName.toLowerCase}.scala", mod)
       log.info(s"${c.getName} -> ${file.getName}")
       file
     }
     val e = {
-      val file = new File(base, s"embedded.scala")
-      val pw = new PrintWriter(file)
-      pw.println(embeds)
-      pw.close()
+      val file = printToFile(base, "embedded.scala", embeds)
       log.info(s"... -> ${file.getName}")
       file
     }
     val ki = {
-      val file = new File(base, s"kleisliinterpreter.scala")
-      val pw = new PrintWriter(file)
-      pw.println(kleisliInterpreter)
-      pw.close()
+      val file = printToFile(base, "kleisliinterpreter.scala", kleisliInterpreter)
       log.info(s"... -> ${file.getName}")
       file
     }
     ki :: e :: fs
+  }
+
+  private def printToFile(base: File, name: String, data: String) = {
+    val file = new File(base, name)
+    val pw = new java.io.PrintWriter(file)
+    pw.println(data)
+    pw.close()
+    file
   }
 
 }
