@@ -18,11 +18,16 @@ import java.util.Properties
 import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicInteger
 
+@SuppressWarnings(Array("org.wartremover.warts.Null"))
 class StubConnection(valid: Int => Boolean) extends Connection {
-  private var autoCommit = true
   private var closed = false
-  private var networkTimeout = 0
+
+  private var autoCommit = true
   private var readOnly = false
+  private var networkTimeout = 0
+  private var catalog: String = _
+  private var schema: String = _
+  private var transactionIsolation = 0
 
   private val _numCommits = new AtomicInteger(0)
   def numCommits = _numCommits.get()
@@ -47,14 +52,16 @@ class StubConnection(valid: Int => Boolean) extends Connection {
   override def isReadOnly: Boolean = readOnly
   override def setReadOnly(readOnly: Boolean): Unit = this.readOnly = readOnly
 
-  override def getCatalog: String = ???
-  override def setCatalog(catalog: String): Unit = ???
-  override def getTransactionIsolation: Int = ???
-  override def setTransactionIsolation(level: Int): Unit = ???
+  override def getCatalog: String = catalog
+  override def setCatalog(catalog: String): Unit = this.catalog = catalog
+  override def getSchema: String = schema
+  override def setSchema(schema: String): Unit = this.schema = schema
+  override def getTransactionIsolation: Int = transactionIsolation
+  override def setTransactionIsolation(level: Int): Unit = this.transactionIsolation = level
 
   override def getMetaData: DatabaseMetaData = ???
   override def getWarnings: SQLWarning = ???
-  override def clearWarnings(): Unit = ???
+  override def clearWarnings(): Unit = ()
 
   override def nativeSQL(sql: String): String = ???
 
@@ -113,8 +120,6 @@ class StubConnection(valid: Int => Boolean) extends Connection {
 
   override def createArrayOf(typeName: String, elements: Array[AnyRef]): sql.Array = ???
   override def createStruct(typeName: String, attributes: Array[AnyRef]): Struct = ???
-  override def getSchema: String = ???
-  override def setSchema(schema: String): Unit = ???
   override def abort(executor: Executor): Unit = ???
   override def unwrap[T](iface: Class[T]): T = ???
   override def isWrapperFor(iface: Class[?]): Boolean = ???
