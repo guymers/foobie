@@ -619,6 +619,3 @@ trait ToPostgresApplicativeErrorOps {
 }
 
 object applicativeerror extends ToPostgresApplicativeErrorOps
-
-@deprecated("use `applicativeerror`", "0.14.2")
-object monaderror extends ToPostgresApplicativeErrorOps
