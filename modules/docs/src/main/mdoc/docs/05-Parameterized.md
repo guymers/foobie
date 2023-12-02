@@ -124,7 +124,7 @@ def populationIn(range: Range, codes: NonEmptyList[String]) = {
     from country
     where population > ${range.min}
     and   population < ${range.max}
-    and   """ ++ Fragments.in(fr"code", codes) // code IN (...)
+    and   code IN (${Fragments.commas(codes)})"""
   q.query[Country]
 }
 ```
