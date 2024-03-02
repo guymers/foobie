@@ -36,16 +36,16 @@ final class SqlInterpolator(private val sc: StringContext) extends AnyVal {
    * concatenate fragments because you don't need to think about intervening
    * whitespace. If you do not want this behavior, use `fr0`.
    */
-  def fr(a: SingleFragment[?]*)(implicit pos: Pos) = mkFragment(a.toList, true, pos)
+  def fr(a: SingleFragment[?]*)(implicit pos: Pos) = mkFragment(a.toList, token = true, pos)
 
   /** Alternative name for the `fr0` interpolator. */
-  def sql(a: SingleFragment[?]*)(implicit pos: Pos) = mkFragment(a.toList, false, pos)
+  def sql(a: SingleFragment[?]*)(implicit pos: Pos) = mkFragment(a.toList, token = false, pos)
 
   /**
    * Interpolator for a statement fragment that can contain interpolated values.
    * Unlike `fr` no attempt is made to be helpful with respect to whitespace.
    */
-  def fr0(a: SingleFragment[?]*)(implicit pos: Pos) = mkFragment(a.toList, false, pos)
+  def fr0(a: SingleFragment[?]*)(implicit pos: Pos) = mkFragment(a.toList, token = false, pos)
 
 }
 
