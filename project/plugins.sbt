@@ -1,5 +1,5 @@
 addSbtPlugin("com.github.sbt" % "sbt-ghpages" % "0.8.0")
-addSbtPlugin("com.github.sbt" % "sbt-site-paradox" % "1.5.0")
+addSbtPlugin("com.github.sbt" % "sbt-site-paradox" % "1.6.0")
 addSbtPlugin("org.scalameta" % "sbt-mdoc" % "2.5.2")
 
 addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.4.7")
