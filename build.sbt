@@ -2,26 +2,26 @@
 import FreeGen2.*
 
 val catsVersion = "2.10.0"
-val catsEffectVersion = "3.5.2"
-val circeVersion = "0.14.6"
-val fs2Version = "3.9.3"
+val catsEffectVersion = "3.5.4"
+val circeVersion = "0.14.7"
+val fs2Version = "3.10.2"
 val h2Version = "2.2.224"
 val hikariVersion = "5.1.0"
 val magnoliaVersion = "1.1.3"
-val munitVersion = "1.0.0-M10"
-val mysqlVersion = "8.2.0"
-val openTelemetryVersion = "1.32.0"
-val postgisVersion = "2021.1.0"
-val postgresVersion = "42.6.0"
-val scalatestVersion = "3.2.17"
+val munitVersion = "1.0.0-RC1"
+val mysqlVersion = "8.4.0"
+val openTelemetryVersion = "1.38.0"
+val postgisVersion = "2023.1.0"
+val postgresVersion = "42.7.3"
+val scalatestVersion = "3.2.18"
 val shapelessVersion = "2.3.10"
-val slf4jVersion = "2.0.9"
-val weaverVersion = "0.8.3"
-val zioInteropCats = "23.1.0.0"
-val zioVersion = "2.0.19"
+val slf4jVersion = "2.0.13"
+val weaverVersion = "0.8.4"
+val zioInteropCats = "23.1.0.2"
+val zioVersion = "2.1.1"
 
-val Scala213 = "2.13.12"
-val Scala3 = "3.3.1"
+val Scala213 = "2.13.14"
+val Scala3 = "3.3.3"
 
 inThisBuild(Seq(
   organization := "io.github.guymers",
@@ -99,7 +99,7 @@ lazy val commonSettings = Seq(
   ),
 
   libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-    case Some((2, _)) => Seq(compilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full))
+    case Some((2, _)) => Seq(compilerPlugin("org.typelevel" % "kind-projector" % "0.13.3" cross CrossVersion.full))
     case _ => Seq.empty
   }),
 

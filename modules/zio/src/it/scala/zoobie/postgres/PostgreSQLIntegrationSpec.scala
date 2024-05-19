@@ -123,7 +123,7 @@ object PostgreSQLIntegrationSpec extends ZIOSpecDefault {
   private lazy val config = ConnectionPoolConfig(
     name = "zoobie-postgres-it",
     size = PoolSize,
-    queueSize = 1_000,
+    queueSize = 5_000,
     maxConnectionLifetime = 30.seconds,
     validationTimeout = 2.seconds,
   )
