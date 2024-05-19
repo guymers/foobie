@@ -114,5 +114,4 @@ object Transactor {
   def fromPoolTransactional(pool: ConnectionPool): Transactor = {
     fromPool(pool, strategies.transactional)
   }
-
 }
