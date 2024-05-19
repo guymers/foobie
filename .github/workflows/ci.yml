@@ -33,17 +33,17 @@ jobs:
           extraKey: v1
 
       - name: Lint
-        run: sbt --client ++${{ matrix.scala }} scalafmtCheckAll
+        run: sbt ++${{ matrix.scala }} scalafmtCheckAll
 
       - name: Compile
-        run: sbt --client ++${{ matrix.scala }} Test/compile
+        run: sbt ++${{ matrix.scala }} Test/compile
 
       - name: Start Containers
         run: docker-compose up -d
 
       - name: Test
-        run: sbt --client ++${{ matrix.scala }} modules/test
+        run: sbt ++${{ matrix.scala }} modules/test
 
       - name: Check Doc Site
         if: ${{ startsWith(matrix.scala, '2.13.') }}
-        run: sbt --client ++${{ matrix.scala }} docs/makeSite
+        run: sbt ++${{ matrix.scala }} docs/makeSite
