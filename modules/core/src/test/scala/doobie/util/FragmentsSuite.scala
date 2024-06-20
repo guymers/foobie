@@ -10,9 +10,6 @@ import doobie.syntax.string.*
 import doobie.util.meta.Meta
 import zio.test.assertTrue
 
-import scala.annotation.nowarn
-
-@nowarn("cat=deprecation")
 object FragmentsSuite extends H2DatabaseSpec {
   import doobie.util.Write.Auto.*
   import doobie.util.fragments.*
@@ -28,32 +25,11 @@ object FragmentsSuite extends H2DatabaseSpec {
     test("any") {
       assertTrue(any(nel).query[Unit].sql == "ANY(?) ")
     },
-    test("any iterable") {
-      assertTrue(anyIterable(nel.toList).query[Unit].sql == "ANY(?) ")
-    },
     test("commas for one column") {
       assertTrue(commas(NonEmptyList.of(1, 2)).query[Unit].sql == "?, ? ")
     },
     test("commas for two columns") {
       assertTrue(commas(NonEmptyList.of((1, true), (2, false))).query[Unit].sql == "(?,?), (?,?) ")
-    },
-    test("values for two columns") {
-      assertTrue(values(NonEmptyList.of((1, true), (2, false))).query[Unit].sql == "VALUES (?,?), (?,?) ")
-    },
-    test("values for one column") {
-      assertTrue(values(nel).query[Unit].sql == "VALUES (?), (?), (?) ")
-    },
-    test("values for two columns") {
-      assertTrue(values(NonEmptyList.of((1, true), (2, false))).query[Unit].sql == "VALUES (?,?), (?,?) ")
-    },
-    test("in for one column") {
-      assertTrue(in(fr"foo", nel).query[Unit].sql == "foo IN (?, ?, ?) ")
-    },
-    test("in for two columns") {
-      assertTrue(in(fr"foo", NonEmptyList.of((1, true), (2, false))).query[Unit].sql == "foo IN ((?,?), (?,?)) ")
-    },
-    test("notIn") {
-      assertTrue(notIn(fr"foo", nel).query[Unit].sql == "foo NOT IN (?, ?, ?) ")
     },
     suite("and")(
       test("many") {
@@ -77,7 +53,6 @@ object FragmentsSuite extends H2DatabaseSpec {
         assertTrue(andOpt(None, None).query[Unit].sql == "")
       },
     ),
-    // TODO
     test("or (many)") {
       assertTrue(or(fs*).query[Unit].sql == "(? ) OR (? ) OR (? ) ")
     },
