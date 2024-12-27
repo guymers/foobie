@@ -21,9 +21,9 @@ object invariant {
   sealed abstract class InvariantViolation(msg: String) extends Exception(msg)
 
   sealed abstract class UnexpectedCursorPosition(msg: String) extends InvariantViolation(msg)
-  case object UnexpectedEnd
+  final case class UnexpectedEnd()
     extends UnexpectedCursorPosition("ResultSet exhausted; more rows expected.")
-  case object UnexpectedContinuation
+  final case class UnexpectedContinuation()
     extends UnexpectedCursorPosition("Expected ResultSet exhaustion, but more rows were available.")
 
   /** Unexpected ordinal value for an enumerated type. */
@@ -63,9 +63,9 @@ object invariant {
 
   /** Array violations. Not terribly illuminating at this point. */
   sealed abstract class ArrayStructureViolation(msg: String) extends InvariantViolation(msg)
-  case object NullableCellRead
+  final case class NullableCellRead()
     extends ArrayStructureViolation("SQL `NULL` appears in an array cell that was asserted to be non-null.")
-  case object NullableCellUpdate
+  final case class NullableCellUpdate()
     extends ArrayStructureViolation("Scala `null` value appears in an array cell that was asserted to be non-null.")
 
   /** Invalid JAVA_OBJECT mapping. */

@@ -36,7 +36,7 @@ trait Instances {
     )
 
   @SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.Throw"))
-  private def checkNull[B >: Null](a: Array[B], e: Exception): Array[B] =
+  private def checkNull[B >: Null](a: Array[B], e: => Exception): Array[B] =
     if (a == null) null else if (a.exists(_ == null)) throw e else a
 
   @SuppressWarnings(Array("org.wartremover.warts.Null"))
@@ -45,7 +45,7 @@ trait Instances {
   ): (Meta[Array[A]], Meta[Array[Option[A]]]) = {
     val raw = Meta.Advanced.array[A](elementType, "ARRAY")
     (
-      raw.timap(checkNull(_, NullableCellRead))(checkNull(_, NullableCellUpdate)),
+      raw.timap(checkNull(_, NullableCellRead()))(checkNull(_, NullableCellUpdate())),
       raw.timap[Array[Option[A]]](_.map(Option(_)))(_.map(_.orNull).toArray),
     )
   }
