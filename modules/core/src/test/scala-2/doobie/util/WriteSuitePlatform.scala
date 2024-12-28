@@ -10,8 +10,7 @@ trait WriteSuitePlatform { self: WriteSuite.type =>
 
   protected def platformTests = List(
     test("exist for AnyVal") {
-      import doobie.util.Write.Auto.*
-
+      implicit val write: Write[X] = Write.derived
       assertTrue(Write[X].length == 1)
     },
   )

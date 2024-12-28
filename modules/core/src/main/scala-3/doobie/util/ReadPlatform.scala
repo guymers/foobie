@@ -31,8 +31,3 @@ class ReadPlatformInstance[A](m: Mirror.ProductOf[A], typeclasses: => List[Read[
     m.fromProduct(Tuple.fromArray(values))
   }
 }
-
-trait ReadAutoPlatform extends ReadPlatform {
-
-  inline implicit def genRead[A](using m: Mirror.ProductOf[A]): Read[A] = derived[A]
-}

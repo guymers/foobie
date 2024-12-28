@@ -14,9 +14,8 @@ import doobie.HPS
 import doobie.free.connection.ConnectionIO
 import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
-import doobie.util.Read.Auto.*
+import doobie.util.Read
 import doobie.util.Write
-import doobie.util.Write.Auto.*
 import doobie.util.transactor.Transactor
 import cats.*
 import cats.data.*
@@ -62,6 +61,10 @@ Let's set up our Country class and re-run last chapter's query just to review.
 
 ```scala mdoc:silent
 case class Country(code: String, name: String, pop: Int, gnp: Option[Double])
+object Country {
+  implicit val read: Read[Country] = Read.derived
+  implicit val write: Write[Country] = Write.derived
+}
 ```
 
 ```scala mdoc

@@ -12,7 +12,7 @@
 import doobie.free.connection.ConnectionIO
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
-import doobie.util.Read.Auto.*
+import doobie.util.Read
 import doobie.util.transactor.Transactor
 import cats.effect.IO
 import scala.concurrent.ExecutionContext
@@ -24,6 +24,9 @@ val xa = Transactor.fromDriverManager[IO](
 )
 
 case class Country(code: String, name: String, population: Long)
+object Country {
+  implicit val read: Read[Country] = Read.derived
+}
 
 def find(n: String): ConnectionIO[Option[Country]] =
   sql"select code, name, population from country where name = $n".query[Country].option

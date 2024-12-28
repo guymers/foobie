@@ -29,8 +29,3 @@ trait ReadPlatform {
 
   def derived[A]: Read[A] = macro Magnolia.gen[A]
 }
-
-trait ReadAutoPlatform extends ReadPlatform {
-
-  implicit def genRead[A]: Read[A] = macro Magnolia.gen[A]
-}

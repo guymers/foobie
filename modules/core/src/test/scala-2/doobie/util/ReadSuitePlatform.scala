@@ -10,8 +10,7 @@ trait ReadSuitePlatform { self: ReadSuite.type =>
 
   protected def platformTests = List(
     test("Read should exist for AnyVal") {
-      import doobie.util.Read.Auto.*
-
+      implicit val read: Read[X] = Read.derived
       assertTrue(Read[X].length == 1)
     },
   )

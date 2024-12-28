@@ -11,8 +11,8 @@ import doobie.free.connection.ConnectionIO
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
-import doobie.util.Read.Auto.*
-import doobie.util.Write.Auto.*
+import doobie.util.Read
+import doobie.util.Write
 import doobie.util.transactor.Transactor
 import doobie.util.update.Update
 import doobie.util.update.Update0
@@ -92,6 +92,10 @@ And read them back.
 
 ```scala mdoc:silent
 case class Person(id: Long, name: String, age: Option[Short])
+object Person {
+  implicit val read: Read[Person] = Read.derived
+  implicit val write: Write[Person] = Write.derived
+}
 ```
 
 ```scala mdoc

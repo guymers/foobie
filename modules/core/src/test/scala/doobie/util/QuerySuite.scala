@@ -11,7 +11,6 @@ import doobie.util.query.Query0
 import zio.test.assertTrue
 
 object QuerySuite extends H2DatabaseSpec {
-  import doobie.util.Read.Auto.*
 
   private val q = Query[String, Int]("select 123 where ? = 'foo'", None)
   private val pairQuery = Query[String, (String, Int)]("select 'xxx', 123 where ? = 'foo'", None)

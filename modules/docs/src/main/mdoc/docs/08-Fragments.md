@@ -10,7 +10,8 @@ Same as last chapter, so if you're still set up you can skip this section. Other
 import doobie.Fragments
 import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
-import doobie.util.Read.Auto.*
+import doobie.util.Read
+import doobie.util.Write
 import doobie.util.fragment.Fragment
 import doobie.util.transactor.Transactor
 import cats.*
@@ -117,6 +118,10 @@ Here we define a query with a three optional filter conditions.
 
 // Country Info
 case class Info(name: String, code: String, population: Int)
+object Info {
+  implicit val read: Read[Info] = Read.derived
+  implicit val write: Write[Info] = Write.derived
+}
 
 // Construct a Query0 with some optional filter conditions and a configurable LIMIT.
 def select(name: Option[String], pop: Option[Int], codes: List[String], limit: Long) = {

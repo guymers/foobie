@@ -5,6 +5,8 @@
 package example
 
 import doobie.syntax.string.*
+import doobie.util.Get
+import doobie.util.Put
 import doobie.util.Read
 import doobie.util.Write
 import doobie.util.meta.Meta
@@ -13,10 +15,12 @@ import doobie.util.query.Query0
 import java.sql.Date
 
 object CustomReadWrite {
-  import Read.Auto.*
-  import Write.Auto.*
 
   final case class PosixTime(time: Long)
+  object PosixTime {
+    implicit val get: Get[PosixTime] = Get[Long].map(apply(_))
+    implicit val put: Put[PosixTime] = Put[Long].contramap(_.time)
+  }
 
   // Create our base Meta by invariant mapping an existing one.
   implicit val LongPosixTimeScalaType: Meta[PosixTime] =

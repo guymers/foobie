@@ -13,7 +13,7 @@ import doobie.syntax.connectionio.*
 import doobie.syntax.stream.*
 import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
-import doobie.util.Read.Auto.*
+import doobie.util.Read
 import doobie.util.transactor.Transactor
 import cats.*
 import cats.data.*
@@ -139,6 +139,9 @@ Mapping rows to a case class.
 
 ```scala mdoc:silent
 case class Country(code: String, name: String, pop: Int, gnp: Option[Double])
+object Country {
+  implicit val read: Read[Country] = Read.derived
+}
 ```
 
 ```scala mdoc
@@ -154,7 +157,13 @@ You can also nest case classes, and/or tuples arbitrarily as long as the eventua
 
 ```scala mdoc:silent
 case class Code(code: String)
+object Code {
+  implicit val read: Read[Code] = Read.derived
+}
 case class Country2(name: String, pop: Int, gnp: Option[Double])
+object Country2 {
+  implicit val read: Read[Country2] = Read.derived
+}
 ```
 
 ```scala mdoc

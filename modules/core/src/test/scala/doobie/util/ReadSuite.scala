@@ -17,6 +17,9 @@ object ReadSuite extends H2DatabaseSpec with ReadSuitePlatform {
   case class X(x: Int) extends AnyVal
 
   case class LenStr1(n: Int, s: String)
+  object LenStr1 {
+    implicit val read: Read[LenStr1] = Read.derived
+  }
 
   case class LenStr2(n: Int, s: String)
   object LenStr2 {
@@ -44,6 +47,9 @@ object ReadSuite extends H2DatabaseSpec with ReadSuitePlatform {
   }
 
   case class Woozle(a: (String, Int), b: (Int, String), c: Boolean)
+  object Woozle {
+    implicit val read: Read[Woozle] = Read.derived
+  }
 
   override val spec = suite("Read")(
     test("tuples derive") {
@@ -61,8 +67,6 @@ object ReadSuite extends H2DatabaseSpec with ReadSuitePlatform {
       assertTrue(Read.derived[LenStr1].length == 2)
     },
     test("exist for Unit") {
-      import doobie.util.Read.Auto.*
-
       assertTrue(Read[Unit].length == 0) &&
       assertTrue(Read[(Int, Unit)].length == 1)
     },
@@ -75,30 +79,22 @@ object ReadSuite extends H2DatabaseSpec with ReadSuitePlatform {
       assertCompletes
     },
     test("exist for option of Unit") {
-      import doobie.util.Read.Auto.*
-
       assertTrue(Read[Option[Unit]].length == 0) &&
       assertTrue(Read[Option[(Int, Unit)]].length == 1)
     },
     test("select multi-column instance by default") {
-      import doobie.util.Read.Auto.*
-
       assertTrue(Read[LenStr1].length == 2)
     },
     test("select 1-column instance when available") {
       assertTrue(Read[LenStr2].length == 1)
     },
     test("exist for some fancy types") {
-      import doobie.util.Read.Auto.*
-
       val _ = Read[Woozle]
       val _ = Read[(Woozle, String)]
       val _ = Read[(Int, (Woozle, Woozle, String))]
       assertCompletes
     },
     test("exist for option of some fancy types") {
-      import doobie.util.Read.Auto.*
-
       val _ = Read[Option[Woozle]]
       val _ = Read[Option[(Woozle, String)]]
       val _ = Read[Option[(Int, (Woozle, Woozle, String))]]

@@ -11,7 +11,8 @@ import doobie.free.connection.ConnectionIO
 import doobie.postgres.instances.array.*
 import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
-import doobie.util.Read.Auto.*
+import doobie.util.Read
+import doobie.util.Write
 import doobie.util.transactor.Transactor
 import cats.*
 import cats.data.*
@@ -64,6 +65,10 @@ val create =
 
 ```scala mdoc:silent
 case class Person(id: Long, name: String, pets: List[String])
+object Person {
+  implicit val read: Read[Person] = Read.derived
+  implicit val write: Write[Person] = Write.derived
+}
 
 def insert(name: String, pets: List[String]): ConnectionIO[Person] = {
   sql"insert into person (name, pets) values ($name, $pets)"

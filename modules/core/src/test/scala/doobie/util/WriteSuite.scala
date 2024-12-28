@@ -22,6 +22,9 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
   case class X(x: Int) extends AnyVal
 
   case class LenStr1(n: Int, s: String)
+  object LenStr1 {
+    implicit val write: Write[LenStr1] = Write.derived
+  }
 
   case class LenStr2(n: Int, s: String)
   object LenStr2 {
@@ -34,6 +37,9 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
   }
 
   case class Woozle(a: (String, Int), b: (Int, String), c: Boolean)
+  object Woozle {
+    implicit val write: Write[Woozle] = Write.derived
+  }
 
   override val spec = suite("Write")(
     test("tuples derive") {
@@ -47,8 +53,6 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
       assertTrue(Write.derived[LenStr1].length == 2)
     },
     test("deriving instances should work correctly from class scope") {
-      import doobie.util.Write.Auto.*
-
       class Foo[A: Write, B: Write] {
         locally {
           val _ = Write[(A, B)]
@@ -57,8 +61,6 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
       assertCompletes
     },
     test("exist for Unit") {
-      import doobie.util.Write.Auto.*
-
       val _ = Write[Unit]
       assertTrue(Write[(Int, Unit)].length == 1)
     },
@@ -70,40 +72,27 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
       val _ = Write[Option[(Int, Option[(Int, String)])]]
       assertCompletes
     },
-    test("auto derives nested types") {
-      import doobie.util.Write.Auto.*
-
-      assertTrue(Write[Widget].length == 3)
-    },
-    test("does not auto derive nested types without an import") {
+    test("does not auto derive") {
       val _ = illTyped("Write.derived[Widget]")
       assertCompletes
     },
     test("exist for option of Unit") {
-      import doobie.util.Write.Auto.*
-
       assertTrue(Write[Option[Unit]].length == 0) &&
       assertTrue(Write[Option[(Int, Unit)]].length == 1)
     },
     test("select multi-column instance by default") {
-      import doobie.util.Write.Auto.*
-
       assertTrue(Write[LenStr1].length == 2)
     },
     test("select 1-column instance when available") {
       assertTrue(Write[LenStr2].length == 1)
     },
     test("exist for some fancy types") {
-      import doobie.util.Write.Auto.*
-
       val _ = Write[Woozle]
       val _ = Write[(Woozle, String)]
       val _ = Write[(Int, (Woozle, Woozle, String))]
       assertCompletes
     },
     test("exist for option of some fancy types") {
-      import doobie.util.Write.Auto.*
-
       val _ = Write[Option[Woozle]]
       val _ = Write[Option[(Woozle, String)]]
       val _ = Write[Option[(Int, (Woozle, Woozle, String))]]
@@ -124,11 +113,6 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
           t2 <- insert(Test(None, Some("str")))(Test.write)
           t3 <- insert(Test(Some(3), Some("str")))(Test.write)
 
-          tAuto <- {
-            import doobie.util.Write.Auto.*
-            insert(Test(Some(3), Some("str")))
-          }
-
           tup1 <- insert[(Option[Int], Option[String])]((None, None))(Test.writeTuple)
           tup2 <- insert[(Option[Int], Option[String])]((None, Some("str")))(Test.writeTuple)
           tup3 <- insert[(Option[Int], Option[String])]((Some(3), Some("str")))(Test.writeTuple)
@@ -136,7 +120,6 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
           assertTrue(t1 == Test(None, None)) &&
           assertTrue(t2 == Test(None, Some("str"))) &&
           assertTrue(t3 == Test(Some(3), Some("str"))) &&
-          assertTrue(tAuto == Test(Some(3), Some("str"))) &&
           assertTrue(tup1 == Test(None, None)) &&
           assertTrue(tup2 == Test(None, Some("str"))) &&
           assertTrue(tup3 == Test(Some(3), Some("str")))
@@ -159,11 +142,6 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
           t2 <- insert(Test(None, Some("str")))(Test.write)
           t3 <- insert(Test(Some(3), Some("str")))(Test.write)
 
-          tAuto <- {
-            import doobie.util.Write.Auto.*
-            insert(Test(Some(3), Some("str")))
-          }
-
           tup1 <- insert[(Option[Int], Option[String])]((None, None))(Test.writeTuple)
           tup2 <- insert[(Option[Int], Option[String])]((None, Some("str")))(Test.writeTuple)
           tup3 <- insert[(Option[Int], Option[String])]((Some(3), Some("str")))(Test.writeTuple)
@@ -171,7 +149,6 @@ object WriteSuite extends H2DatabaseSpec with WriteSuitePlatform {
           assertTrue(t1 == Test(None, None)) &&
           assertTrue(t2 == Test(None, Some("str"))) &&
           assertTrue(t3 == Test(Some(3), Some("str"))) &&
-          assertTrue(tAuto == Test(Some(3), Some("str"))) &&
           assertTrue(tup1 == Test(None, None)) &&
           assertTrue(tup2 == Test(None, Some("str"))) &&
           assertTrue(tup3 == Test(Some(3), Some("str")))

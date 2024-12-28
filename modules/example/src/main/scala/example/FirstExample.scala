@@ -14,6 +14,8 @@ import doobie.FC
 import doobie.free.connection.ConnectionIO
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
+import doobie.util.Read
+import doobie.util.Write
 import doobie.util.query.Query0
 import doobie.util.transactor.Transactor
 import doobie.util.update.Update
@@ -22,14 +24,19 @@ import fs2.Stream
 
 // Example lifted from slick
 object FirstExample extends IOApp.Simple {
-  import doobie.util.Read.Auto.*
-  import doobie.util.Write.Auto.*
 
   // Our data model
   final case class Supplier(id: Int, name: String, street: String, city: String, state: String, zip: String)
+  object Supplier {
+    implicit val read: Read[Supplier] = Read.derived
+    implicit val write: Write[Supplier] = Write.derived
+  }
   final case class Coffee(name: String, supId: Int, price: Double, sales: Int, total: Int)
   object Coffee {
     implicit val show: Show[Coffee] = Show.fromToString
+
+    implicit val read: Read[Coffee] = Read.derived
+    implicit val write: Write[Coffee] = Write.derived
   }
 
   // Some suppliers

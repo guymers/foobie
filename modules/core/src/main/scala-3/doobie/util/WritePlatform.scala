@@ -56,8 +56,3 @@ class WritePlatformInstance[A](typeclasses: => List[Write[?]]) extends Write[A] 
     }
   }
 }
-
-trait WriteAutoPlatform extends WritePlatform {
-
-  inline implicit def genWrite[A](using m: Mirror.ProductOf[A]): Write[A] = derived[A]
-}
