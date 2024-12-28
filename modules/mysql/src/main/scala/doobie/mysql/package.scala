@@ -1,6 +1,3 @@
 package doobie
 
-package object mysql {
-
-  object implicits
-}
+package object mysql {}

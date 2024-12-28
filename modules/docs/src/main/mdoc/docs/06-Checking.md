@@ -7,10 +7,10 @@ In this chapter we learn how to use YOLO mode to validate queries against the da
 Our setup here is the same as last chapter, so if you're still running from last chapter you can skip this section. Otherwise: imports, `Transactor`, and YOLO mode.
 
 ```scala mdoc:silent
-import doobie.*
-import doobie.implicits.*
+import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
 import doobie.util.Read.Auto.*
+import doobie.util.transactor.Transactor
 import cats.*
 import cats.data.*
 import cats.effect.*

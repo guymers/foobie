@@ -7,11 +7,17 @@ In this chapter we learn how to construct parameterized queries, and introduce t
 Same as last chapter, so if you're still set up you can skip this section. Otherwise let's set up a `Transactor` and YOLO mode.
 
 ```scala mdoc:silent
-import doobie.*
-import doobie.implicits.*
+import doobie.FPS
+import doobie.Fragments
+import doobie.HC
+import doobie.HPS
+import doobie.free.connection.ConnectionIO
+import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
 import doobie.util.Read.Auto.*
+import doobie.util.Write
 import doobie.util.Write.Auto.*
+import doobie.util.transactor.Transactor
 import cats.*
 import cats.data.*
 import cats.effect.*

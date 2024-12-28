@@ -7,8 +7,11 @@ In this chapter we start from the beginning. First we write a program that conne
 Before we can use **doobie** we need to import some symbols. We will use package imports here as a convenience; this will give us the most commonly-used symbols when working with the high-level API.
 
 ```scala mdoc:silent
-import doobie.*
-import doobie.implicits.*
+import doobie.free.KleisliInterpreter
+import doobie.free.connection.ConnectionIO
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
+import doobie.util.transactor.Transactor
 ```
 
 Let's also bring in Cats.

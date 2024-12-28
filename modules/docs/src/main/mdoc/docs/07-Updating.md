@@ -7,11 +7,15 @@ In this chapter we examine operations that modify data in the database, and ways
 Again we set up a transactor and pull in YOLO mode, but this time we're not using the world database.
 
 ```scala mdoc:silent
-import doobie.*
-import doobie.implicits.*
+import doobie.free.connection.ConnectionIO
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
 import doobie.util.Read.Auto.*
 import doobie.util.Write.Auto.*
+import doobie.util.transactor.Transactor
+import doobie.util.update.Update
+import doobie.util.update.Update0
 import cats.*
 import cats.data.*
 import cats.effect.*

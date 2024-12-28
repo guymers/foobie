@@ -11,7 +11,7 @@ import doobie.FPS
 import doobie.HC
 import doobie.HPS
 import doobie.free.connection.ConnectionIO
-import doobie.postgres.implicits.*
+import doobie.postgres.syntax.fragment.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 import doobie.util.Write

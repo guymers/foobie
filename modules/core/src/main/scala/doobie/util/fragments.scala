@@ -11,6 +11,7 @@ import cats.syntax.alternative.*
 import cats.syntax.foldable.*
 import cats.syntax.reducible.*
 import doobie.syntax.string.*
+import doobie.util.fragment.Fragment
 
 import scala.reflect.ClassTag
 

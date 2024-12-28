@@ -280,24 +280,11 @@ lazy val postgres = module("postgres")
       classOf[org.postgresql.PGConnection]
     ),
     freeGen2Renames ++= Map(
-      classOf[org.postgresql.copy.CopyDual]     -> "PGCopyDual",
-      classOf[org.postgresql.copy.CopyIn]       -> "PGCopyIn",
-      classOf[org.postgresql.copy.CopyManager]  -> "PGCopyManager",
-      classOf[org.postgresql.copy.CopyOut]      -> "PGCopyOut",
+      classOf[org.postgresql.copy.CopyDual] -> "PGCopyDual",
+      classOf[org.postgresql.copy.CopyIn] -> "PGCopyIn",
+      classOf[org.postgresql.copy.CopyManager] -> "PGCopyManager",
+      classOf[org.postgresql.copy.CopyOut] -> "PGCopyOut",
     ),
-    initialCommands := """
-      import cats._, cats.data._, cats.implicits._, cats.effect._
-      import doobie._, doobie.implicits._
-      import doobie.postgres._, doobie.postgres.implicits._
-      implicit val cs = IO.contextShift(scala.concurrent.ExecutionContext.global)
-      val xa = Transactor.fromDriverManager[IO]("org.postgresql.Driver", "jdbc:postgresql:world", "postgres", "password")
-      val yolo = xa.yolo
-      import yolo._
-      import org.postgis._
-      import org.postgresql.util._
-      import org.postgresql.geometric._
-    """,
-    consoleQuick / initialCommands := "",
   )
   .dependsOn(core % "compile->compile;test->test", zio % "test->compile")
 

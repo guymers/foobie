@@ -4,7 +4,7 @@
 
 package example
 
-import doobie.syntax.all.*
+import doobie.syntax.string.*
 import doobie.util.Read
 import doobie.util.Write
 import doobie.util.meta.Meta

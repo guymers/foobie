@@ -7,10 +7,14 @@ In this chapter we will write some programs to read from the database, mapping r
 First let's get our imports out of the way and set up a `Transactor` as we did before. You can skip this step if you still have your REPL running from last chapter.
 
 ```scala mdoc:silent
-import doobie.*
-import doobie.implicits.*
+import doobie.HC
+import doobie.free.preparedstatement.PreparedStatementIO
+import doobie.syntax.connectionio.*
+import doobie.syntax.stream.*
+import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
 import doobie.util.Read.Auto.*
+import doobie.util.transactor.Transactor
 import cats.*
 import cats.data.*
 import cats.effect.*

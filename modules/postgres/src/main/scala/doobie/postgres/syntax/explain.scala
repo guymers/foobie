@@ -127,3 +127,5 @@ class PostgresExplainUpdateOps[A](self: Update[A]) {
       HC.prepareStatement(s"EXPLAIN ANALYZE $sql")(prepare *> HPS.executeQuery(HRS.build[List, String]))
     }
 }
+
+object explain extends ToPostgresExplainOps

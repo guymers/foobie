@@ -9,8 +9,8 @@ import cats.data.Kleisli
 import cats.data.OptionT
 import cats.effect.kernel.MonadCancelThrow
 import cats.syntax.functor.*
-import doobie.ConnectionIO
 import doobie.HC
+import doobie.free.connection.ConnectionIO
 import doobie.util.transactor.Transactor
 
 import scala.language.implicitConversions

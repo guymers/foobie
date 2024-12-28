@@ -20,16 +20,16 @@ object PGJsonSuite extends PostgresDatabaseSpec {
   override val spec = suite("PGJson")(
     suite("types")(
       {
-        import doobie.postgres.circe.json.implicits.*
+        import doobie.postgres.circe.json.instances.*
         suiteGetPut("json", Gen.const(Json.obj("something" -> Json.fromString("Yellow"))))
       }, {
-        import doobie.postgres.circe.jsonb.implicits.*
+        import doobie.postgres.circe.jsonb.instances.*
         suiteGetPut("jsonb", Gen.const(Json.obj("something" -> Json.fromString("Yellow"))))
       },
     ),
     suite("check")(
       suite("json")({
-        import doobie.postgres.circe.json.implicits.*
+        import doobie.postgres.circe.json.instances.*
         test("read") {
           fr"select '{}' :: json".query[Json].analysis.transact.map { a =>
             assertTrue(a.columnTypeErrors == Nil)
@@ -42,7 +42,7 @@ object PGJsonSuite extends PostgresDatabaseSpec {
         } :: Nil
       }),
       suite("jsonb")({
-        import doobie.postgres.circe.jsonb.implicits.*
+        import doobie.postgres.circe.jsonb.instances.*
         test("read") {
           fr"select '{}' :: jsonb".query[Json].analysis.transact.map { a =>
             assertTrue(a.columnTypeErrors == Nil)
@@ -71,7 +71,7 @@ object PGJsonSuite extends PostgresDatabaseSpec {
 
   private case class Foo(x: Json)
   private object Foo {
-    import doobie.postgres.circe.jsonb.implicits.*
+    import doobie.postgres.circe.jsonb.instances.*
 
     implicit val fooEncoder: Encoder[Foo] = Encoder[Json].contramap(_.x)
     implicit val fooDecoder: Decoder[Foo] = Decoder[Json].map(Foo(_))

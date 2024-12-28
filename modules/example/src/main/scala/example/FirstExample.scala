@@ -8,10 +8,12 @@ package example
 import cats.Show
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.syntax.all.*
+import cats.syntax.functor.*
+import cats.syntax.show.*
 import doobie.FC
 import doobie.free.connection.ConnectionIO
-import doobie.syntax.all.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.query.Query0
 import doobie.util.transactor.Transactor
 import doobie.util.update.Update

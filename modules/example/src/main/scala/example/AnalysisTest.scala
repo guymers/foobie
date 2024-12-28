@@ -4,8 +4,9 @@
 
 package example
 
-import doobie.postgres.implicits.*
-import doobie.syntax.all.*
+import doobie.postgres.instances.array.*
+import doobie.postgres.instances.geometric.*
+import doobie.syntax.string.*
 import doobie.util.query.Query0
 import doobie.util.update.Update
 import doobie.util.update.Update0

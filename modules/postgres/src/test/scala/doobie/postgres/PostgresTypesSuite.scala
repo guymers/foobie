@@ -6,15 +6,21 @@ package doobie.postgres
 
 import cats.syntax.foldable.*
 import cats.syntax.show.*
-import doobie.Fragment
 import doobie.free.connection.ConnectionIO
 import doobie.postgres.enums.*
-import doobie.postgres.implicits.*
+import doobie.postgres.instances.array.*
+import doobie.postgres.instances.enumeration.*
+import doobie.postgres.instances.geometric.*
+import doobie.postgres.instances.inet.*
+import doobie.postgres.instances.interval.*
+import doobie.postgres.instances.map.*
+import doobie.postgres.instances.uuid.*
 import doobie.syntax.string.*
 import doobie.util.Get
 import doobie.util.Put
 import doobie.util.Read
 import doobie.util.Write
+import doobie.util.fragment.Fragment
 import doobie.util.meta.Meta
 import org.postgresql.geometric.*
 import org.postgresql.util.*

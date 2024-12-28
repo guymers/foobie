@@ -7,7 +7,11 @@ package example
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.effect.syntax.monadCancel.*
-import cats.syntax.all.*
+import cats.syntax.applicative.*
+import cats.syntax.apply.*
+import cats.syntax.flatMap.*
+import cats.syntax.functor.*
+import cats.syntax.traverse.*
 import doobie.FC
 import doobie.FPS
 import doobie.FRS

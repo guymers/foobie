@@ -5,10 +5,12 @@ In this chapter we examine a set of combinators that allow us to construct progr
 ### Setting Up
 
 ```scala mdoc:silent
-import doobie.*
-import doobie.implicits.*
+import doobie.free.connection.ConnectionIO
+import doobie.syntax.applicativeerror.*
+import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
 import doobie.util.Read.Auto.*
+import doobie.util.transactor.Transactor
 import cats.*
 import cats.data.*
 import cats.effect.*

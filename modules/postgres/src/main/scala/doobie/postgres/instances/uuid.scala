@@ -2,13 +2,13 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-package doobie
+package doobie.postgres.instances
 
-import com.zaxxer.hikari.HikariDataSource
-import doobie.util.transactor.Transactor
+import doobie.util.meta.Meta
 
-package object hikari {
+import java.util.UUID
 
-  type HikariTransactor[M[_]] = Transactor.Aux[M, HikariDataSource]
+object uuid {
 
+  implicit val UuidType: Meta[UUID] = Meta.Advanced.other[UUID]("uuid")
 }

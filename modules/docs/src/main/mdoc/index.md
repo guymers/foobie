@@ -9,9 +9,11 @@
 **doobie** is a pure functional JDBC layer for Scala and [**Cats**](http://typelevel.org/cats/). It is not an ORM, nor is it a relational algebra; it simply provides a functional way to construct programs (and higher-level libraries) that use JDBC. For common use cases **doobie** provides a minimal but expressive high-level API:
 
 ```scala mdoc:silent
-import doobie.*
-import doobie.implicits.*
+import doobie.free.connection.ConnectionIO
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.Read.Auto.*
+import doobie.util.transactor.Transactor
 import cats.effect.IO
 import scala.concurrent.ExecutionContext
 

@@ -7,9 +7,10 @@ The YOLO-mode query checking feature demonstrated in an earlier chapter is also 
 As with earlier chapters we set up a `Transactor` and YOLO mode. We will also use the `doobie-scalatest` module.
 
 ```scala mdoc:silent
-import doobie.*
-import doobie.implicits.*
+import doobie.syntax.string.*
 import doobie.util.Read.Auto.*
+import doobie.util.transactor.Transactor
+import doobie.util.update.Update0
 import cats.*
 import cats.data.*
 import cats.effect.*

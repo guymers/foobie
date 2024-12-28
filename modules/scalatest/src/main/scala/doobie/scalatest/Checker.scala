@@ -6,12 +6,12 @@ package doobie.scalatest
 
 import cats.effect.IO
 import cats.effect.kernel.Sync
-import doobie.Update
-import doobie.Update0
 import doobie.syntax.connectionio.*
 import doobie.util.query.Query
 import doobie.util.query.Query0
 import doobie.util.testing.*
+import doobie.util.update.Update
+import doobie.util.update.Update0
 import org.scalatest.Assertions
 import org.tpolecat.typename.*
 

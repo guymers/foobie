@@ -7,8 +7,7 @@ import cats.*
 import cats.data.*
 import cats.effect.*
 import cats.implicits.*
-import doobie.*
-import doobie.implicits.*
+import doobie.util.transactor.Transactor
 ```
 
 ### About Transactors
@@ -80,9 +79,10 @@ The `doobie-hikari` add-on provides a `Transactor` implementation backed by a [H
 ```scala mdoc:silent:reset
 import cats.effect.*
 import cats.implicits.*
-import doobie.*
-import doobie.implicits.*
 import doobie.hikari.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
+import doobie.util.ExecutionContexts
 
 object HikariApp extends IOApp {
 
@@ -126,6 +126,7 @@ HikariApp.main(Array())
 If your application exposes an existing `javax.sql.DataSource` you can use it directly by using `Transactor.fromDataSource`. You still need to provide execution contexts.
 
 ```scala mdoc:silent
+import doobie.util.transactor.Transactor
 import javax.sql.DataSource
 
 // Resource yielding a Transactor[IO] wrapping the given `DataSource`

@@ -7,9 +7,10 @@ package example
 
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.syntax.all.*
+import cats.syntax.show.*
 import doobie.postgres.*
-import doobie.syntax.all.*
+import doobie.postgres.free.largeobjectmanager.LargeObjectManagerIO
+import doobie.syntax.connectionio.*
 import doobie.util.transactor.Transactor
 
 import java.io.File

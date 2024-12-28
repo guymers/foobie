@@ -9,8 +9,7 @@ import doobie.util.meta.Meta
 
 import scala.reflect.ClassTag
 
-object array extends ArrayInstances
-trait ArrayInstances {
+object array {
 
   // java.sql.Array::getArray returns an Object that may be of primitive type or of boxed type,
   // depending on the driver, so we can't really abstract over it. Also there's no telling what

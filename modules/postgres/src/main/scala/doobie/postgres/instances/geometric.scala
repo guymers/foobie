@@ -3,8 +3,7 @@ package doobie.postgres.instances
 import doobie.util.meta.Meta
 import org.postgresql.geometric.*
 
-object geometric extends GeometricInstances
-trait GeometricInstances {
+object geometric {
 
   // Geometric Types, minus PGline which is "not fully implemented"
   implicit val PGboxType: Meta[PGbox] = Meta.Advanced.other[PGbox]("box")
