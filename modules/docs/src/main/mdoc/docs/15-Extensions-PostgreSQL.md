@@ -327,10 +327,6 @@ We can run it thus, yielding the number of affected rows.
 (create *> insert(foods)).transact(xa).unsafeRunSync()
 ```
 
-### Fastpath
-
-**doobie** provides an algebra and free monad for constructing programs that use the `FastPathAPI` provided by the PostgreSQL JDBC driver, however this API is mostly deprecated in favor of server-side statements (see above). And in any case I can't find an example of how you would use it from Java so I don't have an example here. But if you're using it let me know and we can figure it out.
-
 ### EXPLAIN/EXPLAIN ANALYZE
 
 The PostgreSQL server can provide an analysis of any query, using the `EXPLAIN` keyword. **doobie** can run `EXPLAIN`
