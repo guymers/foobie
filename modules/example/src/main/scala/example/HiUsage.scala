@@ -12,17 +12,19 @@ import doobie.FC
 import doobie.free.connection.ConnectionIO
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
+import doobie.util.Read
 import doobie.util.transactor.Transactor
 import fs2.Stream
 
 // JDBC program using the high-level API
 object HiUsage extends IOApp.Simple {
-  import doobie.util.Read.Auto.*
 
   // A very simple data type we will read
   final case class CountryCode(code: Option[String])
   object CountryCode {
     implicit val show: Show[CountryCode] = Show.fromToString
+
+    implicit val read: Read[CountryCode] = Read.derived
   }
 
   // Program entry point

@@ -8,7 +8,8 @@ As with earlier chapters we set up a `Transactor` and YOLO mode. We will also us
 
 ```scala mdoc:silent
 import doobie.syntax.string.*
-import doobie.util.Read.Auto.*
+import doobie.util.Read
+import doobie.util.Write
 import doobie.util.transactor.Transactor
 import doobie.util.update.Update0
 import cats.*
@@ -51,6 +52,10 @@ So here are a few queries we would like to check. Note that we can only check va
 
 ```scala mdoc:silent
 case class Country(code: Int, name: String, pop: Int, gnp: Double)
+object Country {
+  implicit val read: Read[Country] = Read.derived
+  implicit val write: Write[Country] = Write.derived
+}
 
 val trivial =
   sql"""

@@ -49,8 +49,3 @@ trait WritePlatform {
 
   def derived[A]: Write[A] = macro Magnolia.gen[A]
 }
-
-trait WriteAutoPlatform extends WritePlatform {
-
-  implicit def genWrite[A]: Write[A] = macro Magnolia.gen[A]
-}

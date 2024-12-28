@@ -12,7 +12,6 @@ import zio.test.assertCompletes
 import zio.test.assertTrue
 
 object FragmentSuite extends H2DatabaseSpec {
-  import doobie.util.Read.Auto.*
 
   private val a = 1
   private val b = "two"

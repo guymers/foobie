@@ -12,9 +12,7 @@ In this chapter we're importing the essentials from Cats and **doobie**, as well
 import doobie.util.Get
 import doobie.util.Put
 import doobie.util.Read
-import doobie.util.Read.Auto.*
 import doobie.util.Write
-import doobie.util.Write.Auto.*
 import doobie.util.meta.Meta
 import cats.*
 import cats.data.*

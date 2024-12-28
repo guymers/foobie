@@ -11,7 +11,6 @@ import doobie.util.meta.Meta
 import zio.test.assertTrue
 
 object FragmentsSuite extends H2DatabaseSpec {
-  import doobie.util.Write.Auto.*
   import doobie.util.fragments.*
 
   private val nel = NonEmptyList.of(1, 2, 3)
@@ -126,11 +125,13 @@ object FragmentsSuite extends H2DatabaseSpec {
   case class Person(name: String, age: Int)
   object Person {
     implicit val read: Read[Person] = Read.derived
+    implicit val write: Write[Person] = Write.derived
   }
 
   case class Contact(person: Person, address: Option[String])
   object Contact {
     implicit val read: Read[Contact] = Read.derived
+    implicit val write: Write[Contact] = Write.derived
   }
 
 }

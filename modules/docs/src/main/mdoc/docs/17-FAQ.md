@@ -12,8 +12,8 @@ import doobie.FC
 import doobie.free.connection.ConnectionIO
 import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
-import doobie.util.Read.Auto.*
-import doobie.util.Write.Auto.*
+import doobie.util.Read
+import doobie.util.Write
 import doobie.util.meta.Meta
 import doobie.util.query.Query0
 import doobie.util.transactor.Transactor
@@ -83,7 +83,14 @@ As of **doobie** 0.4.0 this is done via [statement fragments](08-Fragments.html)
 
 ```scala mdoc:silent
 case class Code(country: String)
+object Code {
+  implicit val read: Read[Code] = Read.derived
+  implicit val write: Write[Code] = Write.derived
+}
 case class City(code: Code, name: String, population: Int)
+object City {
+  implicit val read: Read[City] = Read.derived
+}
 
 def cities(code: Code, asc: Boolean): Query0[City] = {
   val ord = if (asc) fr"ASC" else fr"DESC"
@@ -123,7 +130,13 @@ With an outer join you end up with set of nullable columns, which you typically 
 
 ```scala mdoc:silent
 case class Country(name: String, code: String)
+object Country {
+  implicit val read: Read[Country] = Read.derived
+}
 case class City2(name: String, district: String)
+object City2 {
+  implicit val read: Read[City2] = Read.derived
+}
 
 val join =
   sql"""

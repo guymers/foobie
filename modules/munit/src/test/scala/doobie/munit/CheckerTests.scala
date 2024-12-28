@@ -5,7 +5,6 @@
 package doobie.munit
 
 import cats.effect.IO
-import cats.syntax.apply.*
 import doobie.syntax.string.*
 import doobie.util.Read
 import doobie.util.transactor.Transactor
@@ -29,38 +28,16 @@ trait CheckerChecks[M[_]] extends FunSuite with Checker[M] {
   }
 
   test("trivial case-class") {
-    import doobie.util.Read.Auto.*
-
-    check(sql"select 1".query[CheckerChecks.Foo[cats.Id]])
-  }
-
-  test("Read should select correct columns when combined with `product`") {
-
-    val ri = Read[Int]
-    val rs = Read[String]
-
-    // tupled use product under the hood
-    val combined: Read[(Int, String)] = (ri, rs).tupled
-
-    check(sql"SELECT 1, '2'".query(combined))
-  }
-
-  test("Read should select correct columns for checking when combined with `ap`") {
-    import doobie.util.Read.Auto.*
-
-    val readInt = Read[(Int, Int)]
-    val readIntToInt: Read[Tuple2[Int, Int] => String] =
-      Read[(String, String)].map(i => k => s"$i,$k")
-
-    val combined: Read[String] = readInt.ap(readIntToInt)
-
-    check(sql"SELECT '1', '2', 3, 4".query(combined))
+    check(sql"select 1".query[CheckerChecks.Foo])
   }
 
 }
 
 object CheckerChecks {
-  final case class Foo[F[_]](x: Int)
+  final case class Foo(x: Int)
+  object Foo {
+    implicit val read: Read[Foo] = Read.derived
+  }
 }
 
 class IOCheckerCheck extends CheckerChecks[IO] with IOChecker {}

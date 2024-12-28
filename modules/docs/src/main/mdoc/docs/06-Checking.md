@@ -9,7 +9,8 @@ Our setup here is the same as last chapter, so if you're still running from last
 ```scala mdoc:silent
 import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
-import doobie.util.Read.Auto.*
+import doobie.util.Read
+import doobie.util.Write
 import doobie.util.transactor.Transactor
 import cats.*
 import cats.data.*
@@ -56,6 +57,10 @@ In order to create a query that's not quite right, let's redefine our `Country` 
 
 ```scala mdoc:silent
 case class Country(code: Int, name: String, pop: Int, gnp: Double)
+object Country {
+  implicit val read: Read[Country] = Read.derived
+  implicit val write: Write[Country] = Write.derived
+}
 ```
 
 Here's our parameterized query from last chapter, but with the new `Country` definition and the `minPop` parameter changed to a `Short`.
@@ -86,6 +91,10 @@ If we fix all of these problems and try again, we get a clean bill of health.
 
 ```scala mdoc:silent
 case class Country2(code: String, name: String, pop: Int, gnp: Option[BigDecimal])
+object Country2 {
+  implicit val read: Read[Country2] = Read.derived
+  implicit val write: Write[Country2] = Write.derived
+}
 
 def biggerThan2(minPop: Int) =
   sql"""

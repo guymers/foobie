@@ -9,7 +9,8 @@ import doobie.free.connection.ConnectionIO
 import doobie.syntax.applicativeerror.*
 import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
-import doobie.util.Read.Auto.*
+import doobie.util.Read
+import doobie.util.Write
 import doobie.util.transactor.Transactor
 import cats.*
 import cats.data.*
@@ -95,6 +96,10 @@ Alright, let's define a `Person` data type and a way to insert instances.
 
 ```scala mdoc:silent
 case class Person(id: Int, name: String)
+object Person {
+  implicit val read: Read[Person] = Read.derived
+  implicit val write: Write[Person] = Write.derived
+}
 
 def insert(s: String): ConnectionIO[Person] = {
   sql"insert into person (name) values ($s)"

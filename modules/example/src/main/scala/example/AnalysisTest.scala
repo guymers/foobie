@@ -7,6 +7,8 @@ package example
 import doobie.postgres.instances.array.*
 import doobie.postgres.instances.geometric.*
 import doobie.syntax.string.*
+import doobie.util.Read
+import doobie.util.Write
 import doobie.util.query.Query0
 import doobie.util.update.Update
 import doobie.util.update.Update0
@@ -14,10 +16,12 @@ import org.postgresql.geometric.*
 
 // Some queries to test using the AnalysisTestSpec in src/test
 object AnalysisTest {
-  import doobie.util.Read.Auto.*
-  import doobie.util.Write.Auto.*
 
   final case class Country(name: String, indepYear: Int)
+  object Country {
+    implicit val read: Read[Country] = Read.derived
+    implicit val write: Write[Country] = Write.derived
+  }
 
   def speakerQuery(lang: String, pct: Double): Query0[Country] =
     sql"""

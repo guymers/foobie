@@ -90,8 +90,6 @@ object Write extends Write1 {
     F: Write[F],
   ): Write[(A, B, C, D, E, F)] = (A, B, C, D, E, F).tupled
 
-  object Auto extends WriteAutoPlatform
-
   implicit val WriteContravariantSemigroupal: ContravariantSemigroupal[Write] = new ContravariantSemigroupal[Write] {
     override def contramap[A, B](fa: Write[A])(f: B => A) = fa.contramap(f)
     override def product[A, B](fa: Write[A], fb: Write[B]) = fa.product(fb)

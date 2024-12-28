@@ -6,13 +6,19 @@ package example
 
 import cats.syntax.apply.*
 import doobie.syntax.string.*
+import doobie.util.Read
 import doobie.util.query.Query0
 
 object Join {
-  import doobie.util.Read.Auto.*
 
   final case class Country(code: String, name: String)
+  object Country {
+    implicit val read: Read[Country] = Read.derived
+  }
   final case class City(id: Int, name: String)
+  object City {
+    implicit val read: Read[City] = Read.derived
+  }
 
   // Old style required examining joined columns individually
   def countriesAndCities1(filter: String): Query0[(Country, Option[City])] =

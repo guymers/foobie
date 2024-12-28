@@ -30,10 +30,11 @@ object UpdateSuite extends H2DatabaseSpec {
         conn.transact
       },
       test("write") {
-        import doobie.util.Read.Auto.*
-        import doobie.util.Write.Auto.*
-
         case class Id(v: Int)
+        object Id {
+          implicit val get: Get[Id] = Get[Int].map(apply(_))
+          implicit val put: Put[Id] = Put[Int].contramap(_.v)
+        }
         val someId: Option[Id] = Some(Id(2))
         val noneId: Option[Id] = None
 
