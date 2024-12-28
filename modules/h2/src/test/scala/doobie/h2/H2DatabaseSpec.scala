@@ -41,7 +41,7 @@ object H2DatabaseSpec {
   private val availableProcessors = Runtime.getRuntime.availableProcessors
   private[h2] val maxConnections = (availableProcessors * 2).max(4)
 
-  val layer = ZLayer.scoped(create("test_h2"))
+  val layer = ZLayer.scoped[Any](create("test_h2"))
 
   def create(database: String) = {
     import zio.interop.catz.zioResourceSyntax

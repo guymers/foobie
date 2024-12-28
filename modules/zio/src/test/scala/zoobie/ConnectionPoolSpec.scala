@@ -146,12 +146,12 @@ object ConnectionPoolSpec extends ZIOSpecDefault {
         }
         pool <- ConnectionPool.create(create, config)
 
-        _ <- ZIO.foreachDiscard((1 to config.size).toList)(_ => ZIO.scoped(pool.get))
+        _ <- ZIO.foreachDiscard((1 to config.size).toList)(_ => ZIO.scoped[Any](pool.get))
         createdInitial <- createdRef.get
 
         _ <- TestClock.adjust(config.maxConnectionLifetime)
 
-        _ <- ZIO.foreachDiscard((1 to config.size).toList)(_ => ZIO.scoped(pool.get))
+        _ <- ZIO.foreachDiscard((1 to config.size).toList)(_ => ZIO.scoped[Any](pool.get))
         createdRefreshed <- createdRef.get
       } yield {
         assertTrue(createdInitial.size == 5) &&

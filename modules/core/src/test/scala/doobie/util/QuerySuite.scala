@@ -62,7 +62,7 @@ object QuerySuite extends H2DatabaseSpec {
       },
       test("unique") {
         q.unique("bar").transact.either.map { result =>
-          assertTrue(result == Left(invariant.UnexpectedEnd))
+          assertTrue(result == Left(invariant.UnexpectedEnd()))
         }
       },
       test("option") {
@@ -121,7 +121,7 @@ object QuerySuite extends H2DatabaseSpec {
       },
       test("unique") {
         q.toQuery0("bar").unique.transact.either.map { result =>
-          assertTrue(result == Left(invariant.UnexpectedEnd))
+          assertTrue(result == Left(invariant.UnexpectedEnd()))
         }
       },
       test("option") {
@@ -181,7 +181,7 @@ object QuerySuite extends H2DatabaseSpec {
       } ::
       test("unique") {
         q0e.unique.transact.either.map { result =>
-          assertTrue(result == Left(invariant.UnexpectedEnd))
+          assertTrue(result == Left(invariant.UnexpectedEnd()))
         }
       } ::
       test("option") {

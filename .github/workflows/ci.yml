@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     name: Test
     strategy:
@@ -27,6 +27,9 @@ jobs:
           java-version: '11'
           java-package: jdk
 
+      - name: Install SBT
+        uses: sbt/setup-sbt@v1
+
       - name: Cache SBT
         uses: coursier/cache-action@v6
         with:
@@ -39,7 +42,7 @@ jobs:
         run: sbt ++${{ matrix.scala }} Test/compile
 
       - name: Start Containers
-        run: docker-compose up -d
+        run: docker compose up -d
 
       - name: Test
         run: sbt ++${{ matrix.scala }} modules/test

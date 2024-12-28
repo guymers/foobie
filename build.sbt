@@ -1,34 +1,33 @@
 // format: off
 import FreeGen2.*
 
-val catsVersion = "2.10.0"
-val catsEffectVersion = "3.5.4"
-val circeVersion = "0.14.7"
-val fs2Version = "3.10.2"
-val h2Version = "2.2.224"
-val hikariVersion = "5.1.0"
-val magnoliaVersion = "1.1.3"
-val munitVersion = "1.0.0-RC1"
-val mysqlVersion = "8.4.0"
-val openTelemetryVersion = "1.38.0"
-val postgisVersion = "2023.1.0"
-val postgresVersion = "42.7.3"
-val scalatestVersion = "3.2.18"
-val shapelessVersion = "2.3.10"
-val slf4jVersion = "2.0.13"
+val catsVersion = "2.12.0"
+val catsEffectVersion = "3.5.7"
+val circeVersion = "0.14.10"
+val fs2Version = "3.11.0"
+val h2Version = "2.3.232"
+val hikariVersion = "6.2.1"
+val magnoliaVersion = "1.1.10"
+val munitVersion = "1.0.3"
+val mysqlVersion = "9.1.0"
+val openTelemetryVersion = "1.45.0"
+val postgisVersion = "2024.1.0"
+val postgresVersion = "42.7.4"
+val scalatestVersion = "3.2.19"
+val shapelessVersion = "2.3.12"
+val slf4jVersion = "2.0.16"
 val weaverVersion = "0.8.4"
-val zioInteropCats = "23.1.0.2"
-val zioVersion = "2.1.1"
+val zioInteropCats = "23.1.0.3"
+val zioVersion = "2.1.14"
 
-val Scala213 = "2.13.14"
-val Scala3 = "3.3.3"
+val Scala213 = "2.13.15"
+val Scala3 = "3.3.4"
 
 inThisBuild(Seq(
   organization := "io.github.guymers",
   homepage := Some(url("https://github.com/guymers/foobie")),
   licenses := Seq(License.MIT),
   developers := List(
-    Developer("tpolecat", "Rob Norris", "@tpolecat", url("https://github.com/tpolecat")),
     Developer("guymers", "Sam Guymer", "@guymers", url("https://github.com/guymers")),
   ),
   scmInfo := Some(ScmInfo(url("https://github.com/guymers/foobie"), "git@github.com:guymers/foobie.git")),

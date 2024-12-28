@@ -100,10 +100,12 @@ object ConnectionPool {
               invalidate(c).whenZIO {
                 for {
                   now <- zio.Clock.nanoTime
-                  age = (now - c.acquired).nanoseconds
                   maxLifetimeJitter <- zio.Random.nextDoubleBetween(0.89, 0.99)
-                  maxLifetime = (config.maxConnectionLifetime.toNanos * maxLifetimeJitter).toLong.nanoseconds
-                } yield age > maxLifetime
+                } yield {
+                  val age = (now - c.acquired).nanoseconds
+                  val maxLifetime = (config.maxConnectionLifetime.toNanos * maxLifetimeJitter).toLong.nanoseconds
+                  age > maxLifetime
+                }
               }
 
             case Exit.Failure(_) =>

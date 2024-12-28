@@ -7,5 +7,5 @@ abstract class H2DatabaseSpec extends BaseH2DatabaseSpec {
   override val bootstrap = H2DatabaseSpec.layer
 }
 object H2DatabaseSpec {
-  val layer = ZLayer.scoped(doobie.h2.H2DatabaseSpec.create("test_core"))
+  val layer = ZLayer.scoped[Any](doobie.h2.H2DatabaseSpec.create("test_core"))
 }
