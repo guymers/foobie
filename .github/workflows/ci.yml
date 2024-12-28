@@ -42,7 +42,7 @@ jobs:
         run: sbt ++${{ matrix.scala }} Test/compile
 
       - name: Start Containers
-        run: docker-compose up -d
+        run: docker compose up -d
 
       - name: Test
         run: sbt ++${{ matrix.scala }} modules/test
