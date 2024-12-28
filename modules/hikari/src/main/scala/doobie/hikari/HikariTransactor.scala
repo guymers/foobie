@@ -12,6 +12,8 @@ import cats.effect.syntax.resource.*
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import com.zaxxer.hikari.metrics.MetricsTrackerFactory
+import doobie.util.ExecutionContexts
+import doobie.util.transactor.Transactor
 
 import java.util.Properties
 import java.util.concurrent.ScheduledExecutorService

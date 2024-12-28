@@ -45,9 +45,14 @@ import cats.*
 import cats.data.*
 import cats.effect.*
 import cats.implicits.*
-import doobie.*
-import doobie.implicits.*
+import doobie.enumerated.SqlState
+import doobie.free.connection.ConnectionIO
+import doobie.syntax.applicativeerror.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
+import doobie.util.meta.Meta
+import doobie.util.transactor.Transactor
 
 // This is just for testing. Consider using cats.effect.IOApp instead of calling
 // unsafe methods directly.
@@ -70,8 +75,13 @@ implicit val mdocColors: doobie.util.Colors = doobie.util.Colors.None
 **doobie** adds support for a large number of extended types that are not supported directly by JDBC. All mappings (except postgis) are provided in the `pgtypes` module.
 
 ```scala mdoc:silent
-import doobie.postgres.*
-import doobie.postgres.implicits.*
+import doobie.postgres.PFCM
+import doobie.postgres.PHC
+import doobie.postgres.instances.enumeration.*
+import doobie.postgres.sqlstate
+import doobie.postgres.syntax.applicativeerror.*
+import doobie.postgres.syntax.explain.*
+import doobie.postgres.syntax.fragment.*
 ```
 
 ### Java 8 Time Types (JSR310)

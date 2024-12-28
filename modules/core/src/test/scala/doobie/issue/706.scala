@@ -6,11 +6,11 @@ package doobie.issue
 
 import cats.Foldable
 import cats.syntax.functor.*
-import doobie.Fragment
 import doobie.H2DatabaseSpec
 import doobie.free.connection.ConnectionIO
 import doobie.syntax.string.*
 import doobie.util.Write
+import doobie.util.fragment.Fragment
 import doobie.util.update.Update
 import zio.test.Gen
 import zio.test.Live

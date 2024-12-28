@@ -6,7 +6,6 @@ package doobie.h2
 
 import cats.syntax.foldable.*
 import cats.syntax.show.*
-import doobie.Fragment
 import doobie.free.connection.ConnectionIO
 import doobie.h2.implicits.*
 import doobie.syntax.string.*
@@ -14,6 +13,7 @@ import doobie.util.Get
 import doobie.util.Put
 import doobie.util.Read
 import doobie.util.Write
+import doobie.util.fragment.Fragment
 import doobie.util.transactor.Transactor
 import zio.Task
 import zio.ZIO

@@ -56,9 +56,10 @@ See the previous chapter on **SQL Arrays** for usage examples.
 ```scala mdoc:silent:reset
 import cats.effect.*
 import cats.implicits.*
-import doobie.*
-import doobie.implicits.*
-import doobie.h2.*
+import doobie.h2.H2Transactor
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
+import doobie.util.ExecutionContexts
 
 object H2App extends IOApp {
 

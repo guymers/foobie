@@ -8,11 +8,15 @@ import cats.data.*
 import cats.effect.*
 import cats.effect.implicits.*
 import cats.implicits.*
-import doobie.*
-import doobie.implicits.*
+import doobie.FC
+import doobie.free.connection.ConnectionIO
+import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
 import doobie.util.Read.Auto.*
 import doobie.util.Write.Auto.*
+import doobie.util.meta.Meta
+import doobie.util.query.Query0
+import doobie.util.transactor.Transactor
 import java.awt.geom.Point2D
 import java.util.UUID
 

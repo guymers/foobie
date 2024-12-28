@@ -5,7 +5,7 @@
 package doobie.postgres
 
 import doobie.postgres.enums.*
-import doobie.postgres.implicits.*
+import doobie.postgres.instances.enumeration.*
 import doobie.syntax.string.*
 import doobie.util.invariant.*
 import doobie.util.meta.Meta

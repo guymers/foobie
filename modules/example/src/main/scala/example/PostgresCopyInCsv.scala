@@ -6,10 +6,14 @@ package example
 
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.syntax.all.*
+import cats.syntax.flatMap.*
+import cats.syntax.functor.*
+import cats.syntax.show.*
 import doobie.free.connection.ConnectionIO
 import doobie.postgres.*
-import doobie.syntax.all.*
+import doobie.postgres.free.copymanager.CopyManagerIO
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.transactor.Transactor
 import fs2.*
 import fs2.text.utf8

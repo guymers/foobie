@@ -6,8 +6,8 @@ package doobie.postgres.circe
 
 import cats.syntax.either.*
 import cats.syntax.show.*
-import doobie.Get
-import doobie.Put
+import doobie.util.Get
+import doobie.util.Put
 import io.circe.*
 import io.circe.jawn.*
 import io.circe.syntax.*

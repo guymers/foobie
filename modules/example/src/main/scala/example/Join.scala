@@ -4,8 +4,8 @@
 
 package example
 
-import cats.syntax.all.*
-import doobie.syntax.all.*
+import cats.syntax.apply.*
+import doobie.syntax.string.*
 import doobie.util.query.Query0
 
 object Join {

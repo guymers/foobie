@@ -2,13 +2,13 @@ package doobie.mysql
 
 import cats.syntax.foldable.*
 import cats.syntax.show.*
-import doobie.Fragment
 import doobie.free.connection.ConnectionIO
 import doobie.syntax.string.*
 import doobie.util.Get
 import doobie.util.Put
 import doobie.util.Read
 import doobie.util.Write
+import doobie.util.fragment.Fragment
 import zio.ZIO
 import zio.ZLayer
 import zio.test.Gen

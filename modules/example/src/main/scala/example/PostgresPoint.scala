@@ -6,8 +6,9 @@ package example
 
 import cats.effect.IO
 import cats.effect.IOApp
-import doobie.postgres.implicits.*
-import doobie.syntax.all.*
+import doobie.postgres.instances.geometric.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.Write
 import doobie.util.meta.Meta
 import doobie.util.transactor.Transactor

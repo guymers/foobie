@@ -9,8 +9,9 @@ import cats.data.Kleisli
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.effect.IOLocal
-import doobie.KleisliInterpreter
-import doobie.syntax.all.*
+import doobie.free.KleisliInterpreter
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import doobie.util.transactor.Transactor
 
 import java.sql.Connection

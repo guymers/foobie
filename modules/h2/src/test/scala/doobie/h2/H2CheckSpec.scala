@@ -4,11 +4,11 @@
 
 package doobie.h2
 
-import doobie.Fragment
 import doobie.h2.implicits.*
 import doobie.syntax.string.*
 import doobie.util.Get
 import doobie.util.analysis.ColumnTypeError
+import doobie.util.fragment.Fragment
 import zio.test.assertTrue
 
 import java.time.*

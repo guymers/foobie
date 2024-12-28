@@ -6,15 +6,15 @@ package doobie.weaver
 
 import cats.effect.kernel.Sync
 import cats.syntax.functor.*
-import doobie.Query
-import doobie.Query0
-import doobie.Transactor
 import doobie.syntax.connectionio.*
 import doobie.util.Colors
+import doobie.util.query.Query
+import doobie.util.query.Query0
 import doobie.util.testing.AnalysisArgs
 import doobie.util.testing.Analyzable
 import doobie.util.testing.analyze
 import doobie.util.testing.formatReport
+import doobie.util.transactor.Transactor
 import org.tpolecat.typename.TypeName
 import org.tpolecat.typename.typeName
 import weaver.Expectations

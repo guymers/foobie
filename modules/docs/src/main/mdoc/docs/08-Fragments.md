@@ -7,10 +7,12 @@ In this chapter we discuss how to construct SQL statements at runtime.
 Same as last chapter, so if you're still set up you can skip this section. Otherwise let's set up a `Transactor` and YOLO mode.
 
 ```scala mdoc:silent
-import doobie.*
-import doobie.implicits.*
+import doobie.Fragments
+import doobie.syntax.string.*
 import doobie.util.ExecutionContexts
 import doobie.util.Read.Auto.*
+import doobie.util.fragment.Fragment
+import doobie.util.transactor.Transactor
 import cats.*
 import cats.data.*
 import cats.effect.*

@@ -13,8 +13,7 @@ import org.tpolecat.typename.*
 
 import scala.reflect.ClassTag
 
-object enumeration extends EnumerationInstances
-trait EnumerationInstances {
+object enumeration {
 
   private def enumPartialMeta(name: String): Meta[String] =
     Meta.Basic.many[String](

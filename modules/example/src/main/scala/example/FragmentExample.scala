@@ -6,8 +6,9 @@ package example
 
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.syntax.all.*
-import doobie.syntax.all.*
+import cats.syntax.list.*
+import cats.syntax.traverse.*
+import doobie.syntax.string.*
 import doobie.util.Read
 import doobie.util.fragment.Fragment
 import doobie.util.transactor.Transactor

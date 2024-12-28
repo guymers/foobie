@@ -5,7 +5,7 @@
 package doobie.postgres.hi
 
 import cats.syntax.functor.*
-import doobie.ConnectionIO
+import doobie.free.connection.ConnectionIO
 import doobie.postgres.PFLO
 import doobie.postgres.PFLOM
 import fs2.Stream

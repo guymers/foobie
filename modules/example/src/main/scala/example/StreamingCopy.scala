@@ -6,11 +6,16 @@ package example
 
 import cats.data.*
 import cats.effect.*
-import cats.syntax.all.*
+import cats.syntax.applicativeError.*
+import cats.syntax.apply.*
+import cats.syntax.functor.*
+import cats.syntax.show.*
 import doobie.FC
 import doobie.HC
 import doobie.free.connection.ConnectionIO
-import doobie.syntax.all.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.stream.*
+import doobie.syntax.string.*
 import doobie.util.Read
 import doobie.util.transactor.Transactor
 import fs2.Stream

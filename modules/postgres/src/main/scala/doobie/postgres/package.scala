@@ -6,13 +6,6 @@ package doobie
 
 package object postgres {
 
-  type CopyInIO[A] = doobie.postgres.free.copyin.CopyInIO[A]
-  type CopyManagerIO[A] = doobie.postgres.free.copymanager.CopyManagerIO[A]
-  type CopyOutIO[A] = doobie.postgres.free.copyout.CopyOutIO[A]
-  type LargeObjectIO[A] = doobie.postgres.free.largeobject.LargeObjectIO[A]
-  type LargeObjectManagerIO[A] = doobie.postgres.free.largeobjectmanager.LargeObjectManagerIO[A]
-  type PGConnectionIO[A] = doobie.postgres.free.pgconnection.PGConnectionIO[A]
-
   val PFCI = doobie.postgres.free.copyin
   val PFCM = doobie.postgres.free.copymanager
   val PFCO = doobie.postgres.free.copyout
@@ -25,10 +18,4 @@ package object postgres {
   val PHLO = doobie.postgres.hi.PHLO
   val PHLOM = doobie.postgres.hi.PHLOM
   val PHLOS = doobie.postgres.hi.PHLOS
-
-  object implicits
-    extends Instances
-    with syntax.ToPostgresApplicativeErrorOps
-    with syntax.ToFragmentOps
-    with syntax.ToPostgresExplainOps
 }

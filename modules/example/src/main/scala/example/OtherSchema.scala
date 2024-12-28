@@ -8,7 +8,7 @@ import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.effect.IOApp
 import doobie.enumerated.JdbcType
-import doobie.syntax.all.*
+import doobie.syntax.string.*
 import doobie.util.meta.Meta
 import doobie.util.transactor.Transactor
 import org.postgresql.util.*

@@ -7,7 +7,7 @@ package example
 import cats.Show
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.syntax.all.*
+import cats.syntax.show.*
 import doobie.FC
 import doobie.free.connection.ConnectionIO
 import doobie.syntax.connectionio.*

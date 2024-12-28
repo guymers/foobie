@@ -10,11 +10,11 @@ import cats.data.Kleisli
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.free.Free
-import cats.syntax.all.*
+import cats.syntax.traverse.*
 import cats.~>
 import doobie.free.KleisliInterpreter
 import doobie.free.connection.ConnectionOp
-import doobie.syntax.all.*
+import doobie.syntax.string.*
 import doobie.util.transactor.Transactor
 
 import java.sql.Connection

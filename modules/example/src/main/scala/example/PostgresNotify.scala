@@ -6,11 +6,14 @@
 package example
 
 import cats.effect.*
-import cats.syntax.all.*
+import cats.syntax.apply.*
+import cats.syntax.functor.*
+import cats.syntax.show.*
 import doobie.HC
 import doobie.free.connection.ConnectionIO
 import doobie.postgres.*
-import doobie.syntax.all.*
+import doobie.syntax.stream.*
+import doobie.syntax.string.*
 import doobie.util.transactor.Transactor
 import fs2.Stream
 import org.postgresql.*

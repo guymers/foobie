@@ -7,7 +7,8 @@ package doobie.postgres
 import cats.syntax.apply.*
 import cats.syntax.functor.*
 import doobie.free.connection.ConnectionIO
-import doobie.postgres.implicits.*
+import doobie.postgres.instances.array.*
+import doobie.postgres.syntax.fragment.*
 import doobie.syntax.string.*
 import doobie.util.Read
 import fs2.Stream
