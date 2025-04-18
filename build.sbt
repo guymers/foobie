@@ -1,27 +1,27 @@
 // format: off
 import FreeGen2.*
 
-val catsVersion = "2.12.0"
-val catsEffectVersion = "3.5.7"
-val circeVersion = "0.14.10"
-val fs2Version = "3.11.0"
+val catsVersion = "2.13.0"
+val catsEffectVersion = "3.6.1"
+val circeVersion = "0.14.12"
+val fs2Version = "3.12.0"
 val h2Version = "2.3.232"
-val hikariVersion = "6.2.1"
+val hikariVersion = "6.3.0"
 val magnoliaVersion = "1.1.10"
-val munitVersion = "1.0.3"
-val mysqlVersion = "9.1.0"
-val openTelemetryVersion = "1.45.0"
+val munitVersion = "1.1.0"
+val mysqlVersion = "9.2.0"
+val openTelemetryVersion = "1.49.0"
 val postgisVersion = "2024.1.0"
-val postgresVersion = "42.7.4"
+val postgresVersion = "42.7.5"
 val scalatestVersion = "3.2.19"
 val shapelessVersion = "2.3.12"
-val slf4jVersion = "2.0.16"
+val slf4jVersion = "2.0.17"
 val weaverVersion = "0.8.4"
-val zioInteropCats = "23.1.0.3"
-val zioVersion = "2.1.14"
+val zioInteropCats = "23.1.0.5"
+val zioVersion = "2.1.17"
 
-val Scala213 = "2.13.15"
-val Scala3 = "3.3.4"
+val Scala213 = "2.13.16"
+val Scala3 = "3.3.5"
 
 inThisBuild(Seq(
   organization := "io.github.guymers",
