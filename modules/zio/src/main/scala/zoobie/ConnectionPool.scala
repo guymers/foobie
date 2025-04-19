@@ -5,6 +5,7 @@ import zio.Ref
 import zio.Scope
 import zio.Trace
 import zio.ZIO
+import zio.ZLayer
 import zio.ZPool
 import zio.duration2DurationOps
 import zio.durationLong
@@ -63,6 +64,9 @@ object ConnectionPool {
 
     val conn = ZIO.acquireRelease(acquire_)(_.close.ignoreLogged)
 
+    def acquireRelease[E, A](scope: Scope)(acquire: => ZIO[Any, E, A], release: => ZIO[Any, Nothing, Any]) =
+      ZIO.uninterruptible(acquire.tap(_ => scope.addFinalizerExit(_ => release)))
+
     for {
       numQueuedRef <- Ref.make[Int](0)
       pool <- ZPool.make(conn, config.size)
@@ -78,42 +82,41 @@ object ConnectionPool {
             if (age > config.maxConnectionLifetime) {
               // been idle and missed invalidation, close and let the finalizer invalidate
               close *> _get
-            } else ZIO.succeed(i)
+            } else Exit.succeed(i)
           }
         } yield new ConnectionProxy(c.connection)
 
-        private def _get(implicit trace: Trace) = for {
-          atQueueSize <- numQueuedRef.modify { i =>
-            if (i >= config.queueSize) (true, config.queueSize) else (false, i + 1)
-          }.uninterruptible
-          _ <- ZIO.fail(DatabaseError.Connection.Rejected(config.queueSize)).when(atQueueSize).uninterruptible
+        private def _get(implicit trace: Trace) = ZIO.scopeWith { outer =>
+          for {
+            inner <- outer.fork
+            numQueued <- acquireRelease(inner)(numQueuedRef.updateAndGet(_ + 1), numQueuedRef.update(_ - 1))
+            _ <- ZIO.fail(DatabaseError.Connection.Rejected(config.queueSize)).when(numQueued > config.queueSize)
 
-          _ <- waiting.increment.uninterruptible
-          c <- pool.get.onExit { _ =>
-            waiting.decrement *> numQueuedRef.update(_ - 1)
-          }
+            _ <- acquireRelease(inner)(waiting.increment, waiting.decrement)
+            c <- pool.get.provide(ZLayer.succeed(outer))
+            _ <- inner.close(Exit.unit)
+            _ <- acquireRelease(outer)(inUse.increment, inUse.decrement)
 
-          _ <- ZIO.acquireRelease(inUse.increment)(_ => inUse.decrement)
-
-          _ <- ZIO.addFinalizerExit {
-            case Exit.Success(_) =>
-              invalidate(c).whenZIO {
-                for {
-                  now <- zio.Clock.nanoTime
-                  maxLifetimeJitter <- zio.Random.nextDoubleBetween(0.89, 0.99)
-                } yield {
-                  val age = (now - c.acquired).nanoseconds
-                  val maxLifetime = (config.maxConnectionLifetime.toNanos * maxLifetimeJitter).toLong.nanoseconds
-                  age > maxLifetime
+            _ <- outer.addFinalizerExit {
+              case Exit.Success(_) =>
+                invalidate(c).whenZIO {
+                  for {
+                    now <- zio.Clock.nanoTime
+                    maxLifetimeJitter <- zio.Random.nextDoubleBetween(0.89, 0.99)
+                  } yield {
+                    val age = (now - c.acquired).nanoseconds
+                    val maxLifetime = (config.maxConnectionLifetime.toNanos * maxLifetimeJitter).toLong.nanoseconds
+                    age > maxLifetime
+                  }
                 }
-              }
 
-            case Exit.Failure(_) =>
-              invalidate(c).unlessZIO {
-                c.isValid(config.validationTimeout).catchAll(_ => ZIO.succeed(false))
-              }
-          }
-        } yield c
+              case Exit.Failure(_) =>
+                invalidate(c).unlessZIO {
+                  c.isValid(config.validationTimeout).catchAll(_ => Exit.succeed(false))
+                }
+            }
+          } yield c
+        }
       }
     }
   }
