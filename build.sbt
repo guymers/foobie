@@ -127,8 +127,6 @@ lazy val noPublishSettings = Seq(
   mimaPreviousArtifacts := Set.empty,
 )
 
-lazy val runningInIntelliJ = System.getProperty("idea.managed", "false").toBoolean
-
 def filterScalacConsoleOpts(options: Seq[String]) = {
   options.filterNot { opt =>
     opt == "-Xfatal-warnings" || opt.startsWith("-Xlint") || opt.startsWith("-W")
@@ -141,11 +139,6 @@ def module(name: String) = Project(name, file(s"modules/$name"))
   .settings(
     mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet
   )
-  .settings(
-    if (runningInIntelliJ) Seq(
-      Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "it" / "scala",
-    ) else Seq.empty
-  )
 
 def moduleIT(name: String) = Project(s"$name-it", file(s"modules/$name-it"))
   .settings(moduleName := s"foobie-$name-it")
@@ -155,15 +148,12 @@ def moduleIT(name: String) = Project(s"$name-it", file(s"modules/$name-it"))
     Test / fork := true,
     Test / javaOptions += "-Xmx1000m",
   )
-  .settings(
-    // intellij complains about shared content roots, so it gets the source appended in `module`
-    if (runningInIntelliJ) Seq.empty else Seq(
-      Compile / javaSource := baseDirectory.value / ".." / name / "src" / "main-it" / "java",
-      Compile / scalaSource := baseDirectory.value / ".." / name / "src" / "main-it" / "scala",
-      Test / javaSource := baseDirectory.value / ".." / name / "src" / "it" / "java",
-      Test / scalaSource := baseDirectory.value / ".." / name / "src" / "it" / "scala",
-    )
-  )
+  .settings(Seq(
+    Compile / javaSource := baseDirectory.value / ".." / name / "src" / "main-it" / "java",
+    Compile / scalaSource := baseDirectory.value / ".." / name / "src" / "main-it" / "scala",
+    Test / javaSource := baseDirectory.value / ".." / name / "src" / "it" / "java",
+    Test / scalaSource := baseDirectory.value / ".." / name / "src" / "it" / "scala",
+  ))
   .disablePlugins(MimaPlugin)
 
 lazy val foobie = project.in(file("."))
