@@ -12,10 +12,9 @@ import zio.test.TestAspect
 import zio.test.ZIOSpec
 
 abstract class BaseH2DatabaseSpec extends ZIOSpec[Transactor[Task]] { self =>
-  protected implicit val instance: Sync[Task] = H2DatabaseSpec.instance
 
   def transact[A](io: ConnectionIO[A]): ZIO[Transactor[Task], Throwable, A] = {
-    ZIO.serviceWithZIO[Transactor[Task]](_.trans(instance)(io))
+    ZIO.serviceWithZIO[Transactor[Task]](_.run(io))
   }
 
   implicit class ConnectionIOExtension[A](c: ConnectionIO[A]) {

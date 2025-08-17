@@ -6,10 +6,8 @@ package doobie.util
 
 import cats.Apply
 import cats.syntax.apply.*
-import doobie.FRS
 import doobie.enumerated.Nullability
 import doobie.enumerated.Nullability.*
-import doobie.free.resultset.ResultSetIO
 
 import java.sql.ResultSet
 import scala.annotation.implicitNotFound
@@ -46,8 +44,6 @@ trait Read[A] { self =>
   def length: Int = gets.length
 
   def unsafeGet(rs: ResultSet, i: Int): A
-
-  final def get: ResultSetIO[A] = FRS.raw(unsafeGet(_, 1))
 
   final def map[B](f: A => B): Read[B] = new Read[B] {
     override val gets = self.gets

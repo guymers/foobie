@@ -9,7 +9,7 @@ import doobie.enumerated.JdbcType
 import doobie.util.invariant.*
 import doobie.util.meta.Meta
 import org.postgresql.util.*
-import org.tpolecat.typename.*
+import doobie.util.typename.*
 
 import scala.reflect.ClassTag
 

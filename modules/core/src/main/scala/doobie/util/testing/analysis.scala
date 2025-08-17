@@ -4,7 +4,6 @@
 
 package doobie.util.testing
 
-import cats.effect.kernel.Sync
 import cats.syntax.show.*
 import doobie.free.connection.ConnectionIO
 import doobie.util.Colors
@@ -16,19 +15,12 @@ import doobie.util.query.Query0
 import doobie.util.transactor.Transactor
 import doobie.util.update.Update
 import doobie.util.update.Update0
-import org.tpolecat.typename.*
-
-trait UnsafeRun[F[_]] {
-  def unsafeRunSync[A](fa: F[A]): A
-}
+import doobie.util.typename.*
 
 /**
  * Common base trait for various checkers and matchers.
  */
 trait CheckerBase[M[_]] {
-  // Effect type, required instances
-  implicit def M: Sync[M]
-  implicit def U: UnsafeRun[M]
   def transactor: Transactor[M]
   def colors: Colors = Colors.Ansi
 }

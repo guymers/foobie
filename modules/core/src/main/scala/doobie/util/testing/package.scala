@@ -9,6 +9,7 @@ import cats.syntax.applicativeError.*
 import cats.syntax.foldable.*
 import cats.syntax.list.*
 import doobie.free.connection.ConnectionIO
+import doobie.free.connection.ConnectionIO.MonadErrorConnectionIO
 import doobie.util.analysis.*
 import doobie.util.pretty.*
 

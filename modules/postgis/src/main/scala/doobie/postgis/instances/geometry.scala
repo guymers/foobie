@@ -8,7 +8,7 @@ import doobie.util.invariant.*
 import doobie.util.meta.Meta
 import net.postgis.jdbc.*
 import net.postgis.jdbc.geometry.*
-import org.tpolecat.typename.*
+import doobie.util.typename.*
 
 import scala.reflect.ClassTag
 

@@ -6,36 +6,18 @@ package doobie.util
 
 import cats.Contravariant
 import cats.Foldable
-import cats.syntax.apply.*
-import doobie.FPS
-import doobie.HC
-import doobie.HPS
 import doobie.free.connection.ConnectionIO
-import doobie.free.preparedstatement.PreparedStatementIO
 import doobie.util.analysis.Analysis
 import doobie.util.fragment.Fragment
 import doobie.util.pos.Pos
-import fs2.Stream
 
 import scala.collection.Factory
 
 /** Module defining updates parameterized by input type. */
 object update {
 
-  val DefaultChunkSize = query.DefaultChunkSize
-
   trait UpdateManyReturningGeneratedKeysPartiallyApplied[A, K] {
     def apply[F[_]](as: F[A])(implicit F: Foldable[F], K: Read[K], B: Factory[K, F[K]]): ConnectionIO[F[K]]
-  }
-
-  /**
-   * Partial application hack to allow calling updateManyWithGeneratedKeys
-   * without passing the F[_] type argument explicitly.
-   */
-  trait UpdateManyWithGeneratedKeysPartiallyApplied[A, K] {
-    def apply[F[_]](as: F[A])(implicit F: Foldable[F], K: Read[K]): Stream[ConnectionIO, K] =
-      withChunkSize(as, DefaultChunkSize)
-    def withChunkSize[F[_]](as: F[A], chunkSize: Int)(implicit F: Foldable[F], K: Read[K]): Stream[ConnectionIO, K]
   }
 
   /**
@@ -70,7 +52,7 @@ object update {
      * @group Diagnostics
      */
     def analysis: ConnectionIO[Analysis] =
-      HC.prepareUpdateAnalysis[A](sql)
+      ConnectionIO.prepareUpdateAnalysis[A](sql)
 
     /**
      * Program to construct an analysis of this query's SQL statement and result
@@ -78,18 +60,7 @@ object update {
      * @group Diagnostics
      */
     def outputAnalysis: ConnectionIO[Analysis] =
-      HC.prepareUpdateAnalysis0(sql)
-
-    /**
-     * Program to construct an inspection of the query. Given arguments `a`,
-     * calls `f` with the SQL representation of the query and a statement with
-     * all arguments set. Returns the result of the `ConnectionIO` program
-     * constructed.
-     *
-     * @group Diagnostics
-     */
-    def inspect[R](a: A)(f: (String, PreparedStatementIO[Unit]) => ConnectionIO[R]): ConnectionIO[R] =
-      f(sql, HPS.set(a))
+      ConnectionIO.prepareUpdateAnalysis0(sql)
 
     /**
      * Construct a program to execute the update and yield a count of affected
@@ -97,7 +68,7 @@ object update {
      * @group Execution
      */
     def run(a: A): ConnectionIO[Int] =
-      HC.prepareStatement(sql)(HPS.set(a) *> FPS.executeUpdate)
+      ConnectionIO.update.run(sql, a)
 
     /**
      * Program to execute a batch update and yield a count of affected rows.
@@ -107,7 +78,7 @@ object update {
      * @group Execution
      */
     def updateMany[F[_]: Foldable](fa: F[A]): ConnectionIO[Int] =
-      HC.prepareStatement(sql)(HPS.addBatchesAndExecute(fa))
+      ConnectionIO.update.many(sql, fa)
 
     /**
      * Perform a batch update as with [[updateMany]] yielding generated keys of
@@ -119,41 +90,8 @@ object update {
     def updateManyReturningGeneratedKeys[K](columns: String*): UpdateManyReturningGeneratedKeysPartiallyApplied[A, K] =
       new UpdateManyReturningGeneratedKeysPartiallyApplied[A, K] {
         override def apply[F[_]](fa: F[A])(implicit F: Foldable[F], K: Read[K], B: Factory[K, F[K]]) =
-          HC.updateManyReturningGeneratedKeys(columns.toList)(sql, fa)
+          ConnectionIO.update.manyReturningGeneratedKeys(sql, fa, columns.toList)
       }
-
-    /**
-     * Construct a stream that performs a batch update as with [[updateMany]],
-     * yielding generated keys of readable type `K`, identified by the specified
-     * columns. Note that not all drivers support generated keys, and some
-     * support only a single key column.
-     * @group Execution
-     */
-    def updateManyWithGeneratedKeys[K](columns: String*): UpdateManyWithGeneratedKeysPartiallyApplied[A, K] =
-      new UpdateManyWithGeneratedKeysPartiallyApplied[A, K] {
-        override def withChunkSize[F[_]](as: F[A], chunkSize: Int)(implicit F: Foldable[F], K: Read[K]) =
-          HC.updateManyWithGeneratedKeys(columns.toList)(sql, FPS.unit, as, chunkSize)
-      }
-
-    /**
-     * Construct a stream that performs the update, yielding generated keys of
-     * readable type `K`, identified by the specified columns, given a writable
-     * argument `a`. Note that not all drivers support generated keys, and some
-     * support only a single key column.
-     * @group Execution
-     */
-    def withGeneratedKeys[K: Read](columns: String*)(a: A): Stream[ConnectionIO, K] =
-      withGeneratedKeysWithChunkSize[K](columns*)(a, DefaultChunkSize)
-
-    /**
-     * Construct a stream that performs the update, yielding generated keys of
-     * readable type `K`, identified by the specified columns, given a writable
-     * argument `a` and `chunkSize`. Note that not all drivers support generated
-     * keys, and some support only a single key column.
-     * @group Execution
-     */
-    def withGeneratedKeysWithChunkSize[K: Read](columns: String*)(a: A, chunkSize: Int): Stream[ConnectionIO, K] =
-      HC.updateWithGeneratedKeys[K](columns.toList)(sql, HPS.set(a), chunkSize)
 
     /**
      * Construct a program that performs the update, yielding a single set of
@@ -163,7 +101,7 @@ object update {
      * @group Execution
      */
     def withUniqueGeneratedKeys[K: Read](columns: String*)(a: A): ConnectionIO[K] =
-      HC.prepareStatementS(sql, columns.toList)(HPS.set(a) *> HPS.executeUpdateWithUniqueGeneratedKeys)
+      ConnectionIO.update.generatedKeysUnique(sql, a, columns.toList)
 
     /**
      * Update is a contravariant functor.
@@ -186,11 +124,7 @@ object update {
       def analysis = u.analysis
       def outputAnalysis = u.outputAnalysis
       def run = u.run(a)
-      def withGeneratedKeysWithChunkSize[K: Read](columns: String*)(chunkSize: Int) =
-        u.withGeneratedKeysWithChunkSize[K](columns*)(a, chunkSize)
-      def withUniqueGeneratedKeys[K: Read](columns: String*) =
-        u.withUniqueGeneratedKeys(columns*)(a)
-      def inspect[R](f: (String, PreparedStatementIO[Unit]) => ConnectionIO[R]) = u.inspect(a)(f)
+      def withUniqueGeneratedKeys[K: Read](columns: String*) = u.withUniqueGeneratedKeys(columns*)(a)
     }
 
   }
@@ -253,38 +187,10 @@ object update {
     def outputAnalysis: ConnectionIO[Analysis]
 
     /**
-     * Program to construct an inspection of the query. Calls `f` with the SQL
-     * representation of the query and a statement with all statement arguments
-     * set. Returns the result of the `ConnectionIO` program constructed.
-     *
-     * @group Diagnostics
-     */
-    def inspect[R](f: (String, PreparedStatementIO[Unit]) => ConnectionIO[R]): ConnectionIO[R]
-
-    /**
      * Program to execute the update and yield a count of affected rows.
      * @group Execution
      */
     def run: ConnectionIO[Int]
-
-    /**
-     * Construct a stream that performs the update, yielding generated keys of
-     * readable type `K`, identified by the specified columns. Note that not all
-     * drivers support generated keys, and some support only a single key
-     * column.
-     * @group Execution
-     */
-    def withGeneratedKeys[K: Read](columns: String*): Stream[ConnectionIO, K] =
-      withGeneratedKeysWithChunkSize(columns*)(DefaultChunkSize)
-
-    /**
-     * Construct a stream that performs the update, yielding generated keys of
-     * readable type `K`, identified by the specified columns, given a
-     * `chunkSize`. Note that not all drivers support generated keys, and some
-     * support only a single key column.
-     * @group Execution
-     */
-    def withGeneratedKeysWithChunkSize[K: Read](columns: String*)(chunkSize: Int): Stream[ConnectionIO, K]
 
     /**
      * Construct a program that performs the update, yielding a single set of

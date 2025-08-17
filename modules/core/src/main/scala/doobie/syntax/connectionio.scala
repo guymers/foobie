@@ -4,52 +4,18 @@
 
 package doobie.syntax
 
-import cats.data.EitherT
-import cats.data.Kleisli
-import cats.data.OptionT
-import cats.effect.kernel.MonadCancelThrow
-import cats.syntax.functor.*
-import doobie.HC
 import doobie.free.connection.ConnectionIO
 import doobie.util.transactor.Transactor
 
 import scala.language.implicitConversions
 
 class ConnectionIOOps[A](ma: ConnectionIO[A]) {
-  def transact[M[_]](xa: Transactor[M])(implicit M: MonadCancelThrow[M]): M[A] = xa.trans.apply(ma)
-}
-
-class OptionTConnectionIOOps[A](ma: OptionT[ConnectionIO, A]) {
-  def transact[M[_]: MonadCancelThrow](xa: Transactor[M]): OptionT[M, A] =
-    OptionT(
-      xa.trans.apply(ma.orElseF(HC.rollback.as(None)).value),
-    )
-}
-
-class EitherTConnectionIOOps[E, A](ma: EitherT[ConnectionIO, E, A]) {
-  def transact[M[_]: MonadCancelThrow](xa: Transactor[M]): EitherT[M, E, A] =
-    EitherT(
-      xa.trans.apply(ma.leftSemiflatMap(HC.rollback.as(_)).value),
-    )
-}
-
-class KleisliConnectionIOOps[A, B](ma: Kleisli[ConnectionIO, A, B]) {
-  def transact[M[_]: MonadCancelThrow](xa: Transactor[M]): Kleisli[M, A, B] =
-    ma.mapK(xa.trans)
+  def transact[M[_]](xa: Transactor[M]): M[A] = xa.run(ma)
 }
 
 trait ToConnectionIOOps {
   implicit def toConnectionIOOps[A](ma: ConnectionIO[A]): ConnectionIOOps[A] =
     new ConnectionIOOps(ma)
-
-  implicit def toOptionTConnectionIOOps[A](ma: OptionT[ConnectionIO, A]): OptionTConnectionIOOps[A] =
-    new OptionTConnectionIOOps(ma)
-
-  implicit def toEitherTConnectionIOOps[E, A](ma: EitherT[ConnectionIO, E, A]): EitherTConnectionIOOps[E, A] =
-    new EitherTConnectionIOOps(ma)
-
-  implicit def toKleisliConnectionIOOps[A, B](ma: Kleisli[ConnectionIO, A, B]): KleisliConnectionIOOps[A, B] =
-    new KleisliConnectionIOOps[A, B](ma)
 }
 
 object connectionio extends ToConnectionIOOps
