@@ -1,83 +1,43 @@
 package zoobie
 
-import cats.Monad
-import cats.effect.kernel.Sync
+import cats.free.Free
 import cats.~>
-import doobie.free.KleisliInterpreter
 import doobie.free.connection.ConnectionIO
-import doobie.util.transactor.Interpreter
+import doobie.free.connection.ConnectionOp
 import doobie.util.transactor.Strategy
-import fs2.Stream
+import zio.Exit
 import zio.Scope
 import zio.Task
 import zio.Trace
 import zio.ZIO
-import zio.stream.ZStream
+import zio.interop.catz.core.*
 
 import java.sql.Connection
 
 sealed abstract class Transactor { self =>
 
-  private val chunkSize = doobie.util.query.DefaultChunkSize
-
   def connection: ZIO[Scope, DatabaseError.Connection, Connection]
-
-  def interpreter: Interpreter[Task]
 
   def strategy: Strategy
 
   /**
    * Execute the given [[ConnectionIO]] on a connection using the strategy.
    */
-  def run[A](io: ConnectionIO[A])(implicit trace: Trace): ZIO[Any, DatabaseError, A] = ZIO.scoped {
-    connection.flatMap(interpret(io)(_))
-  }
-
-  /**
-   * Executes each [[ConnectionIO]] in the stream individually on a connection
-   * using the strategy.
-   */
-  def stream[A](s: Stream[ConnectionIO, A])(implicit trace: Trace): ZStream[Any, DatabaseError, A] = {
-    import zio.stream.interop.fs2z.*
-
-    s.translate(new (ConnectionIO ~> Task) {
-      override def apply[T](io: ConnectionIO[T]) = run(io)
-    }).toZStream(chunkSize).mapError(DatabaseError(_))
-  }
-
-  /**
-   * Executes each [[ConnectionIO]] in the stream on a single connection using
-   * the strategy.
-   *
-   * Use with care with a strategy that is transactional as the transaction will
-   * be open until the stream completes. This means if the connection came from
-   * a pool it will not be returned until the stream completes.
-   */
-  def streamSingleConnection[A](s: Stream[ConnectionIO, A])(implicit trace: Trace): ZStream[Any, DatabaseError, A] = {
-    import zio.stream.interop.fs2z.*
-
-    ZStream.scoped[Any](connection).flatMap { conn =>
-      Stream.resource(strategy.resource).flatMap(_ => s)
-        .translate(translate(conn)).toZStream(chunkSize).mapError(DatabaseError(_))
-    }
-  }
-
-  def interpret[A](io: ConnectionIO[A])(c: Connection): ZIO[Any, DatabaseError, A] = {
-    translate(c) { strategy.resource.use(_ => io) }
-      .mapError(DatabaseError(_))
-  }
-
-  def translate(c: Connection): ConnectionIO ~> Task = {
-    implicit val monad: Monad[Task] = Transactor.sync
-
-    new (ConnectionIO ~> Task) {
-      override def apply[T](io: ConnectionIO[T]) = io.foldMap(interpreter).run(c)
-    }
-  }
+  def run[A](io: ConnectionIO[A])(implicit trace: Trace): ZIO[Any, DatabaseError, A] = ZIO.scoped[Any] {
+    for {
+      conn <- connection
+      interpret = Free.foldMap(Transactor.interpreter(conn))
+      _ <- ZIO.acquireRelease(Exit.unit)(_ => interpret(strategy.always).ignoreLogged)
+      _ <- ZIO.acquireReleaseExit(interpret(strategy.before)) {
+        case (_, Exit.Success(_)) => interpret(strategy.after).ignoreLogged
+        case (_, Exit.Failure(_)) => interpret(strategy.oops).ignoreLogged
+      }
+      result <- interpret(io)
+    } yield result
+  }.mapError(DatabaseError(_))
 
   def withStrategy(s: Strategy): Transactor = new Transactor {
     override val connection = self.connection
-    override val interpreter = self.interpreter
     override val strategy = s
   }
 
@@ -85,30 +45,47 @@ sealed abstract class Transactor { self =>
 
 object Transactor {
 
-  private val sync: Sync[Task] = zio.interop.catz.asyncInstance[Any]
-
-  val kleisliInterpreter: KleisliInterpreter[Task] = KleisliInterpreter(sync)
-
-  val interpreter: Interpreter[Task] = kleisliInterpreter.ConnectionInterpreter
-
   object strategies {
     val noop: Strategy = Strategy.void
     val transactional: Strategy = Strategy.default
-    val rollback: Strategy = Strategy.after.set(transactional, doobie.free.connection.rollback)
+    val rollback: Strategy = transactional.copy(after = doobie.free.connection.ConnectionIO.rollback)
+  }
+
+  def interpreter(conn: Connection): ConnectionOp ~> Task = new (ConnectionOp ~> Task) {
+    import ConnectionOp.*
+    override def apply[A](fa: ConnectionOp[A]) = fa match {
+      case Raw(f) => ZIO.attemptBlocking(f(conn))
+      case Delay(f) => ZIO.succeed(f())
+      case RaiseError(t) => ZIO.fail(t)
+      case HandleErrorWith(fa, f) =>
+        val run = Free.foldMap(this)
+        run(fa).catchAll(t => run(f(t)))
+
+      case WithPreparedStatement(create, f) =>
+        ZIO.scoped {
+          for {
+            stmt <- ZIO.acquireRelease(
+              ZIO.attemptBlocking(create(conn)),
+            )(stmt => ZIO.attemptBlocking(stmt.close()).ignoreLogged)
+            result <- ZIO.attemptBlockingCancelable({
+              stmt.setFetchSize(1024)
+              f(stmt)
+            })(ZIO.attemptBlocking(stmt.cancel()).ignoreLogged)
+          } yield result
+        }
+    }
   }
 
   def apply(
     connection0: ZIO[Scope, DatabaseError.Connection, Connection],
-    interpreter0: Interpreter[Task],
     strategy0: Strategy,
   ): Transactor = new Transactor {
     override val connection = connection0
-    override val interpreter = interpreter0
     override val strategy = strategy0
   }
 
   def fromPool(pool: ConnectionPool, strategy: Strategy): Transactor = {
-    apply(pool.get, interpreter, strategy)
+    apply(pool.get, strategy)
   }
 
   def fromPoolTransactional(pool: ConnectionPool): Transactor = {

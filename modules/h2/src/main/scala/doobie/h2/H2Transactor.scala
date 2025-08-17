@@ -4,25 +4,25 @@
 
 package doobie.h2
 
-import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
+import cats.effect.kernel.Sync
 import doobie.util.transactor.Transactor
 import org.h2.jdbcx.JdbcConnectionPool
-
-import scala.concurrent.ExecutionContext
 
 object H2Transactor {
 
   /** Resource yielding a new H2Transactor. */
-  def newH2Transactor[M[_]: Async](
+  def newH2Transactor[M[_]](
     url: String,
     user: String,
     pass: String,
-    connectEC: ExecutionContext,
-  ): Resource[M, H2Transactor[M]] = {
-    val alloc = Async[M].delay(JdbcConnectionPool.create(url, user, pass))
-    val free = (ds: JdbcConnectionPool) => Async[M].delay(ds.dispose())
-    Resource.make(alloc)(free).map(Transactor.fromDataSource[M](_, connectEC))
+  )(implicit M: Sync[M]): Resource[M, H2Transactor[M]] = {
+    val alloc = M.delay(JdbcConnectionPool.create(url, user, pass))
+    val free = (ds: JdbcConnectionPool) => M.delay(ds.dispose())
+    Resource.make(alloc)(free).map { pool =>
+      val connect = Resource.fromAutoCloseable(M.blocking(pool.getConnection))
+      Transactor.catsEffect(pool, connect)
+    }
   }
 
 }

@@ -14,7 +14,7 @@ object TransactorSpec extends ZIOSpecDefault {
         for {
           _ <- ZIO.unit
           connection = new StubConnection(_ => true)
-          transactor = Transactor(ZIO.succeed(connection), Transactor.interpreter, Transactor.strategies.transactional)
+          transactor = Transactor(ZIO.succeed(connection), Transactor.strategies.transactional)
           query = sql"SELECT 1".query.option
           _ <- transactor.run(query)
         } yield {
@@ -26,7 +26,7 @@ object TransactorSpec extends ZIOSpecDefault {
         for {
           _ <- ZIO.unit
           connection = new StubConnection(_ => true)
-          transactor = Transactor(ZIO.succeed(connection), Transactor.interpreter, Transactor.strategies.transactional)
+          transactor = Transactor(ZIO.succeed(connection), Transactor.strategies.transactional)
           query = sql"INVALID SQL".query.option
           _ <- transactor.run(query).either
         } yield {
