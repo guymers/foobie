@@ -172,7 +172,7 @@ lazy val modules = project.in(file("project/.root"))
   .settings(commonSettings)
   .settings(noPublishSettings)
   .aggregate(
-    free, core,
+    free, core, macros, simple,
     h2, `h2-circe`,
     mysql,
     postgres, `postgres-circe`, postgis,
@@ -241,6 +241,39 @@ lazy val core = module("core")
     }),
   )
   .dependsOn(free)
+
+lazy val macros = module("macros")
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-core" % catsVersion,
+    ),
+    libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, _)) => Seq(scalaOrganization.value % "scala-reflect" % scalaVersion.value) // for macros
+      case _ => Seq.empty
+    }),
+  )
+
+lazy val simple = module("simple")
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-core" % catsVersion,
+      "org.typelevel" %% "cats-free" % catsVersion,
+      "org.tpolecat" %% "typename" % "1.1.0",
+
+      "com.h2database" % "h2" % h2Version % Test,
+      "dev.zio" %% "zio-interop-cats" % zioInteropCats % Test,
+      "dev.zio" %% "zio-test" % zioVersion % Test,
+      "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+    ),
+    libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, _)) => Seq(
+        "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaVersion,
+        "com.chuusai" %% "shapeless" % shapelessVersion % Test,
+      )
+      case _ => Seq.empty
+    }),
+  )
+  .dependsOn(macros)
 
 lazy val postgres = module("postgres")
   .settings(freeGen2Settings)
