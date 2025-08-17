@@ -2,26 +2,26 @@
 import FreeGen2.*
 
 val catsVersion = "2.13.0"
-val catsEffectVersion = "3.6.1"
-val circeVersion = "0.14.12"
+val catsEffectVersion = "3.6.3"
+val circeVersion = "0.14.14"
 val fs2Version = "3.12.0"
 val h2Version = "2.3.232"
-val hikariVersion = "6.3.0"
+val hikariVersion = "7.0.1"
 val magnoliaVersion = "1.1.10"
-val munitVersion = "1.1.0"
-val mysqlVersion = "9.2.0"
-val openTelemetryVersion = "1.49.0"
-val postgisVersion = "2024.1.0"
-val postgresVersion = "42.7.5"
+val munitVersion = "1.1.1"
+val mysqlVersion = "9.4.0"
+val openTelemetryVersion = "1.53.0"
+val postgisVersion = "2025.1.1"
+val postgresVersion = "42.7.7"
 val scalatestVersion = "3.2.19"
 val shapelessVersion = "2.3.12"
 val slf4jVersion = "2.0.17"
 val weaverVersion = "0.8.4"
 val zioInteropCats = "23.1.0.5"
-val zioVersion = "2.1.17"
+val zioVersion = "2.1.19"
 
 val Scala213 = "2.13.16"
-val Scala3 = "3.3.5"
+val Scala3 = "3.3.6"
 
 inThisBuild(Seq(
   organization := "io.github.guymers",
@@ -31,9 +31,6 @@ inThisBuild(Seq(
     Developer("guymers", "Sam Guymer", "@guymers", url("https://github.com/guymers")),
   ),
   scmInfo := Some(ScmInfo(url("https://github.com/guymers/foobie"), "git@github.com:guymers/foobie.git")),
-
-  sonatypeCredentialHost := "s01.oss.sonatype.org",
-  sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
 ))
 
 lazy val commonSettings = Seq(
@@ -130,8 +127,6 @@ lazy val noPublishSettings = Seq(
   mimaPreviousArtifacts := Set.empty,
 )
 
-lazy val runningInIntelliJ = System.getProperty("idea.managed", "false").toBoolean
-
 def filterScalacConsoleOpts(options: Seq[String]) = {
   options.filterNot { opt =>
     opt == "-Xfatal-warnings" || opt.startsWith("-Xlint") || opt.startsWith("-W")
@@ -144,11 +139,6 @@ def module(name: String) = Project(name, file(s"modules/$name"))
   .settings(
     mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet
   )
-  .settings(
-    if (runningInIntelliJ) Seq(
-      Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "it" / "scala",
-    ) else Seq.empty
-  )
 
 def moduleIT(name: String) = Project(s"$name-it", file(s"modules/$name-it"))
   .settings(moduleName := s"foobie-$name-it")
@@ -158,15 +148,12 @@ def moduleIT(name: String) = Project(s"$name-it", file(s"modules/$name-it"))
     Test / fork := true,
     Test / javaOptions += "-Xmx1000m",
   )
-  .settings(
-    // intellij complains about shared content roots, so it gets the source appended in `module`
-    if (runningInIntelliJ) Seq.empty else Seq(
-      Compile / javaSource := baseDirectory.value / ".." / name / "src" / "main-it" / "java",
-      Compile / scalaSource := baseDirectory.value / ".." / name / "src" / "main-it" / "scala",
-      Test / javaSource := baseDirectory.value / ".." / name / "src" / "it" / "java",
-      Test / scalaSource := baseDirectory.value / ".." / name / "src" / "it" / "scala",
-    )
-  )
+  .settings(Seq(
+    Compile / javaSource := baseDirectory.value / ".." / name / "src" / "main-it" / "java",
+    Compile / scalaSource := baseDirectory.value / ".." / name / "src" / "main-it" / "scala",
+    Test / javaSource := baseDirectory.value / ".." / name / "src" / "it" / "java",
+    Test / scalaSource := baseDirectory.value / ".." / name / "src" / "it" / "scala",
+  ))
   .disablePlugins(MimaPlugin)
 
 lazy val foobie = project.in(file("."))

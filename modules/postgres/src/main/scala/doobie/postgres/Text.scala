@@ -165,7 +165,7 @@ trait TextInstances0 extends TextInstances1 { this: Text.type =>
 
   // Iterable and views thereof, as [nested] ARRAY
   @nowarn("msg=.*Modification of variable first within a closure causes it to be boxed.*")
-  @SuppressWarnings(Array("org.wartremover.warts.Var"))
+  @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures", "org.wartremover.warts.Var"))
   implicit def iterableInstance[F[_], A](implicit ev: Text[A], f: F[A] => Iterable[A]): Text[F[A]] =
     instance { (fa, sb) =>
       var first = true
