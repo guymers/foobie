@@ -40,7 +40,7 @@ object H2Helper {
     database: String,
     maxConnections: Int = 10,
     strategy: Strategy = Strategy.default,
-  )(implicit M: Sync[M]): Resource[M, H2Transactor[M]] = {
+  )(implicit M: Sync[M]): Resource[M, Transactor.Aux[M, JdbcConnectionPool]] = {
 
     def createPool = {
       val pool = JdbcConnectionPool.create(jdbcUrl(database), "sa", "")

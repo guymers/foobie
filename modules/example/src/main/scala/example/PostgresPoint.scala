@@ -6,6 +6,7 @@ package example
 
 import cats.effect.IO
 import cats.effect.IOApp
+import cats.effect.kernel.Resource
 import doobie.postgres.instances.geometric.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
@@ -14,14 +15,16 @@ import doobie.util.meta.Meta
 import doobie.util.transactor.Transactor
 import org.postgresql.geometric.PGpoint
 
+import java.sql.DriverManager
+
 object PostgresPoint extends IOApp.Simple {
 
-  val xa = Transactor.fromDriverManager[IO](
-    "org.postgresql.Driver",
-    "jdbc:postgresql:world",
-    "postgres",
-    "password",
-  )
+  val xa = {
+    val conn = Resource.fromAutoCloseable(IO.blocking {
+      DriverManager.getConnection("jdbc:postgresql:world", "postgres", "password")
+    })
+    Transactor.catsEffect((), conn)
+  }
 
   // A custom Point type with a Meta instance xmapped from the PostgreSQL native type (which
   // would be weird to use directly in a data model). Note that the presence of this `Meta`

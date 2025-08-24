@@ -46,7 +46,8 @@ object ConnectionOp {
   final case class HandleErrorWith[A](fa: ConnectionIO[A], f: Throwable => ConnectionIO[A]) extends ConnectionOp[A]
 
   final case class WithPreparedStatement[A](
-    create: Connection => PreparedStatement,
+    sql: String,
+    create: (Connection, String) => PreparedStatement,
     f: PreparedStatement => A,
   ) extends ConnectionOp[A]
 }
@@ -157,7 +158,8 @@ object ConnectionIO { self =>
 
     private def withPreparedStatementExecuteQuery[A, B](sql: String, a: A, f: ResultSet => B)(implicit W: Write[A]) = {
       withPreparedStatement(
-        _.prepareStatement(sql),
+        sql,
+        _.prepareStatement(_),
         statement => {
           W.unsafeSet(statement, 1, a)
           Using.resource(statement.executeQuery())(f)
@@ -173,7 +175,7 @@ object ConnectionIO { self =>
         W.unsafeSet(ps, 1, a)
         ps.executeUpdate()
       }
-      withPreparedStatement(_.prepareStatement(sql), statement)
+      withPreparedStatement(sql, _.prepareStatement(_), statement)
     }
 
     def many[F[_]: Foldable, A](sql: String, fa: F[A])(implicit W: Write[A]): ConnectionIO[Int] = {
@@ -188,7 +190,7 @@ object ConnectionIO { self =>
           ps.executeBatch().foldLeft(0)((acc, n) => acc + n.max(0)) // treat negatives (failures) as no rows updated
         }
       }
-      withPreparedStatement(_.prepareStatement(sql), statement)
+      withPreparedStatement(sql, _.prepareStatement(_), statement)
     }
 
     def manyReturningGeneratedKeys[F[_]: Foldable, A, B](
@@ -208,7 +210,7 @@ object ConnectionIO { self =>
           Using.resource(ps.getGeneratedKeys)(query.resultSetCollect[F, B])
         }
       }
-      withPreparedStatement(_.prepareStatement(sql, columns.toArray), statement)
+      withPreparedStatement(sql, _.prepareStatement(_, columns.toArray), statement)
     }
 
     def generatedKeysUnique[A, B](sql: String, a: A, columns: List[String])(implicit W: Write[A], R: Read[B]): ConnectionIO[B] = {
@@ -217,12 +219,16 @@ object ConnectionIO { self =>
         val _ = ps.executeUpdate()
         Using.resource(ps.getGeneratedKeys)(query.resultSetUnique[B])
       }
-      withPreparedStatement(_.prepareStatement(sql, columns.toArray), statement)
+      withPreparedStatement(sql, _.prepareStatement(_, columns.toArray), statement)
     }
   }
 
-  private def withPreparedStatement[A](create: Connection => PreparedStatement, f: PreparedStatement => A): ConnectionIO[A] = {
-    liftF[ConnectionOp, A](WithPreparedStatement(create, f))
+  private def withPreparedStatement[A](
+    sql: String,
+    create: (Connection, String) => PreparedStatement,
+    f: PreparedStatement => A,
+  ): ConnectionIO[A] = {
+    liftF[ConnectionOp, A](WithPreparedStatement(sql, create, f))
   }
 
   def prepareQueryAnalysis[A, B](sql: String)(implicit W: Write[A], R: Read[B]): ConnectionIO[Analysis] =
@@ -250,7 +256,8 @@ object ConnectionIO { self =>
     dbMetaData <- liftF[ConnectionOp, DatabaseMetaData](Raw(_.getMetaData()))
     driver = dbMetaData.getDriverName
     tuple <- liftF[ConnectionOp, PrepareAnalysisMeta](WithPreparedStatement(
-      _.prepareStatement(sql),
+      sql,
+      (c, s) => c.prepareStatement(s),
       s => (parameterMetadata(write, s), columnMeta(read, s)),
     ))
     (p, c) = tuple
@@ -324,8 +331,8 @@ object ConnectionIO { self =>
           case NonFatal(t) => run(f(t))
         }
 
-      case WithPreparedStatement(create, f) =>
-        Using.resource(create(conn)) { stmt =>
+      case WithPreparedStatement(sql, create, f) =>
+        Using.resource(create(conn, sql)) { stmt =>
           stmt.setFetchSize(1024)
           f(stmt)
         }
@@ -341,8 +348,8 @@ object ConnectionIO { self =>
         val run = Free.foldMap(this)
         M.handleErrorWith(run(fa))(t => run(f(t)))
 
-      case WithPreparedStatement(create, f) =>
-        cats.effect.kernel.Resource.fromAutoCloseable(M.blocking(create(conn))).use { stmt =>
+      case WithPreparedStatement(sql, create, f) =>
+        cats.effect.kernel.Resource.fromAutoCloseable(M.blocking(create(conn, sql))).use { stmt =>
           M.blocking {
             stmt.setFetchSize(1024)
             f(stmt)

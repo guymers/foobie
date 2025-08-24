@@ -6,7 +6,6 @@ package doobie.util
 
 import cats.Monoid
 import cats.data.Chain
-import cats.syntax.apply.*
 import doobie.enumerated.Nullability.*
 import doobie.util.pos.Pos
 import doobie.util.query.Query

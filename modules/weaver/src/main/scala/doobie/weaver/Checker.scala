@@ -16,8 +16,8 @@ import doobie.util.testing.Analyzable
 import doobie.util.testing.analyze
 import doobie.util.testing.formatReport
 import doobie.util.transactor.Transactor
-import org.tpolecat.typename.TypeName
-import org.tpolecat.typename.typeName
+import doobie.util.typename.TypeName
+import doobie.util.typename.typeName
 import weaver.Expectations
 import weaver.Expectations.Helpers.*
 import weaver.SourceLocation

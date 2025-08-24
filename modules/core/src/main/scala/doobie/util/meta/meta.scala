@@ -10,7 +10,7 @@ import cats.data.NonEmptyList
 import doobie.enumerated.JdbcType
 import doobie.util.Get
 import doobie.util.Put
-import org.tpolecat.typename.TypeName
+import doobie.util.typename.TypeName
 
 import java.sql.PreparedStatement
 import java.sql.ResultSet

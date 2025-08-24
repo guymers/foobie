@@ -19,6 +19,7 @@ import zoobie.Transactor
 import zoobie.postgres.PostgreSQLConnectionConfig
 import zoobie.postgres.pool
 
+import java.sql.Connection
 import java.util.concurrent.TimeUnit
 
 object SQLCommenterIntegrationSpec extends ZIOSpecDefault {
@@ -46,8 +47,8 @@ object SQLCommenterIntegrationSpec extends ZIOSpecDefault {
 
     for {
       p <- pool(connectionConfig, config)
-      interpreter = TraceInterpreter.create(Transactor.kleisliInterpreter, ZIO.succeed(Some(span)))
-      transactor = Transactor(p.get, interpreter.ConnectionInterpreter, Transactor.strategies.transactional)
+      interpreter = (c: Connection) => TraceInterpreter.create(Transactor.interpreter(c), ZIO.succeed(Some(span)))
+      transactor = Transactor(p.get, interpreter, Transactor.strategies.transactional)
       _ <- transactor.run(fr"SELECT 1".query[Int].unique)
     } yield {
       assertCompletes

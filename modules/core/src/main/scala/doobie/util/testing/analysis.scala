@@ -15,7 +15,7 @@ import doobie.util.query.Query0
 import doobie.util.transactor.Transactor
 import doobie.util.update.Update
 import doobie.util.update.Update0
-import org.tpolecat.typename.*
+import doobie.util.typename.*
 
 /**
  * Common base trait for various checkers and matchers.

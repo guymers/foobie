@@ -5,6 +5,7 @@
 package doobie.bench
 
 import cats.effect.IO
+import cats.effect.kernel.Resource
 import cats.syntax.apply.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
@@ -17,7 +18,12 @@ import java.sql.DriverManager
 object shared {
 
   @State(Scope.Benchmark)
-  val xa = Transactor.fromDriverManager[IO]("org.postgresql.Driver", "jdbc:postgresql:world", "postgres", "password")
+  val xa = {
+    val conn = Resource.fromAutoCloseable(IO.blocking {
+      DriverManager.getConnection("jdbc:postgresql:world", "postgres", "password")
+    })
+    Transactor.catsEffect((), conn)
+  }
 }
 
 class bench {
@@ -57,16 +63,6 @@ class bench {
     Read[String],
   ).tupled
 
-  // Reading via .stream, which adds a fair amount of overhead
-  def doobieBenchP(n: Int): Int =
-    sql"select a.name, b.name, c.name from country a, country b, country c limit $n"
-      .query[(String, String, String)]
-      .stream
-      .compile.toList
-      .transact(xa)
-      .map(_.length)
-      .unsafeRunSync()
-
   // Reading via .list, which uses a lower-level collector
   def doobieBench(n: Int): Int =
     sql"select a.name, b.name, c.name from country a, country b, country c limit $n"
@@ -96,9 +92,5 @@ class bench {
   @Benchmark
   @OperationsPerInvocation(1000)
   def vector_accum_1000: Int = doobieBenchV(1000)
-
-  @Benchmark
-  @OperationsPerInvocation(1000)
-  def stream_accum_1000: Int = doobieBenchP(1000)
 
 }

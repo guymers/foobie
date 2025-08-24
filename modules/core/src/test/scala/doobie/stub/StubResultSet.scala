@@ -1,4 +1,4 @@
-package zoobie.stub
+package doobie.stub
 
 import java.io.InputStream
 import java.io.Reader
@@ -20,20 +20,34 @@ import java.sql.Timestamp
 import java.util
 import java.util.Calendar
 
-class StubResultSet extends ResultSet {
+@SuppressWarnings(Array("org.wartremover.warts.Null"))
+class StubResultSet(results: List[Vector[AnyRef]] = Nil) extends ResultSet {
   private var closed = false
+  private var _wasNull = false
+  private var current: Vector[AnyRef] = _
+  private var remaining = results
 
-  override def next(): Boolean = false
+  override def next(): Boolean = {
+    val nonEmpty = remaining.nonEmpty
+    if (nonEmpty) {
+      current = remaining.head
+      remaining = remaining.tail
+    }
+    nonEmpty
+  }
 
   override def isClosed: Boolean = closed
   override def close(): Unit = closed = true
 
-  override def wasNull(): Boolean = ???
+  override def wasNull(): Boolean = _wasNull
   override def getString(columnIndex: Int): String = ???
   override def getBoolean(columnIndex: Int): Boolean = ???
   override def getByte(columnIndex: Int): Byte = ???
   override def getShort(columnIndex: Int): Short = ???
-  override def getInt(columnIndex: Int): Int = ???
+  override def getInt(columnIndex: Int): Int = {
+    _wasNull = false
+    current(columnIndex - 1).asInstanceOf[Int]
+  }
   override def getLong(columnIndex: Int): Long = ???
   override def getFloat(columnIndex: Int): Float = ???
   override def getDouble(columnIndex: Int): Double = ???

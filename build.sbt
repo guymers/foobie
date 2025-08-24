@@ -8,7 +8,7 @@ val mysqlVersion = "9.4.0"
 val openTelemetryVersion = "1.53.0"
 val postgisVersion = "2025.1.1"
 val postgresVersion = "42.7.7"
-val shapelessVersion = "2.3.12"
+val shapelessVersion = "2.3.13"
 val slf4jVersion = "2.0.17"
 val weaverVersion = "0.8.4"
 val zioInteropCats = "23.1.0.5"
@@ -159,7 +159,7 @@ lazy val foobie = project.in(file("."))
   )
   .aggregate(
     modules, integrationTests,
-    example, bench, docs,
+    example, bench, /*docs,*/
   )
 
 lazy val modules = project.in(file("project/.root"))
@@ -186,17 +186,17 @@ lazy val core = module("core")
       "org.typelevel" %% "cats-core" % catsVersion,
       "org.typelevel" %% "cats-free" % catsVersion,
       "org.typelevel" %% "cats-effect-kernel" % catsEffectVersion % Optional,
-      "org.tpolecat" %% "typename" % "1.1.0",
 
       "com.h2database" % "h2" % h2Version % Test,
       "dev.zio" %% "zio-interop-cats" % zioInteropCats % Test,
+      "org.typelevel" %% "cats-effect" % catsEffectVersion % Test,
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
     ),
     libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, _)) => Seq(
-        "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaVersion,
         "com.chuusai" %% "shapeless" % shapelessVersion % Test,
+        "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaVersion,
       )
       case _ => Seq.empty
     }),
@@ -209,7 +209,7 @@ lazy val macros = module("macros")
       "org.typelevel" %% "cats-core" % catsVersion,
     ),
     libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, _)) => Seq(scalaOrganization.value % "scala-reflect" % scalaVersion.value) // for macros
+      case Some((2, _)) => Seq(scalaOrganization.value % "scala-reflect" % scalaVersion.value)
       case _ => Seq.empty
     }),
   )
@@ -227,7 +227,7 @@ lazy val postgres = module("postgres")
       case _ => Seq.empty
     }),
   )
-  .dependsOn(core % "compile->compile;test->test", zio % "test->compile")
+  .dependsOn(core, core % "test->test", zio % "test->compile")
 
 lazy val postgis = module("postgis")
   .settings(
@@ -255,7 +255,7 @@ lazy val mysql = module("mysql")
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
     ),
   )
-  .dependsOn(core % "compile->compile;test->test", zio % "test->compile")
+  .dependsOn(core, core % "test->test", zio % "test->compile")
 
 lazy val h2 = module("h2")
   .settings(
@@ -264,6 +264,7 @@ lazy val h2 = module("h2")
       "org.typelevel" %% "cats-effect-kernel" % catsEffectVersion,
 
       "dev.zio" %% "zio-interop-cats" % zioInteropCats % Test,
+      "org.typelevel" %% "cats-effect" % catsEffectVersion % Test,
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
     )
@@ -293,7 +294,13 @@ lazy val zio = module("zio")
   .settings(
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % zioVersion,
-      "dev.zio" %% "zio-interop-cats" % zioInteropCats,
+      ("dev.zio" %% "zio-interop-cats" % zioInteropCats) // optional deps in 2.13 but not in 3 ...
+        .excludeAll("co.fs2" %% "fs2-core")
+        .excludeAll("co.fs2" %% "fs2-io")
+        .excludeAll("dev.zio" %% "zio-managed")
+        .excludeAll("dev.zio" %% "zio-streams")
+        .excludeAll("org.typelevel" %% "cats-effect-std")
+        .excludeAll("org.typelevel" %% "cats-mtl"),
 
       "dev.zio" %% "zio-test" % zioVersion % Optional,
       "com.mysql" % "mysql-connector-j" % mysqlVersion % Optional,
@@ -305,7 +312,7 @@ lazy val zio = module("zio")
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
     ),
   )
-  .dependsOn(core)
+  .dependsOn(core, core % "test->test")
 
 lazy val `zio-it` = moduleIT("zio")
   .settings(moduleName := "zoobie-it")
@@ -321,6 +328,11 @@ lazy val `zio-it` = moduleIT("zio")
 lazy val example = project.in(file("modules/example"))
   .settings(commonSettings)
   .settings(noPublishSettings)
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-effect" % catsEffectVersion,
+    )
+  )
   .settings(Compile / compile / wartremoverErrors := Nil)
   .settings(Test / compile / wartremoverErrors := Nil)
   .dependsOn(core, postgres, h2)
@@ -328,6 +340,11 @@ lazy val example = project.in(file("modules/example"))
 lazy val bench = project.in(file("modules/bench"))
   .settings(commonSettings)
   .settings(noPublishSettings)
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-effect" % catsEffectVersion,
+    )
+  )
   .settings(Compile / compile / wartremoverErrors := Nil)
   .settings(mimaPreviousArtifacts := Set.empty)
   .enablePlugins(JmhPlugin)

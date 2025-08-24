@@ -8,7 +8,7 @@ import cats.data.NonEmptyList
 import doobie.util.Get
 import doobie.util.Put
 import org.postgresql.util.PGobject
-import org.tpolecat.typename.TypeName
+import doobie.util.typename.TypeName
 
 object json {
 
