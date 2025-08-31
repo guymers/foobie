@@ -97,7 +97,7 @@ object ConnectionIO { self =>
       b.result()
     }
 
-    def collectPair[F[_], A, K, V](sql: String, a: A)(implicit
+    def collectPair[A, K, V](sql: String, a: A)(implicit
       R: Read[(K, V)],
       W: Write[A],
       factory: Factory[(K, V), Map[K, V]],

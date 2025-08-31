@@ -5,18 +5,19 @@
 package doobie.util
 
 import doobie.util.typename.TypeName
+
 import scala.quoted.*
 
 trait TypeNamePlatform {
 
   inline given [A]: TypeName[A] =
-    ${TypeNamePlatform.impl[A]}
+    ${ TypeNamePlatform.impl[A] }
 
 }
 
 object TypeNamePlatform {
 
   def impl[A](using t: Type[A], ctx: Quotes): Expr[TypeName[A]] =
-    '{TypeName[A](${Expr(Type.show[A])})}
+    '{ TypeName[A](${ Expr(Type.show[A]) }) }
 
 }

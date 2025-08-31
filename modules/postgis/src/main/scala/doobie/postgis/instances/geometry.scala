@@ -6,9 +6,9 @@ package doobie.postgis.instances
 
 import doobie.util.invariant.*
 import doobie.util.meta.Meta
+import doobie.util.typename.*
 import net.postgis.jdbc.*
 import net.postgis.jdbc.geometry.*
-import doobie.util.typename.*
 
 import scala.reflect.ClassTag
 

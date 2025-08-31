@@ -8,8 +8,8 @@ import cats.data.NonEmptyList
 import doobie.enumerated.JdbcType
 import doobie.util.invariant.*
 import doobie.util.meta.Meta
-import org.postgresql.util.*
 import doobie.util.typename.*
+import org.postgresql.util.*
 
 import scala.reflect.ClassTag
 
