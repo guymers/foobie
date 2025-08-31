@@ -82,6 +82,7 @@ object TextSuite extends PostgresDatabaseSpec {
             _ <- ZIO.attemptBlocking(copyIn.endCopy()).ignoreLogged
 
             results <- interpret(selectAll)
+            _ <- interpret(ConnectionIO.commit)
           } yield {
             assertTrue(results == rs)
           })
