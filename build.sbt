@@ -200,6 +200,7 @@ lazy val core = module("core")
 
       "com.h2database" % "h2" % h2Version % Test,
       "dev.zio" %% "zio-interop-cats" % zioInteropCats % Test,
+      "dev.zio" %% "zio-managed" % zioVersion % Test,
       "org.typelevel" %% "cats-effect" % catsEffectVersion % Test,
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
@@ -264,6 +265,7 @@ lazy val h2 = module("h2")
       "org.typelevel" %% "cats-effect-kernel" % catsEffectVersion,
 
       "dev.zio" %% "zio-interop-cats" % zioInteropCats % Test,
+      "dev.zio" %% "zio-managed" % zioVersion % Test,
       "org.typelevel" %% "cats-effect" % catsEffectVersion % Test,
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
@@ -294,15 +296,7 @@ lazy val zio = module("zio")
   .settings(
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % zioVersion,
-      ("dev.zio" %% "zio-interop-cats" % zioInteropCats) // optional deps in 2.13 but not in 3 ...
-        .excludeAll("co.fs2" %% "fs2-core")
-        .excludeAll("co.fs2" %% "fs2-io")
-        //.excludeAll("dev.zio" %% "zio-managed") required for compilation
-        .excludeAll("dev.zio" %% "zio-streams")
-        .excludeAll("org.typelevel" %% "cats-effect-std")
-        .excludeAll("org.typelevel" %% "cats-mtl"),
-      // urgh "Cannot resolve reference to type cats.effect.type.LiftIO"
-      "org.typelevel" %% "cats-effect" % catsEffectVersion,
+      "dev.zio" %% "zio-interop-tracer" % zioInteropCats,
 
       "dev.zio" %% "zio-test" % zioVersion % Optional,
       "com.mysql" % "mysql-connector-j" % mysqlVersion % Optional,

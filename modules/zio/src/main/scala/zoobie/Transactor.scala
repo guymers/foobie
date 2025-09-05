@@ -57,7 +57,7 @@ object Transactor {
     val rollback: Strategy = transactional.copy(after = doobie.free.connection.ConnectionIO.rollback)
   }
 
-  implicit val monadTask: Monad[Task] = zio.interop.catz.monadErrorInstance
+  implicit val monadTask: Monad[Task] = zoobie.interop.ZioMonad
 
   def interpreter(conn: Connection, fetchSize: Int = 0): ConnectionOp ~> Task = new (ConnectionOp ~> Task) {
     import ConnectionOp.*
