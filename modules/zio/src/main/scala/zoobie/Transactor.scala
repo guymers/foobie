@@ -1,6 +1,5 @@
 package zoobie
 
-import cats.Monad
 import cats.free.Free
 import cats.~>
 import doobie.free.connection.ConnectionIO
@@ -11,11 +10,11 @@ import zio.Scope
 import zio.Task
 import zio.Trace
 import zio.ZIO
+import zoobie.interop.*
 
 import java.sql.Connection
 
 sealed abstract class Transactor { self =>
-  import Transactor.monadTask
 
   def connection: ZIO[Scope, DatabaseError.Connection, Connection]
 
@@ -56,8 +55,6 @@ object Transactor {
     val transactional: Strategy = Strategy.default
     val rollback: Strategy = transactional.copy(after = doobie.free.connection.ConnectionIO.rollback)
   }
-
-  implicit val monadTask: Monad[Task] = zoobie.interop.ZioMonad
 
   def interpreter(conn: Connection, fetchSize: Int = 0): ConnectionOp ~> Task = new (ConnectionOp ~> Task) {
     import ConnectionOp.*
