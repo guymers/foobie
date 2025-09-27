@@ -306,6 +306,8 @@ lazy val zio = module("zio")
 
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+      "org.typelevel" %% "cats-laws" % catsVersion % Test,
+      "org.typelevel" %% "discipline-munit" % "2.0.0" % Test,
     ),
   )
   .dependsOn(core, core % "test->test")

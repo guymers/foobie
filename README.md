@@ -8,7 +8,7 @@ Currently contains the following changes:
 - PostGIS instances have been moved to the new `postgis` module and are available under `doobie.postgis.instances.{geography,geometry}`
 - `LogHandler` has been removed. Override interpreters if you want to log things.
 - removed `WeakAsync`, a `ConnectionIO` is pretty much always a database transaction and should not be mixed with an `IO` implementation
-- Requires Java 11
+- Requires Java 17
 
 To use add at least the core module to your project:
 ```
