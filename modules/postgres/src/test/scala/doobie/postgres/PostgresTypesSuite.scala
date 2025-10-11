@@ -134,14 +134,17 @@ object PostgresTypesSuite extends PostgresDatabaseSpec {
     skip("json"),
 
     // 8.15 Arrays
-    skip("bit[]", "Requires a cast"),
-    skip("smallint[]", "always comes back as Array[Int]"),
+    suiteGetPut[List[Boolean]]("bit[]", Gen.listOfBounded(0, 10)(Gen.boolean)),
+    suiteGetPut[List[Short]]("smallint[]", Gen.listOfBounded(0, 10)(Gen.short)),
     suiteGetPut[List[Int]]("integer[]", Gen.listOfBounded(0, 10)(Gen.int)),
     suiteGetPut[List[Long]]("bigint[]", Gen.listOfBounded(0, 10)(Gen.long)),
     suiteGetPut[List[Float]]("real[]", Gen.listOfBounded(0, 10)(Gen.float)),
     suiteGetPut[List[Double]]("double precision[]", Gen.listOfBounded(0, 10)(Gen.double)),
     suiteGetPut[List[String]]("varchar[]", Gen.listOfBounded(0, 10)(genString)),
     suiteGetPut[List[UUID]]("uuid[]", Gen.listOfBounded(0, 10)(Gen.uuid)),
+    suiteGetPut[List[java.sql.Date]]("date[]", Gen.listOfBounded(0, 10)(genSQLDateArray)),
+    suiteGetPut[List[java.time.LocalDate]]("date[]", Gen.listOfBounded(0, 10)(genLocalDateArray)),
+    suiteGetPut[List[java.sql.Timestamp]]("timestamp[]", Gen.listOfBounded(0, 10)(genSQLTimestampArray)),
     suiteGetPut("numeric[]", Gen.const(List[JBigDecimal](BigDecimal("3.14").bigDecimal, BigDecimal("42.0").bigDecimal))),
     suiteGetPut("numeric[]", Gen.const(List[BigDecimal](BigDecimal("3.14"), BigDecimal("42.0")))),
 

@@ -165,8 +165,7 @@ object PostgresCheckSuite extends PostgresDatabaseSpec {
   }
 
   private def errorWrite[A: Put](value: A, dbType: String) = for {
-    analysisResult <-
-      fr"SELECT $value::${Fragment.const(dbType)}".update.analysis.transact
+    analysisResult <- fr"SELECT $value::${Fragment.const(dbType)}".update.analysis.transact
   } yield {
     val errorClasses = analysisResult.parameterAlignmentErrors.map(_.getClass)
     assertTrue(errorClasses == List(classOf[ParameterTypeError]))

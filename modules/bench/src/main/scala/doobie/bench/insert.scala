@@ -9,6 +9,7 @@ import doobie.util.Write
 import doobie.util.update.Update
 import org.openjdk.jmh.annotations.*
 
+import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 
 @BenchmarkMode(Array(Mode.SingleShotTime))
@@ -70,50 +71,56 @@ class insert {
 object insert {
   import doobie.postgres.instances.array.*
 
-  final case class Widget(name: String, extensions: Int)
+  final case class Widget(name: String, extensions: Int, produced: LocalDate)
   object Widget {
     implicit val write: Write[Widget] = Write.derived
 
-    def generate(n: Int) = List.fill(n)(Widget("widget", n))
+    private val now = LocalDate.now()
+
+    def generate(n: Int) = Vector.fill(n)(Widget("widget", n, now.plusDays(n.toLong)))
   }
 
   private val insertBatch = {
     val sql = """
       INSERT INTO bench_widget
-      (name, extensions)
+      (name, extensions, produced)
       VALUES
-      (?, ?)
+      (?, ?, ?)
     """
     Update[Widget](sql)
   }
 
-  private def insertValues(widgets: List[Widget]) = {
+  private def insertValues(widgets: Vector[Widget]) = {
     val sql = fr"""
       INSERT INTO bench_widget
-      (name, extensions)
+      (name, extensions, produced)
       VALUES
-      ${widgets.map(w => fr"(${w.name}, ${w.extensions})").intercalate(fr",")}
+      ${widgets.map(w => fr"(${w.name}, ${w.extensions}, ${w.produced})").intercalate(fr",")}
     """
     sql.update
   }
 
-  private def insertArrayValues(widgets: List[Widget]) = {
+  private def insertArrayValues(widgets: Vector[Widget]) = {
     val n = widgets.length
     val names = Array.ofDim[String](n)
     val extensions = Array.ofDim[Int](n)
+    val produced = Array.ofDim[LocalDate](n)
     var i = 0
-    widgets.foreach { w =>
+    while (i < n) {
+      val w = widgets(i)
       names(i) = w.name
       extensions(i) = w.extensions
+      produced(i) = w.produced
       i = i + 1
     }
 
     val sql = fr"""
       INSERT INTO bench_widget
-      (name, extensions)
+      (name, extensions, produced)
       SELECT * FROM unnest(
         $names::text[],
-        $extensions::int4[]
+        $extensions::int4[],
+        $produced::date[]
       )
     """
     sql.update
@@ -123,7 +130,8 @@ object insert {
     sql"drop table if exists bench_widget".update.run *>
       sql"""create table bench_widget (
         name text not null,
-        extensions integer not null
+        extensions integer not null,
+        produced date not null
       )""".update.run.void
 
   @State(Scope.Thread)
