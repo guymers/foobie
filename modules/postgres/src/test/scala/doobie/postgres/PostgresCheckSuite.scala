@@ -23,6 +23,7 @@ import scala.collection.immutable.SortedSet
 
 object PostgresCheckSuite extends PostgresDatabaseSpec {
   import DatabaseType.*
+  import doobie.postgres.instances.uuid.*
 
   private def set[A: Ordering](as: A*) = SortedSet(as*)
 
@@ -58,6 +59,10 @@ object PostgresCheckSuite extends PostgresDatabaseSpec {
     suite("OffsetTime")(
       testRead[OffsetTime](set(TimeTZ)),
       testWrite(OffsetTime.parse("01:23:13+10:00"), set(TimeTZ)),
+    ),
+    suite("UUID")(
+      testRead[java.util.UUID](set(UUID)),
+      testWrite(java.util.UUID.fromString("00000000-1111-2222-3333-444444444444"), set(UUID)),
     ),
   )
 
@@ -101,6 +106,7 @@ object PostgresCheckSuite extends PostgresDatabaseSpec {
       case DatabaseType.Text => fr"SELECT '2015-02-23'"
       case DatabaseType.Time => fr"SELECT '01:23:13'"
       case DatabaseType.TimeTZ => fr"SELECT '01:23:13+10:00'"
+      case DatabaseType.UUID => fr"SELECT '00000000-1111-2222-3333-444444444444'"
     }
     fr"$fragment::${Fragment.const(t.value)}"
   }
@@ -174,10 +180,11 @@ object PostgresCheckSuite extends PostgresDatabaseSpec {
     case object Text extends DatabaseType("TEXT")
     case object Time extends DatabaseType("TIME")
     case object TimeTZ extends DatabaseType("TIMETZ")
+    case object UUID extends DatabaseType("UUID")
 
     implicit val ordering: Ordering[DatabaseType] = Ordering.by(_.value)
 
-    val all = SortedSet(Bytes, Date, Timestamp, TimestampTZ, Text, Time, TimeTZ)
+    val all = SortedSet(Bytes, Date, Timestamp, TimestampTZ, Text, Time, TimeTZ, UUID)
   }
 
 }
