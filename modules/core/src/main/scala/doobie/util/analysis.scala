@@ -5,6 +5,7 @@
 package doobie.util
 
 import cats.data.Ior
+import cats.data.NonEmptyList
 import cats.syntax.eq.*
 import cats.syntax.foldable.*
 import cats.syntax.show.*
@@ -22,7 +23,12 @@ import doobie.util.pretty.*
 object analysis {
 
   /** Metadata for the JDBC end of a column/parameter mapping. */
-  final case class ColumnMeta(jdbcType: JdbcType, vendorTypeName: String, nullability: Nullability, name: String)
+  final case class ColumnMeta(
+    jdbcType: JdbcType,
+    vendorTypeName: String,
+    nullability: Nullability,
+    name: String,
+  )
 
   /** Metadata for the JDBC end of a column/parameter mapping. */
   final case class ParameterMeta(
@@ -141,17 +147,54 @@ object analysis {
   /** Compatibility analysis for the given statement and aligned mappings. */
   final case class Analysis(
     driver: String,
+    sqlKeywords: Set[String],
     sql: String,
     parameterAlignment: List[Ior[(Put[?], NullabilityKnown), ParameterMeta]],
     columnAlignment: List[Ior[(Get[?], NullabilityKnown), ColumnMeta]],
   ) {
 
-    private val parameterAlignment_ = parameterAlignment.map(_.map { m =>
-      m.copy(jdbcType = tweakMetaJdbcType(driver, m.jdbcType, vendorTypeName = m.vendorTypeName))
-    })
-    private val columnAlignment_ = columnAlignment.map(_.map { m =>
-      m.copy(jdbcType = tweakMetaJdbcType(driver, m.jdbcType, vendorTypeName = m.vendorTypeName))
-    })
+    // spanner does not have a UUID column but the driver allows a UUID object and will convert it to a string.
+    // So if the database is spanner allow a UUID in and out of a varchar.
+
+    private val parameterAlignment_ = {
+      val tweaked = parameterAlignment.map(_.map { m =>
+        m.copy(jdbcType = tweakMetaJdbcType(driver, m.jdbcType, vendorTypeName = m.vendorTypeName))
+      })
+
+      if (Analysis.isPostgresSpanner(driver, sqlKeywords)) {
+        tweaked.map {
+          case Ior.Both((p, n), m) if isPostgresPutUUID(p) && isSpannerVarchar(m.jdbcType, m.vendorTypeName) =>
+            Ior.Both((p, n), m.copy(jdbcType = JdbcType.Other, vendorTypeName = "uuid"))
+          case v => v
+        }
+      } else tweaked
+    }
+    private val columnAlignment_ = {
+      val tweaked = columnAlignment.map(_.map { m =>
+        m.copy(jdbcType = tweakMetaJdbcType(driver, m.jdbcType, vendorTypeName = m.vendorTypeName))
+      })
+
+      if (Analysis.isPostgresSpanner(driver, sqlKeywords)) {
+        tweaked.map {
+          case Ior.Both((p, n), m) if isPostgresGetUUID(p) && isSpannerVarchar(m.jdbcType, m.vendorTypeName) =>
+            Ior.Both((p, n), m.copy(jdbcType = JdbcType.Other, vendorTypeName = "uuid"))
+          case v => v
+        }
+      } else tweaked
+    }
+
+    private def isPostgresGetUUID(g: Get[?]) = g match {
+      case _: Get.Basic[?] => false
+      case g: Get.Advanced[?] => g.jdbcSources.contains_(JdbcType.Other) && g.schemaTypes == NonEmptyList.of("uuid")
+    }
+
+    private def isPostgresPutUUID(p: Put[?]) = p match {
+      case _: Put.Basic[?] => false
+      case p: Put.Advanced[?] => p.jdbcTargets.contains_(JdbcType.Other) && p.schemaTypes == NonEmptyList.of("uuid")
+    }
+
+    private def isSpannerVarchar(jdbcType: JdbcType, vendorTypeName: String) =
+      jdbcType === JdbcType.VarChar && vendorTypeName == "varchar"
 
     def parameterMisalignments: List[ParameterMisalignment] =
       parameterAlignment_.zipWithIndex.collect {
@@ -225,7 +268,7 @@ object analysis {
       }
     }
 
-    /** Description of each parameter, paird with its errors. */
+    /** Description of each parameter, paired with its errors. */
     lazy val columnDescriptions: List[(String, List[AlignmentError])] = {
       import pretty.*
       val cols: Block =
@@ -250,6 +293,15 @@ object analysis {
     }
 
   }
+  object Analysis {
+
+    private val MySQLDriverName = "MySQL Connector/J"
+    private val PostgresDriverName = "PostgreSQL JDBC Driver"
+
+    private[doobie] def isMySQL(driver: String) = driver == MySQLDriverName
+    private[doobie] def isPostgres(driver: String) = driver == PostgresDriverName
+    private[doobie] def isPostgresSpanner(driver: String, sqlKeywords: Set[String]) = isPostgres(driver) && !sqlKeywords.contains("unlogged")
+  }
 
   // Some stringy helpers
 
@@ -270,8 +322,6 @@ object analysis {
       case NullableUnknown => "NULL?"
     }
 
-  private val MySQLDriverName = "MySQL Connector/J"
-
   // tweaks to the types returned by JDBC to improve analysis
   private def tweakMetaJdbcType(driver: String, jdbcType: JdbcType, vendorTypeName: String) = jdbcType match {
     // the Postgres driver does not return *WithTimezone JDBC types for *tz column types
@@ -281,8 +331,7 @@ object analysis {
     case JdbcType.Timestamp if vendorTypeName.compareToIgnoreCase("timestamptz") == 0 => JdbcType.TimestampWithTimezone
 
     // MySQL timestamp columns are returned as Timestamp
-    case JdbcType.Timestamp
-        if vendorTypeName.compareToIgnoreCase("timestamp") == 0 && driver == MySQLDriverName =>
+    case JdbcType.Timestamp if vendorTypeName.compareToIgnoreCase("timestamp") == 0 && Analysis.isMySQL(driver) =>
       JdbcType.TimestampWithTimezone
 
     case t => t

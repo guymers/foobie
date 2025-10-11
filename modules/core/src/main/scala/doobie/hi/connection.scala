@@ -153,13 +153,12 @@ object connection {
     sql: String,
     params: PreparedStatementIO[List[Ior[(Put[?], Nullability.NullabilityKnown), ParameterMeta]]],
     columns: PreparedStatementIO[List[Ior[(Get[?], Nullability.NullabilityKnown), ColumnMeta]]],
-  ) = {
-    val mappings = prepareStatement(sql) {
-      (params, columns).tupled
-    }
-    (HC.getMetaData(FDMD.getDriverName), mappings).mapN { case (driver, (p, c)) =>
-      Analysis(driver, sql, p, c)
-    }
+  ) = (
+    HC.getMetaData(FDMD.getDriverName),
+    HC.getMetaData(FDMD.getSQLKeywords),
+    prepareStatement(sql) { (params, columns).tupled },
+  ).mapN { case (driver, sqlKeywords, (p, c)) =>
+    Analysis(driver, sqlKeywords.split(',').filter(_.nonEmpty).toSet, sql, p, c)
   }
 
   /** @group Statements */
