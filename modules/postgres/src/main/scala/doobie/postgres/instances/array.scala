@@ -4,17 +4,10 @@
 
 package doobie.postgres.instances
 
-import cats.data.NonEmptyList
-import doobie.enumerated.JdbcType
-import doobie.util.Get
-import doobie.util.Put
 import doobie.util.invariant.*
 import doobie.util.meta.Meta
-import org.postgresql.jdbc.PgArray
 
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
 import scala.reflect.ClassTag
 
 @SuppressWarnings(Array("org.wartremover.warts.AutoUnboxing"))
@@ -110,49 +103,6 @@ object array {
   private val boxedPairTimestamp = boxedPair[java.sql.Timestamp]("timestamp", "_timestamp")
   implicit val unliftedTimestampArrayType: Meta[Array[java.sql.Timestamp]] = boxedPairTimestamp._1
   implicit val liftedTimestampArrayType: Meta[Array[Option[java.sql.Timestamp]]] = boxedPairTimestamp._2
-
-  private class InstantValidToString(val i: Instant) {
-    override def toString = i.toString.replace('T', ' ').stripSuffix("Z")
-  }
-
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Null"))
-  private val boxedPairInstant = {
-    val schema = NonEmptyList.of("_timestamptz")
-
-    val fieldStringField = classOf[PgArray].getDeclaredField("fieldString")
-    fieldStringField.setAccessible(true)
-
-    val get = Get.Advanced.one(
-      JdbcType.Array,
-      schema,
-      (r, n) => {
-        val a = r.getArray(n)
-        if (a == null) {
-          null
-        } else {
-          a match {
-            case a: PgArray =>
-              // the array string looks like "0001-01-01 20:03:28.658293+10:12:08" for some reason...
-              val fieldString = fieldStringField.get(a).asInstanceOf[String]
-              val newFieldString = fieldString.replaceAll("\\+[0-9]{2}(:[0-9]{2})?(:[0-9]{2})?", "")
-              fieldStringField.set(a, newFieldString)
-            case _ => ()
-          }
-          // cant override, a timestamptz array always has java.sql.Timestamp elements
-          a.getArray.asInstanceOf[Array[java.sql.Timestamp]]
-            .map(_.toLocalDateTime.toInstant(ZoneOffset.UTC))
-        }
-      },
-    )
-
-    // postgres driver calls .toString() ...
-    val put = Put.Advanced.array[InstantValidToString](schema, "timestamptz")
-      .contramap[Array[Instant]](_.map(new InstantValidToString(_)))
-
-    boxedPairMeta(new Meta(get, put))
-  }
-  implicit val unliftedInstantArrayType: Meta[Array[Instant]] = boxedPairInstant._1
-  implicit val liftedInstantArrayType: Meta[Array[Option[Instant]]] = boxedPairInstant._2
 
   // Unboxed equivalents (actually identical in the lifted case). We require that B is the unboxed
   // equivalent of A, otherwise this will fail in spectacular fashion, and we're using a cast in the

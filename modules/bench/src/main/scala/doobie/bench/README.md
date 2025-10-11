@@ -25,13 +25,13 @@ d.b.t.copy_stream      avgt    2   382.481          ns/op
 # JMH version: 1.37
 # VM version: JDK 21.0.8, OpenJDK 64-Bit Server VM
 Benchmark          Mode   Cnt     Score     Error  Units
-d.b.i.array_512      ss  1500  2108.146 ±  29.363  ns/op
-d.b.i.array_1024     ss  1500  1282.125 ±  17.193  ns/op
-d.b.i.array_2048     ss  1500   901.204 ±  27.426  ns/op
-d.b.i.batch_512      ss  1500  3610.360 ±  49.533  ns/op
-d.b.i.batch_1024     ss  1500  2824.224 ± 158.971  ns/op
-d.b.i.batch_2048     ss  1500  2413.790 ±  15.661  ns/op
-d.b.i.values_512     ss  1500  2661.017 ±  70.472  ns/op
-d.b.i.values_1024    ss  1500  1930.406 ±  25.466  ns/op
-d.b.i.values_2048    ss  1500  1759.005 ±  13.514  ns/op
+d.b.i.array_512      ss  1500  2637.671 ±  74.508  ns/op
+d.b.i.array_1024     ss  1500  1536.033 ±  17.970  ns/op
+d.b.i.array_2048     ss  1500  1115.185 ±  20.325  ns/op
+d.b.i.batch_512      ss  1500  3894.445 ±  42.689  ns/op
+d.b.i.batch_1024     ss  1500  3040.211 ±  21.192  ns/op
+d.b.i.batch_2048     ss  1500  2648.115 ±  19.796  ns/op
+d.b.i.values_512     ss  1500  3057.419 ±  34.115  ns/op
+d.b.i.values_1024    ss  1500  2360.481 ±  41.843  ns/op
+d.b.i.values_2048    ss  1500  2343.947 ± 116.611  ns/op
 ```

@@ -51,10 +51,6 @@ object TimeGenerators {
     genLocalDateTime.map(_.toInstant(ZoneOffset.UTC))
   }
 
-  val genInstantArray: Gen[Any, Instant] = {
-    genLocalDateTimeArray.map(_.toInstant(ZoneOffset.UTC))
-  }
-
   val genZoneOffset: Gen[Any, ZoneOffset] = {
     Gen.int(MinOffset.getTotalSeconds, MaxOffset.getTotalSeconds).map(ZoneOffset.ofTotalSeconds(_))
   }

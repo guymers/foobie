@@ -9,7 +9,7 @@ import doobie.util.Write
 import doobie.util.update.Update
 import org.openjdk.jmh.annotations.*
 
-import java.time.Instant
+import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 
 @BenchmarkMode(Array(Mode.SingleShotTime))
@@ -71,13 +71,13 @@ class insert {
 object insert {
   import doobie.postgres.instances.array.*
 
-  final case class Widget(name: String, extensions: Int, produced: Instant)
+  final case class Widget(name: String, extensions: Int, produced: LocalDate)
   object Widget {
     implicit val write: Write[Widget] = Write.derived
 
-    val now = Instant.now()
+    private val now = LocalDate.now()
 
-    def generate(n: Int) = List.fill(n)(Widget("widget", n, now.plusMillis(n.toLong)))
+    def generate(n: Int) = Vector.fill(n)(Widget("widget", n, now.plusDays(n.toLong)))
   }
 
   private val insertBatch = {
@@ -90,7 +90,7 @@ object insert {
     Update[Widget](sql)
   }
 
-  private def insertValues(widgets: List[Widget]) = {
+  private def insertValues(widgets: Vector[Widget]) = {
     val sql = fr"""
       INSERT INTO bench_widget
       (name, extensions, produced)
@@ -100,13 +100,14 @@ object insert {
     sql.update
   }
 
-  private def insertArrayValues(widgets: List[Widget]) = {
+  private def insertArrayValues(widgets: Vector[Widget]) = {
     val n = widgets.length
     val names = Array.ofDim[String](n)
     val extensions = Array.ofDim[Int](n)
-    val produced = Array.ofDim[Instant](n)
+    val produced = Array.ofDim[LocalDate](n)
     var i = 0
-    widgets.foreach { w =>
+    while (i < n) {
+      val w = widgets(i)
       names(i) = w.name
       extensions(i) = w.extensions
       produced(i) = w.produced
@@ -119,7 +120,7 @@ object insert {
       SELECT * FROM unnest(
         $names::text[],
         $extensions::int4[],
-        $produced::timestamptz[]
+        $produced::date[]
       )
     """
     sql.update
@@ -130,7 +131,7 @@ object insert {
       sql"""create table bench_widget (
         name text not null,
         extensions integer not null,
-        produced timestamptz not null
+        produced date not null
       )""".update.run.void
 
   @State(Scope.Thread)

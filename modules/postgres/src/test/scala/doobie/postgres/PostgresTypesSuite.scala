@@ -145,7 +145,6 @@ object PostgresTypesSuite extends PostgresDatabaseSpec {
     suiteGetPut[List[java.sql.Date]]("date[]", Gen.listOfBounded(0, 10)(genSQLDateArray)),
     suiteGetPut[List[java.time.LocalDate]]("date[]", Gen.listOfBounded(0, 10)(genLocalDateArray)),
     suiteGetPut[List[java.sql.Timestamp]]("timestamp[]", Gen.listOfBounded(0, 10)(genSQLTimestampArray)),
-    suiteGetPut[List[java.time.Instant]]("timestamptz[]", Gen.listOfBounded(0, 10)(genInstantArray)),
     suiteGetPut("numeric[]", Gen.const(List[JBigDecimal](BigDecimal("3.14").bigDecimal, BigDecimal("42.0").bigDecimal))),
     suiteGetPut("numeric[]", Gen.const(List[BigDecimal](BigDecimal("3.14"), BigDecimal("42.0")))),
 
