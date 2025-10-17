@@ -56,7 +56,7 @@ object Transactor {
     val rollback: Strategy = transactional.copy(after = doobie.free.connection.ConnectionIO.rollback)
   }
 
-  def interpreter(conn: Connection, fetchSize: Int = 0): ConnectionOp ~> Task = new (ConnectionOp ~> Task) {
+  def interpreter(conn: Connection, fetchSize: Int = 4096): ConnectionOp ~> Task = new (ConnectionOp ~> Task) {
     import ConnectionOp.*
     override def apply[A](fa: ConnectionOp[A]) = fa match {
       case Raw(f) => ZIO.attemptBlocking(f(conn))
