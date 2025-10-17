@@ -1,7 +1,9 @@
 package doobie.postgis
 
 import doobie.postgres.PostgresDatabaseSpec
+import zio.ZIO
 import zio.ZLayer
+import zoobie.ConnectionPool
 import zoobie.Transactor
 
 abstract class PostgisDatabaseSpec extends PostgresDatabaseSpec { self =>
@@ -10,16 +12,14 @@ abstract class PostgisDatabaseSpec extends PostgresDatabaseSpec { self =>
 }
 object PostgisDatabaseSpec {
 
-  val layer: ZLayer[Any, Nothing, Transactor] = ZLayer.scoped[Any] {
-    createTransactor
-  }
-
-  private def createTransactor = {
+  val layer: ZLayer[Any, Nothing, ConnectionPool & Transactor] = {
     import PostgresDatabaseSpec.config
     import PostgresDatabaseSpec.connectionConfig
 
-    zoobie.postgres.postgis(connectionConfig, config).map { pool =>
-      Transactor.fromPoolTransactional(pool)
+    ZLayer.scoped[Any] {
+      zoobie.postgres.postgis(connectionConfig, config)
+    } >+> ZLayer.fromZIO {
+      ZIO.serviceWith[ConnectionPool](Transactor.fromPoolTransactional(_))
     }
   }
 }

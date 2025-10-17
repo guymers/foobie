@@ -7,7 +7,7 @@ import java.util.Properties
 import java.util.concurrent.Executor
 
 @SuppressWarnings(Array("org.wartremover.warts.Var"))
-class ConnectionProxy(connection: Connection) extends Connection {
+class ConnectionProxy(val connection: Connection) extends Connection {
 
   private var closed: Boolean = false
 

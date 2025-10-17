@@ -6,8 +6,8 @@ package doobie.postgres
 
 import cats.syntax.applicative.*
 import cats.syntax.functor.*
-import doobie.FC
 import doobie.free.connection.ConnectionIO
+import doobie.free.connection.ConnectionIO.MonadErrorConnectionIO
 import doobie.postgres.syntax.applicativeerror.*
 import zio.test.ZIOSpecDefault
 import zio.test.assertCompletes
@@ -21,7 +21,7 @@ object SyntaxSuite extends ZIOSpecDefault {
       assertCompletes
     },
     test("syntax should not overflow the stack on direct recursion") {
-      def prog: ConnectionIO[Unit] = FC.delay(()).onUniqueViolation(prog)
+      def prog: ConnectionIO[Unit] = ConnectionIO.delay(()).onUniqueViolation(prog)
       val _ = prog
       assertCompletes
     },

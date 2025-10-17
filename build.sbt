@@ -1,20 +1,14 @@
 // format: off
-import FreeGen2.*
-
 val catsVersion = "2.13.0"
 val catsEffectVersion = "3.6.3"
 val circeVersion = "0.14.14"
-val fs2Version = "3.12.0"
 val h2Version = "2.3.232"
-val hikariVersion = "7.0.1"
 val magnoliaVersion = "1.1.10"
-val munitVersion = "1.1.1"
 val mysqlVersion = "9.4.0"
 val openTelemetryVersion = "1.53.0"
 val postgisVersion = "2025.1.1"
 val postgresVersion = "42.7.7"
-val scalatestVersion = "3.2.19"
-val shapelessVersion = "2.3.12"
+val shapelessVersion = "2.3.13"
 val slf4jVersion = "2.0.17"
 val weaverVersion = "0.8.4"
 val zioInteropCats = "23.1.0.5"
@@ -165,19 +159,18 @@ lazy val foobie = project.in(file("."))
   )
   .aggregate(
     modules, integrationTests,
-    example, bench, docs,
+    example, bench, /*docs,*/
   )
 
 lazy val modules = project.in(file("project/.root"))
   .settings(commonSettings)
   .settings(noPublishSettings)
   .aggregate(
-    free, core,
+    core, macros,
     h2, `h2-circe`,
     mysql,
     postgres, `postgres-circe`, postgis,
-    hikari,
-    munit, scalatest, weaver,
+    weaver,
     zio,
   )
   .disablePlugins(MimaPlugin)
@@ -187,66 +180,44 @@ lazy val integrationTests = project.in(file("project/.root-integration"))
   .settings(noPublishSettings)
   .aggregate(`zio-it`)
 
-lazy val free = module("free")
-  .settings(freeGen2Settings)
+lazy val macros = module("macros")
   .settings(
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % catsVersion,
-      "org.typelevel" %% "cats-free" % catsVersion,
-      "org.typelevel" %% "cats-effect-kernel" % catsEffectVersion,
     ),
     libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, _)) => Seq(scalaOrganization.value %  "scala-reflect" % scalaVersion.value) // for macros
+      case Some((2, _)) => Seq(scalaOrganization.value % "scala-reflect" % scalaVersion.value)
       case _ => Seq.empty
     }),
-    freeGen2Dir := (Compile / scalaSource).value / "doobie" / "free",
-    freeGen2Package := "doobie.free",
-    freeGen2Classes := List[Class[?]](
-      classOf[java.sql.NClob],
-      classOf[java.sql.Blob],
-      classOf[java.sql.Clob],
-      classOf[java.sql.DatabaseMetaData],
-      classOf[java.sql.Driver],
-      classOf[java.sql.Ref],
-      classOf[java.sql.SQLData],
-      classOf[java.sql.SQLInput],
-      classOf[java.sql.SQLOutput],
-      classOf[java.sql.Connection],
-      classOf[java.sql.Statement],
-      classOf[java.sql.PreparedStatement],
-      classOf[java.sql.CallableStatement],
-      classOf[java.sql.ResultSet]
-    ),
   )
 
 lazy val core = module("core")
   .settings(
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % catsVersion,
-      "org.typelevel" %% "cats-effect-kernel" % catsEffectVersion,
-      "co.fs2" %% "fs2-core" % fs2Version,
-      "org.tpolecat" %% "typename" % "1.1.0",
+      "org.typelevel" %% "cats-free" % catsVersion,
+      "org.typelevel" %% "cats-effect-kernel" % catsEffectVersion % Optional,
 
       "com.h2database" % "h2" % h2Version % Test,
       "dev.zio" %% "zio-interop-cats" % zioInteropCats % Test,
+      "dev.zio" %% "zio-managed" % zioVersion % Test,
+      "org.typelevel" %% "cats-effect" % catsEffectVersion % Test,
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
     ),
     libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, _)) => Seq(
-        "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaVersion,
         "com.chuusai" %% "shapeless" % shapelessVersion % Test,
+        "com.softwaremill.magnolia1_2" %% "magnolia" % magnoliaVersion,
       )
       case _ => Seq.empty
     }),
   )
-  .dependsOn(free)
+  .dependsOn(macros)
 
 lazy val postgres = module("postgres")
-  .settings(freeGen2Settings)
   .settings(
     libraryDependencies ++= Seq(
-      "co.fs2" %% "fs2-core" % fs2Version,
       "org.postgresql" % "postgresql" % postgresVersion,
 
       "dev.zio" %% "zio-test" % zioVersion % Test,
@@ -256,24 +227,8 @@ lazy val postgres = module("postgres")
       case Some((2, _)) => Seq("com.chuusai" %% "shapeless" % shapelessVersion)
       case _ => Seq.empty
     }),
-    freeGen2Dir := (Compile / scalaSource).value / "doobie" / "postgres" / "free",
-    freeGen2Package := "doobie.postgres.free",
-    freeGen2Classes := List[Class[?]](
-      classOf[org.postgresql.copy.CopyIn],
-      classOf[org.postgresql.copy.CopyManager],
-      classOf[org.postgresql.copy.CopyOut],
-      classOf[org.postgresql.largeobject.LargeObject],
-      classOf[org.postgresql.largeobject.LargeObjectManager],
-      classOf[org.postgresql.PGConnection]
-    ),
-    freeGen2Renames ++= Map(
-      classOf[org.postgresql.copy.CopyDual] -> "PGCopyDual",
-      classOf[org.postgresql.copy.CopyIn] -> "PGCopyIn",
-      classOf[org.postgresql.copy.CopyManager] -> "PGCopyManager",
-      classOf[org.postgresql.copy.CopyOut] -> "PGCopyOut",
-    ),
   )
-  .dependsOn(core % "compile->compile;test->test", zio % "test->compile")
+  .dependsOn(core, core % "test->test", zio % "test->compile")
 
 lazy val postgis = module("postgis")
   .settings(
@@ -301,14 +256,17 @@ lazy val mysql = module("mysql")
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
     ),
   )
-  .dependsOn(core % "compile->compile;test->test", zio % "test->compile")
+  .dependsOn(core, core % "test->test", zio % "test->compile")
 
 lazy val h2 = module("h2")
   .settings(
     libraryDependencies ++= Seq(
       "com.h2database" % "h2" % h2Version,
+      "org.typelevel" %% "cats-effect-kernel" % catsEffectVersion,
 
       "dev.zio" %% "zio-interop-cats" % zioInteropCats % Test,
+      "dev.zio" %% "zio-managed" % zioVersion % Test,
+      "org.typelevel" %% "cats-effect" % catsEffectVersion % Test,
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
     )
@@ -324,39 +282,6 @@ lazy val `h2-circe` = module("h2-circe")
   )
   .dependsOn(core, h2 % "compile->compile;test->test")
 
-lazy val hikari = module("hikari")
-  .settings(
-    libraryDependencies ++= Seq(
-      "com.zaxxer" % "HikariCP" % hikariVersion,
-      "org.slf4j" % "slf4j-api" % slf4jVersion,
-
-      "org.slf4j" % "slf4j-nop" % slf4jVersion % Test,
-      "dev.zio" %% "zio-test" % zioVersion % Test,
-      "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
-    )
-  )
-  .dependsOn(core)
-
-lazy val munit = module("munit")
-  .settings(
-    libraryDependencies ++= Seq(
-      "org.scalameta" %% "munit" % munitVersion,
-
-      "com.h2database" % "h2" % h2Version % Test,
-    )
-  )
-  .dependsOn(core)
-
-lazy val scalatest = module("scalatest")
-  .settings(
-    libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % scalatestVersion,
-
-      "com.h2database" % "h2" % h2Version % Test,
-    )
-  )
-  .dependsOn(core)
-
 lazy val weaver = module("weaver")
   .settings(
     libraryDependencies ++= Seq(
@@ -371,8 +296,7 @@ lazy val zio = module("zio")
   .settings(
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % zioVersion,
-      "dev.zio" %% "zio-streams" % zioVersion,
-      "dev.zio" %% "zio-interop-cats" % zioInteropCats,
+      "dev.zio" %% "zio-interop-tracer" % zioInteropCats,
 
       "dev.zio" %% "zio-test" % zioVersion % Optional,
       "com.mysql" % "mysql-connector-j" % mysqlVersion % Optional,
@@ -382,9 +306,11 @@ lazy val zio = module("zio")
 
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+      "org.typelevel" %% "cats-laws" % catsVersion % Test,
+      "org.typelevel" %% "discipline-munit" % "2.0.0" % Test,
     ),
   )
-  .dependsOn(core)
+  .dependsOn(core, core % "test->test")
 
 lazy val `zio-it` = moduleIT("zio")
   .settings(moduleName := "zoobie-it")
@@ -395,30 +321,35 @@ lazy val `zio-it` = moduleIT("zio")
       "io.opentelemetry" % "opentelemetry-api" % openTelemetryVersion % Test,
     ),
   )
-  .dependsOn(zio, postgres)
+  .dependsOn(zio, postgres, postgres % "test->test")
 
 lazy val example = project.in(file("modules/example"))
   .settings(commonSettings)
   .settings(noPublishSettings)
-  .settings(Compile / compile / wartremoverErrors := Nil)
-  .settings(Test / compile / wartremoverErrors := Nil)
   .settings(
     libraryDependencies ++= Seq(
-      "co.fs2" %% "fs2-io" % fs2Version,
+      "org.typelevel" %% "cats-effect" % catsEffectVersion,
     )
   )
-  .dependsOn(core, postgres, scalatest, hikari, h2)
+  .settings(Compile / compile / wartremoverErrors := Nil)
+  .settings(Test / compile / wartremoverErrors := Nil)
+  .dependsOn(core, postgres, h2)
 
 lazy val bench = project.in(file("modules/bench"))
   .settings(commonSettings)
   .settings(noPublishSettings)
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-effect" % catsEffectVersion,
+    )
+  )
   .settings(Compile / compile / wartremoverErrors := Nil)
   .settings(mimaPreviousArtifacts := Set.empty)
   .enablePlugins(JmhPlugin)
   .dependsOn(core, postgres)
 
 lazy val docs = project.in(file("modules/docs"))
-  .dependsOn(core, postgres, postgis, h2, hikari, munit, scalatest, weaver)
+  .dependsOn(core, postgres, postgis, h2, weaver)
   .settings(commonSettings)
   .settings(noPublishSettings)
   .settings(Compile / compile / wartremoverErrors := Nil)
@@ -455,7 +386,6 @@ lazy val docs = project.in(file("modules/docs"))
       "scala.binary.version"     -> CrossVersion.binaryScalaVersion(scalaVersion.value),
       "version"                  -> version.value,
       "catsVersion"              -> catsVersion,
-      "fs2Version"               -> fs2Version,
       "shapelessVersion"         -> shapelessVersion,
       "h2Version"                -> h2Version,
       "postgresVersion"          -> postgresVersion,

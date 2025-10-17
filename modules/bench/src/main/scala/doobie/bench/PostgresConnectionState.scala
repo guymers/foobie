@@ -1,6 +1,6 @@
 package doobie.bench
 
-import cats.effect.IO
+import cats.Id
 import doobie.free.connection.ConnectionIO
 import doobie.syntax.connectionio.*
 import doobie.util.transactor.Transactor
@@ -13,12 +13,12 @@ import java.sql.DriverManager
 class PostgresConnectionState {
 
   var connection: Connection = _
-  var xa: Transactor[IO] = _
+  var xa: Transactor[Id] = _
 
   @Setup()
   def setup(): Unit = {
     connection = DriverManager.getConnection("jdbc:postgresql:world", "postgres", "password")
-    xa = Transactor.fromConnection[IO](connection)
+    xa = Transactor.id(() => connection)
   }
 
   @TearDown()
@@ -27,6 +27,6 @@ class PostgresConnectionState {
   }
 
   def transact[A](io: ConnectionIO[A]): A = {
-    io.transact(xa).unsafeRunSync()(cats.effect.unsafe.implicits.global)
+    io.transact(xa)
   }
 }

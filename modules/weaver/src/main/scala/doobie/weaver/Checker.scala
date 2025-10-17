@@ -4,6 +4,7 @@
 
 package doobie.weaver
 
+import cats.Functor
 import cats.effect.kernel.Sync
 import cats.syntax.functor.*
 import doobie.syntax.connectionio.*
@@ -15,8 +16,8 @@ import doobie.util.testing.Analyzable
 import doobie.util.testing.analyze
 import doobie.util.testing.formatReport
 import doobie.util.transactor.Transactor
-import org.tpolecat.typename.TypeName
-import org.tpolecat.typename.typeName
+import doobie.util.typename.TypeName
+import doobie.util.typename.typeName
 import weaver.Expectations
 import weaver.Expectations.Helpers.*
 import weaver.SourceLocation
@@ -41,7 +42,7 @@ import weaver.SourceLocation
  * }}}
  */
 trait Checker[M[_]] {
-  def check[A: Analyzable](a: A)(implicit M: Sync[M], pos: SourceLocation, transactor: Transactor[M]): M[Expectations] =
+  def check[A: Analyzable](a: A)(implicit M: Functor[M], pos: SourceLocation, transactor: Transactor[M]): M[Expectations] =
     checkImpl(Analyzable.unpack(a))
 
   def checkOutput[A: TypeName](q: Query0[A])(implicit
@@ -57,7 +58,7 @@ trait Checker[M[_]] {
     ))
 
   def checkOutput[A: TypeName, B: TypeName](q: Query[A, B])(implicit
-    M: Sync[M],
+    M: Functor[M],
     pos: SourceLocation,
     transactor: Transactor[M],
   ): M[Expectations] =
@@ -68,7 +69,7 @@ trait Checker[M[_]] {
       q.outputAnalysis,
     ))
 
-  private def checkImpl(args: AnalysisArgs)(implicit M: Sync[M], pos: SourceLocation, transactor: Transactor[M]) = {
+  private def checkImpl(args: AnalysisArgs)(implicit M: Functor[M], pos: SourceLocation, transactor: Transactor[M]) = {
     analyze(args).transact(transactor).map { report =>
       if (!report.succeeded)
         failure(formatReport(args, report, Colors.Ansi)
