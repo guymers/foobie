@@ -4,42 +4,21 @@
 
 package doobie.bench
 
-import cats.effect.IO
-import cats.effect.kernel.Resource
 import cats.syntax.apply.*
-import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
 import doobie.util.Read
-import doobie.util.transactor.Transactor
 import org.openjdk.jmh.annotations.*
 
-import java.sql.DriverManager
+import java.sql.Connection
+import java.util.concurrent.TimeUnit
 
-object shared {
-
-  @State(Scope.Benchmark)
-  val xa = {
-    val conn = Resource.fromAutoCloseable(IO.blocking {
-      DriverManager.getConnection("jdbc:postgresql:world", "postgres", "password")
-    })
-    Transactor.catsEffect((), conn)
-  }
-}
-
-object bench {
-  implicit val read3Strings: Read[(String, String, String)] = (
-    Read[String],
-    Read[String],
-    Read[String],
-  ).tupled
-}
-class bench {
-  import cats.effect.unsafe.implicits.global
-  import shared.*
+@BenchmarkMode(Array(Mode.AverageTime))
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+class select {
+  import select.*
 
   // Baseline hand-written JDBC code
-  def jdbcBench(n: Int): Int = {
-    val co = DriverManager.getConnection("jdbc:postgresql:world", "postgres", "password")
+  private def jdbcBench(co: Connection, n: Int): Int = {
     try {
       co.setAutoCommit(false)
       val ps = co.prepareStatement("select a.name, b.name, co.name from country a, country b, country co limit ?")
@@ -59,38 +38,29 @@ class bench {
       } finally ps.close
     } finally {
       co.commit()
-      co.close()
     }
   }
 
-  // Reading via .list, which uses a lower-level collector
-  def doobieBench(n: Int): Int =
+  private def doobieBench(n: Int) =
     sql"select a.name, b.name, c.name from country a, country b, country c limit $n"
       .query[(String, String, String)]
       .to[List]
-      .transact(xa)
       .map(_.length)
-      .unsafeRunSync()
-
-  // Reading via .vector, which uses a lower-level collector
-  def doobieBenchV(n: Int): Int =
-    sql"select a.name, b.name, c.name from country a, country b, country c limit $n"
-      .query[(String, String, String)]
-      .to[Vector]
-      .transact(xa)
-      .map(_.length)
-      .unsafeRunSync()
 
   @Benchmark
   @OperationsPerInvocation(1000)
-  def list_accum_1000_jdbc: Int = jdbcBench(1000)
+  def list_accum_1000_jdbc(state: PostgresConnectionState): Int = jdbcBench(state.connection, 1000)
 
   @Benchmark
   @OperationsPerInvocation(1000)
-  def list_accum_1000: Int = doobieBench(1000)
+  def list_accum_1000(state: PostgresConnectionState): Int = state.transact(doobieBench(1000))
 
-  @Benchmark
-  @OperationsPerInvocation(1000)
-  def vector_accum_1000: Int = doobieBenchV(1000)
+}
+object select {
 
+  implicit val read3Strings: Read[(String, String, String)] = (
+    Read[String],
+    Read[String],
+    Read[String],
+  ).tupled
 }

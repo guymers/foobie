@@ -14,6 +14,8 @@ object SQLGenerators {
 
   val genSQLTime: Gen[Any, Time] = TimeGenerators.genLocalTime.map(Time.valueOf(_))
   val genSQLDate: Gen[Any, Date] = TimeGenerators.genLocalDate.map(Date.valueOf(_))
+  val genSQLDateArray: Gen[Any, Date] = TimeGenerators.genLocalDateArray.map(Date.valueOf(_))
   val genSQLTimestamp: Gen[Any, Timestamp] = TimeGenerators.genLocalDateTime.map(Timestamp.valueOf(_))
+  val genSQLTimestampArray: Gen[Any, Timestamp] = TimeGenerators.genLocalDateTimeArray.map(Timestamp.valueOf(_))
 
 }

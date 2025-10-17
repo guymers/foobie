@@ -255,6 +255,7 @@ object ConnectionIO { self =>
   ): ConnectionIO[Analysis] = for {
     dbMetaData <- liftF[ConnectionOp, DatabaseMetaData](Raw(_.getMetaData()))
     driver = dbMetaData.getDriverName
+    sqlKeywords = dbMetaData.getSQLKeywords.split(',').filter(_.nonEmpty).toSet
     tuple <- liftF[ConnectionOp, PrepareAnalysisMeta](WithPreparedStatement(
       sql,
       (c, s) => c.prepareStatement(s),
@@ -262,7 +263,7 @@ object ConnectionIO { self =>
     ))
     (p, c) = tuple
   } yield {
-    Analysis(driver, sql, p, c)
+    Analysis(driver, sqlKeywords, sql, p, c)
   }
 
   private def columnMeta(read: Option[Read[?]], statement: PreparedStatement) = (for {

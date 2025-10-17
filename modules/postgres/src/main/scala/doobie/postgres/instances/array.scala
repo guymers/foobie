@@ -7,8 +7,10 @@ package doobie.postgres.instances
 import doobie.util.invariant.*
 import doobie.util.meta.Meta
 
+import java.time.LocalDate
 import scala.reflect.ClassTag
 
+@SuppressWarnings(Array("org.wartremover.warts.AutoUnboxing"))
 object array {
 
   // java.sql.Array::getArray returns an Object that may be of primitive type or of boxed type,
@@ -27,31 +29,39 @@ object array {
   // automatic lifting to Meta will give us lifted and unlifted arrays, for a total of four variants
   // of each 1-d array type. In the non-nullable case we simply check for nulls and perform a cast;
   // in the nullable case we must copy the array in both directions to lift/unlift Option.
-  @SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.Throw"))
   private def boxedPair[A >: Null <: AnyRef: ClassTag](
     elemType: String,
     arrayType: String,
     arrayTypeT: String*,
   ): (Meta[Array[A]], Meta[Array[Option[A]]]) = {
     val raw = Meta.Advanced.array[A](elemType, arrayType, arrayTypeT*)
-    // Ensure `a`, which may be null, which is ok, contains no null elements.
-    def checkNull[B >: Null](a: Array[B], e: => Exception): Array[B] =
-      if (a == null) null else if (a.exists(_ == null)) throw e else a
-    (
-      raw.timap(checkNull(_, NullableCellRead()))(checkNull(_, NullableCellUpdate())),
-      raw.timap[Array[Option[A]]](_.map(Option(_)))(_.map(_.orNull).toArray),
-    )
+    boxedPairMeta(raw)
   }
 
-  // Arrays of lifted (nullable) and unlifted (non-nullable) Java wrapped primitives. PostgreSQL
-  // does not seem to support tinyint[](use a bytea instead) and smallint[] always arrives as Int[]
-  // so you can xmap if you need Short[]. The type names provided here are what is reported by JDBC
-  // when metadata is requested; there are numerous aliases but these are the ones we need. Nothing
-  // about this is portable, sorry. (╯°□°）╯︵ ┻━┻
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
+  private def boxedPairMeta[A >: Null <: AnyRef: ClassTag](
+    raw: Meta[Array[A]],
+  ): (Meta[Array[A]], Meta[Array[Option[A]]]) = (
+    raw.timap(checkNull(_, NullableCellRead()))(checkNull(_, NullableCellUpdate())),
+    raw.timap[Array[Option[A]]](_.map(Option(_)))(_.map(_.orNull).toArray),
+  )
+
+  // Ensure `a`, which may be null, which is ok, contains no null elements.
+  @SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.Throw"))
+  private def checkNull[B >: Null](a: Array[B], e: => Exception): Array[B] =
+    if (a == null) null else if (a.exists(_ == null)) throw e else a
+
+  // Arrays of lifted (nullable) and unlifted (non-nullable) Java wrapped primitives.
+  // The type names provided here are what is reported by JDBC when metadata is requested; there
+  // are numerous aliases but these are the ones we need.
 
   private val boxedPairBoolean = boxedPair[java.lang.Boolean]("bit", "_bit")
   implicit val unliftedBooleanArrayType: Meta[Array[java.lang.Boolean]] = boxedPairBoolean._1
   implicit val liftedBooleanArrayType: Meta[Array[Option[java.lang.Boolean]]] = boxedPairBoolean._2
+
+  private val boxedPairShort = boxedPair[java.lang.Short]("int2", "_int2")
+  implicit val unliftedShortArrayType: Meta[Array[java.lang.Short]] = boxedPairShort._1
+  implicit val liftedShortArrayType: Meta[Array[Option[java.lang.Short]]] = boxedPairShort._2
 
   private val boxedPairInteger = boxedPair[java.lang.Integer]("int4", "_int4")
   implicit val unliftedIntegerArrayType: Meta[Array[java.lang.Integer]] = boxedPairInteger._1
@@ -81,6 +91,19 @@ object array {
   implicit val unliftedBigDecimalArrayType: Meta[Array[java.math.BigDecimal]] = boxedPairBigDecimal._1
   implicit val iftedBigDecimalArrayType: Meta[Array[Option[java.math.BigDecimal]]] = boxedPairBigDecimal._2
 
+  private val boxedPairDate = boxedPair[java.sql.Date]("date", "_date")
+  implicit val unliftedDateArrayType: Meta[Array[java.sql.Date]] = boxedPairDate._1
+  implicit val liftedDateArrayType: Meta[Array[Option[java.sql.Date]]] = boxedPairDate._2
+
+  implicit val unliftedLocalDateArrayType: Meta[Array[LocalDate]] =
+    unliftedDateArrayType.timap(_.map(_.toLocalDate))(_.map(java.sql.Date.valueOf))
+  implicit val liftedLocalDateArrayType: Meta[Array[Option[LocalDate]]] =
+    liftedDateArrayType.timap(_.map(_.map(_.toLocalDate)))(_.map(_.map(java.sql.Date.valueOf)))
+
+  private val boxedPairTimestamp = boxedPair[java.sql.Timestamp]("timestamp", "_timestamp")
+  implicit val unliftedTimestampArrayType: Meta[Array[java.sql.Timestamp]] = boxedPairTimestamp._1
+  implicit val liftedTimestampArrayType: Meta[Array[Option[java.sql.Timestamp]]] = boxedPairTimestamp._2
+
   // Unboxed equivalents (actually identical in the lifted case). We require that B is the unboxed
   // equivalent of A, otherwise this will fail in spectacular fashion, and we're using a cast in the
   // lifted case because the representation is identical, assuming no nulls. In the long run this
@@ -91,31 +114,33 @@ object array {
     boxed: Meta[Array[A]],
     boxedLifted: Meta[Array[Option[A]]],
   ): (Meta[Array[B]], Meta[Array[Option[B]]]) =
-    // TODO: assert, somehow, that A is the boxed version of B so we catch errors on instance
-    // construction, which is somewhat better than at [logical] execution time.
     (
       boxed.timap(a => if (a == null) null else a.map(f))(a => if (a == null) null else a.map(g)),
       boxedLifted.timap(_.asInstanceOf[Array[Option[B]]])(_.asInstanceOf[Array[Option[A]]]),
     )
 
   // Arrays of lifted (nullable) and unlifted (non-nullable) AnyVals
-  private val unboxedPairBoolean = unboxedPair[java.lang.Boolean, Boolean](_.booleanValue, java.lang.Boolean.valueOf)
+  private val unboxedPairBoolean = unboxedPair[java.lang.Boolean, Boolean](Boolean2boolean, boolean2Boolean)
   implicit val unliftedUnboxedBooleanArrayType: Meta[Array[Boolean]] = unboxedPairBoolean._1
   implicit val liftedUnboxedBooleanArrayType: Meta[Array[Option[Boolean]]] = unboxedPairBoolean._2
 
-  private val unboxedPairInteger = unboxedPair[java.lang.Integer, Int](_.intValue, java.lang.Integer.valueOf)
+  private val unboxedPairShort = unboxedPair[java.lang.Short, Short](Short2short, short2Short)
+  implicit val unliftedUnboxedShortArrayType: Meta[Array[Short]] = unboxedPairShort._1
+  implicit val liftedUnboxedShortArrayType: Meta[Array[Option[Short]]] = unboxedPairShort._2
+
+  private val unboxedPairInteger = unboxedPair[java.lang.Integer, Int](Integer2int, int2Integer)
   implicit val unliftedUnboxedIntegerArrayType: Meta[Array[Int]] = unboxedPairInteger._1
   implicit val liftedUnboxedIntegerArrayType: Meta[Array[Option[Int]]] = unboxedPairInteger._2
 
-  private val unboxedPairLong = unboxedPair[java.lang.Long, Long](_.longValue, java.lang.Long.valueOf)
+  private val unboxedPairLong = unboxedPair[java.lang.Long, Long](Long2long, long2Long)
   implicit val unliftedUnboxedLongArrayType: Meta[Array[Long]] = unboxedPairLong._1
   implicit val liftedUnboxedLongArrayType: Meta[Array[Option[Long]]] = unboxedPairLong._2
 
-  private val unboxedPairFloat = unboxedPair[java.lang.Float, Float](_.floatValue, java.lang.Float.valueOf)
+  private val unboxedPairFloat = unboxedPair[java.lang.Float, Float](Float2float, float2Float)
   implicit val unliftedUnboxedFloatArrayType: Meta[Array[Float]] = unboxedPairFloat._1
   implicit val liftedUnboxedFloatArrayType: Meta[Array[Option[Float]]] = unboxedPairFloat._2
 
-  private val unboxedPairDouble = unboxedPair[java.lang.Double, Double](_.doubleValue, java.lang.Double.valueOf)
+  private val unboxedPairDouble = unboxedPair[java.lang.Double, Double](Double2double, double2Double)
   implicit val unliftedUnboxedDoubleArrayType: Meta[Array[Double]] = unboxedPairDouble._1
   implicit val liftedUnboxedDoubleArrayType: Meta[Array[Option[Double]]] = unboxedPairDouble._2
 
@@ -135,17 +160,4 @@ object array {
     )(
       _.map(_.map(a => if (a == null) null else a.bigDecimal)),
     )
-
-  // So, it turns out that arrays of structs don't work because something is missing from the
-  // implementation. So this means we will only be able to support primitive types for arrays.
-  //
-  // java.sql.SQLFeatureNotSupportedException: Method org.postgresql.jdbc4.Jdbc4Array.getArrayImpl(long,int,Map) is not yet implemented.
-  //   at org.postgresql.Driver.notImplemented(Driver.java:729)
-  //   at org.postgresql.jdbc2.AbstractJdbc2Array.buildArray(AbstractJdbc2Array.java:771)
-  //   at org.postgresql.jdbc2.AbstractJdbc2Array.getArrayImpl(AbstractJdbc2Array.java:171)
-  //   at org.postgresql.jdbc2.AbstractJdbc2Array.getArray(AbstractJdbc2Array.java:128)
-
-  // TODO: multidimensional arrays; in the worst case it's just copy/paste of everything above but
-  // we can certainly do better than that.
-
 }

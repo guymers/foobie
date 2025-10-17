@@ -28,6 +28,8 @@ object TimeGenerators {
   // 4713 BC to 5874897 AD
   val genLocalDate: Gen[Any, LocalDate] = Gen.localDate(MinDate, MaxDate)
 
+  val genLocalDateArray: Gen[Any, LocalDate] = Gen.localDate(LocalDate.of(1, 1, 1), LocalDate.of(9999, 12, 31))
+
   // 00:00:00.000000 to 23:59:59.999999
   val genLocalTime: Gen[Any, LocalTime] = {
     val min = micros(LocalTime.MIN.toNanoOfDay)
@@ -37,6 +39,11 @@ object TimeGenerators {
 
   val genLocalDateTime: Gen[Any, LocalDateTime] = for {
     date <- Gen.localDate(MinTimestampDate, MaxTimestampDate)
+    time <- genLocalTime
+  } yield LocalDateTime.of(date, time)
+
+  val genLocalDateTimeArray: Gen[Any, LocalDateTime] = for {
+    date <- genLocalDateArray
     time <- genLocalTime
   } yield LocalDateTime.of(date, time)
 
