@@ -73,18 +73,26 @@ object ConnectionPool {
       invalidate = (c: ConnectionWrapper) => pool.invalidate(c) <* invalidated.increment
     } yield {
       new ConnectionPool {
-        override def get(implicit trace: Trace) = for {
-          tuple <- _get.withEarlyRelease
-          (close, i) = tuple
-          now <- zio.Clock.nanoTime
-          age = (now - i.acquired).nanoseconds
-          c <- {
-            if (age > config.maxConnectionLifetime) {
-              // been idle and missed invalidation, close and let the finalizer invalidate
-              close *> _get
-            } else Exit.succeed(i)
+        override def get(implicit trace: Trace) = {
+          @SuppressWarnings(Array("org.wartremover.warts.Recursion"))
+          def go(i: Int): ZIO[Scope, DatabaseError.Connection, Connection] = {
+            ZIO.die(new IllegalStateException(s"could not get connection, tried ${i.toString} times")).when(i > config.size * 2) *>
+              getCheckingAge.flatMap {
+                case None => go(i + 1)
+                case Some(c) => Exit.succeed(c)
+              }
           }
-        } yield new ConnectionProxy(c.connection)
+          go(1).map(new ConnectionProxy(_))
+        }
+
+        private def getCheckingAge(implicit trace: Trace) = for {
+          tuple <- _get.withEarlyRelease
+          (close, wrapper) = tuple
+          tooOld <- connectionTooOld(wrapper, jitter = None)
+          c <- if (tooOld) {
+            close.as(None) // been idle and missed invalidation, close and let the finalizer invalidate
+          } else Exit.succeed(Some(wrapper.connection))
+        } yield c
 
         private def _get(implicit trace: Trace) = ZIO.scopeWith { outer =>
           for {
@@ -100,22 +108,30 @@ object ConnectionPool {
             _ <- outer.addFinalizerExit {
               case Exit.Success(_) =>
                 invalidate(c).whenZIO {
-                  for {
-                    now <- zio.Clock.nanoTime
-                    maxLifetimeJitter <- zio.Random.nextDoubleBetween(0.89, 0.99)
-                  } yield {
-                    val age = (now - c.acquired).nanoseconds
-                    val maxLifetime = (config.maxConnectionLifetime.toNanos * maxLifetimeJitter).toLong.nanoseconds
-                    age > maxLifetime
-                  }
+                  connectionTooOld(c, jitter = Some(0.9))
                 }
 
               case Exit.Failure(_) =>
-                invalidate(c).unlessZIO {
-                  c.isValid(config.validationTimeout).catchAll(_ => Exit.succeed(false))
+                invalidate(c).whenZIO {
+                  for {
+                    tooOld <- connectionTooOld(c, jitter = None)
+                    valid <- c.isValid(config.validationTimeout).catchAll(_ => Exit.succeed(false))
+                  } yield tooOld || !valid
                 }
             }
           } yield c
+        }
+
+        private def connectionTooOld(
+          wrapper: ConnectionWrapper,
+          jitter: Option[Double],
+        )(implicit trace: Trace) = for {
+          now <- zio.Clock.nanoTime
+          age = (now - wrapper.acquired).nanoseconds
+          maxLifetimeJitter <- ZIO.foreach(jitter)(zio.Random.nextDoubleBetween(_, 0.99)).map(_.getOrElse(1.0))
+          maxLifetime = (config.maxConnectionLifetime.toNanos * maxLifetimeJitter).toLong.nanoseconds
+        } yield {
+          age > maxLifetime
         }
       }
     }

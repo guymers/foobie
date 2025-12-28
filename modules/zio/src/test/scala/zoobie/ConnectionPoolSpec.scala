@@ -138,11 +138,18 @@ object ConnectionPoolSpec extends ZIOSpecDefault {
       }
     },
     test("connections are refreshed after lifetime") {
+      val secondTime = zio.Clock.nanoTime.map(_ / 1_000_000_000).map(_.toInt)
+
       for {
-        createdRef <- Ref.make(Chunk.empty[StubConnection])
-        create = createdRef.modify { created =>
-          val c = new StubConnection(_ => true)
-          (c, created :+ c)
+        createdRef <- Ref.Synchronized.make(Chunk.empty[StubConnection])
+        create = createdRef.modifyZIO { created =>
+          secondTime.map { now =>
+            val invalidAfter = now + config.maxConnectionLifetime.toSeconds
+            val c = new StubConnection(timeout => {
+              timeout == config.validationTimeout.toMillis || timeout <= invalidAfter
+            })
+            (c, created :+ c)
+          }
         }
         pool <- ConnectionPool.create(create, config)
 
@@ -150,12 +157,20 @@ object ConnectionPoolSpec extends ZIOSpecDefault {
         createdInitial <- createdRef.get
 
         _ <- TestClock.adjust(config.maxConnectionLifetime)
+        _ <- TestClock.adjust(1.second)
+        validAfterAllExceedMaxLifetime <- ZIO.scoped[Any] {
+          for {
+            c <- pool.get
+            now <- secondTime
+          } yield c.isValid(now)
+        }
 
         _ <- ZIO.foreachDiscard((1 to config.size).toList)(_ => ZIO.scoped[Any](pool.get))
         createdRefreshed <- createdRef.get
       } yield {
         assertTrue(createdInitial.size == 5) &&
         assertTrue(createdInitial.forall(_.isClosed)) &&
+        assertTrue(validAfterAllExceedMaxLifetime) &&
         assertTrue(createdRefreshed.size == 10)
       }
     },
