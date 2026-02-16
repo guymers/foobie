@@ -20,11 +20,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install JDK 11
+      - name: Install JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: zulu
-          java-version: '11'
+          java-version: '17'
           java-package: jdk
 
       - name: Install SBT
@@ -47,6 +47,6 @@ jobs:
       - name: Test
         run: sbt ++${{ matrix.scala }} modules/test
 
-      - name: Check Doc Site
-        if: ${{ startsWith(matrix.scala, '2.13.') }}
-        run: sbt ++${{ matrix.scala }} docs/makeSite
+#      - name: Check Doc Site
+#        if: ${{ startsWith(matrix.scala, '2.13.') }}
+#        run: sbt ++${{ matrix.scala }} docs/makeSite

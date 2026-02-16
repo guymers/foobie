@@ -6,11 +6,7 @@ package doobie.util
 
 import cats.ContravariantSemigroupal
 import cats.syntax.apply.*
-import doobie.FPS
-import doobie.FRS
 import doobie.enumerated.Nullability.*
-import doobie.free.preparedstatement.PreparedStatementIO
-import doobie.free.resultset.ResultSetIO
 import doobie.util.fragment.Elem
 import doobie.util.fragment.Fragment
 
@@ -26,9 +22,6 @@ trait Write[A] { self =>
 
   def unsafeSet(ps: PreparedStatement, i: Int, a: A): Unit
   def unsafeUpdate(rs: ResultSet, i: Int, a: A): Unit
-
-  def set(a: A): PreparedStatementIO[Unit] = FPS.raw(unsafeSet(_, 1, a))
-  def update(a: A): ResultSetIO[Unit] = FRS.raw(unsafeUpdate(_, 1, a))
 
   def contramap[B](f: B => A): Write[B] = new Write[B] {
     override val puts = self.puts

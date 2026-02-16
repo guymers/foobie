@@ -1,27 +1,22 @@
 package doobie.postgres
 
 import doobie.free.connection.ConnectionIO
-import fs2.Stream
 import zio.Chunk
 import zio.ZIO
 import zio.ZLayer
 import zio.durationInt
-import zio.stream.ZStream
 import zio.test.TestAspect
 import zio.test.ZIOSpec
+import zoobie.ConnectionPool
 import zoobie.ConnectionPoolConfig
 import zoobie.DatabaseError
 import zoobie.Transactor
 import zoobie.postgres.PostgreSQLConnectionConfig
 
-abstract class PostgresDatabaseSpec extends ZIOSpec[Transactor] { self =>
+abstract class PostgresDatabaseSpec extends ZIOSpec[ConnectionPool & Transactor] { self =>
 
   def transact[A](io: ConnectionIO[A]): ZIO[Transactor, DatabaseError, A] = {
     ZIO.serviceWithZIO[Transactor](_.run(io))
-  }
-
-  def transactStream[A](s: Stream[ConnectionIO, A]): ZStream[Transactor, DatabaseError, A] = {
-    ZStream.serviceWithStream[Transactor](_.stream(s))
   }
 
   implicit class ConnectionIOExtension[A](c: ConnectionIO[A]) {
@@ -58,13 +53,11 @@ object PostgresDatabaseSpec {
     validationTimeout = 1.second,
   )
 
-  val layer: ZLayer[Any, Nothing, Transactor] = ZLayer.scoped[Any] {
-    createTransactor
-  }
-
-  private def createTransactor = {
-    zoobie.postgres.pool(connectionConfig, config).map { pool =>
+  val layer: ZLayer[Any, Nothing, ConnectionPool & Transactor] = {
+    ZLayer.scoped[Any] {
+      zoobie.postgres.pool(connectionConfig, config)
+    } >+> ZLayer.fromZIO(ZIO.serviceWith[ConnectionPool] { pool =>
       Transactor.fromPoolTransactional(pool)
-    }
+    })
   }
 }

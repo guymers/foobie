@@ -4,17 +4,21 @@
 
 package doobie.postgres
 
-import cats.syntax.apply.*
 import cats.syntax.functor.*
 import doobie.free.connection.ConnectionIO
 import doobie.postgres.instances.array.*
-import doobie.postgres.syntax.fragment.*
 import doobie.syntax.string.*
 import doobie.util.Read
-import fs2.Stream
+import org.postgresql.copy.CopyManager
+import org.postgresql.jdbc.PgConnection
+import zio.ZIO
+import zio.interop.catz.core.*
+import zio.stream.ZStream
 import zio.test.Gen
 import zio.test.assertTrue
 import zio.test.check
+import zoobie.ConnectionProxy
+import zoobie.Transactor
 
 import java.nio.charset.StandardCharsets
 
@@ -47,18 +51,41 @@ object TextSuite extends PostgresDatabaseSpec {
     suite("copyIn")(
       test("insert batches of rows") {
         check(genRows) { rs =>
-          val copyIn = insert.copyIn(rs)
-          (create *> copyIn *> selectAll).transact.map { results =>
+          ZIO.scoped(for {
+            transactor <- ZIO.service[Transactor]
+            conn <- transactor.connection
+            interpret = transactor.interpret(conn)
+            _ <- interpret(ConnectionIO.setAutoCommit(false))
+            _ <- interpret(create)
+
+            pgConn = conn.asInstanceOf[ConnectionProxy].connection.asInstanceOf[PgConnection]
+            copyIn <- ZIO.acquireRelease(ZIO.succeed {
+              val copy = new CopyManager(pgConn)
+              copy.copyIn(insert.update.sql)
+            })(copyIn => {
+              ZIO.attemptBlocking {
+                if (copyIn.isActive) {
+                  copyIn.cancelCopy()
+                }
+              }.ignoreLogged
+            })
+            _ <- ZStream.fromIterable(rs)
+              .grouped(200)
+              .mapZIO { rows =>
+                ZIO.attemptBlocking {
+                  val str = Text.foldToString(rows)
+                  val bytes = pgConn.getEncoding.encode(str)
+                  copyIn.writeToCopy(bytes, 0, bytes.length)
+                }
+              }
+              .runDrain
+            _ <- ZIO.attemptBlocking(copyIn.endCopy()).ignoreLogged
+
+            results <- interpret(selectAll)
+            _ <- interpret(ConnectionIO.commit)
+          } yield {
             assertTrue(results == rs)
-          }
-        }
-      },
-      test("insert batches of rows via Stream") {
-        check(genRows) { rs =>
-          val copyIn = insert.copyIn(Stream.emits[ConnectionIO, Row](rs), 200)
-          (create *> copyIn *> selectAll).transact.map { results =>
-            assertTrue(results == rs)
-          }
+          })
         }
       },
     ),

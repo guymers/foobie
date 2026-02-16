@@ -8,9 +8,10 @@ package example
 import cats.Show
 import cats.effect.IO
 import cats.effect.IOApp
+import cats.effect.kernel.Resource
 import cats.syntax.functor.*
 import cats.syntax.show.*
-import doobie.FC
+import cats.syntax.traverse.*
 import doobie.free.connection.ConnectionIO
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
@@ -20,7 +21,8 @@ import doobie.util.query.Query0
 import doobie.util.transactor.Transactor
 import doobie.util.update.Update
 import doobie.util.update.Update0
-import fs2.Stream
+
+import java.sql.DriverManager
 
 // Example lifted from slick
 object FirstExample extends IOApp.Simple {
@@ -66,30 +68,22 @@ object FirstExample extends IOApp.Simple {
       _ <- putStrLn(show"Inserted $ns suppliers and $nc coffees.")
 
       // Select and stream the coffees to stdout
-      _ <- DAO.allCoffees.evalMap(c => putStrLn(show"$c")).compile.drain
+      coffees <- DAO.allCoffees
+      _ <- coffees.traverse(c => putStrLn(show"$c"))
 
       // Get the names and supplier names for all coffees costing less than $9.00,
-      // again streamed directly to stdout
-      _ <- DAO.coffeesLessThan(9.0).evalMap(p => putStrLn(show"$p")).compile.drain
-
-      // Same thing, but read into a list this time
-      l <- DAO.coffeesLessThan(9.0).compile.toList
+      l <- DAO.coffeesLessThan(9.0)
       _ <- putStrLn(l.toString)
-
-      // Read into a vector this time, with some stream processing
-      v <- DAO.coffeesLessThan(9.0).take(2).map(p => p._1 + "*" + p._2).compile.toVector
-      _ <- putStrLn(v.toString)
-
     } yield "All done!"
 
   // Entry point.
   def run: IO[Unit] = {
-    val db = Transactor.fromDriverManager[IO](
-      "org.h2.Driver",
-      "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
-      "sa",
-      "",
-    )
+    val db = {
+      val conn = Resource.fromAutoCloseable(IO.blocking {
+        DriverManager.getConnection("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "sa", "")
+      })
+      Transactor.catsEffect((), conn)
+    }
     for {
       a <- examples.transact(db).attempt
       _ <- IO(println(a))
@@ -99,8 +93,8 @@ object FirstExample extends IOApp.Simple {
   /** DAO module provides ConnectionIO constructors for end users. */
   object DAO {
 
-    def coffeesLessThan(price: Double): Stream[ConnectionIO, (String, String)] =
-      Queries.coffeesLessThan(price).stream
+    def coffeesLessThan(price: Double): ConnectionIO[List[(String, String)]] =
+      Queries.coffeesLessThan(price).to(List)
 
     def insertSuppliers(ss: List[Supplier]): ConnectionIO[Int] =
       Queries.insertSupplier.updateMany(ss) // bulk insert (!)
@@ -108,8 +102,8 @@ object FirstExample extends IOApp.Simple {
     def insertCoffees(cs: List[Coffee]): ConnectionIO[Int] =
       Queries.insertCoffee.updateMany(cs)
 
-    def allCoffees: Stream[ConnectionIO, Coffee] =
-      Queries.allCoffees.stream
+    def allCoffees: ConnectionIO[List[Coffee]] =
+      Queries.allCoffees.to(List)
 
     def create: ConnectionIO[Unit] =
       Queries.create.run.void
@@ -160,6 +154,6 @@ object FirstExample extends IOApp.Simple {
 
   // Lifted println
   def putStrLn(s: => String): ConnectionIO[Unit] =
-    FC.delay(println(s))
+    ConnectionIO.delay(println(s))
 
 }

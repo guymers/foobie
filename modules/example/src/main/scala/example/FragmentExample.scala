@@ -6,12 +6,15 @@ package example
 
 import cats.effect.IO
 import cats.effect.IOApp
+import cats.effect.kernel.Resource
 import cats.syntax.list.*
 import cats.syntax.traverse.*
 import doobie.syntax.string.*
 import doobie.util.Read
 import doobie.util.fragment.Fragment
 import doobie.util.transactor.Transactor
+
+import java.sql.DriverManager
 
 object FragmentExample extends IOApp.Simple {
 
@@ -46,12 +49,12 @@ object FragmentExample extends IOApp.Simple {
   }
 
   // Our world database
-  val xa = Transactor.fromDriverManager[IO](
-    "org.postgresql.Driver",
-    "jdbc:postgresql:world",
-    "postgres",
-    "password",
-  )
+  val xa = {
+    val conn = Resource.fromAutoCloseable(IO.blocking {
+      DriverManager.getConnection("jdbc:postgresql:world", "postgres", "password")
+    })
+    Transactor.catsEffect((), conn)
+  }
 
   // Some quick examples.
   val prog = List(
@@ -61,12 +64,10 @@ object FragmentExample extends IOApp.Simple {
     select(Some("U%"), None, List("USA", "GBR", "FRA"), 10),
     select(Some("U%"), Some(100000000), List("USA", "GBR", "FRA"), 10),
   ).traverse { q =>
-    val y = xa.yolo
-    import y.*
-    q.check *> q.quick
+    q.to[List]
   }
 
   def run: IO[Unit] =
-    prog.void
+    xa.run(prog).void
 
 }

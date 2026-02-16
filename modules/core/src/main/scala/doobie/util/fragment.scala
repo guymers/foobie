@@ -6,11 +6,7 @@ package doobie.util
 
 import cats.Monoid
 import cats.data.Chain
-import cats.syntax.apply.*
-import doobie.HC
 import doobie.enumerated.Nullability.*
-import doobie.free.connection.ConnectionIO
-import doobie.free.preparedstatement.PreparedStatementIO
 import doobie.util.pos.Pos
 import doobie.util.query.Query
 import doobie.util.query.Query0
@@ -81,14 +77,6 @@ object fragment {
       }
 
     }
-
-    /**
-     * Construct a program in ConnectionIO that constructs and prepares a
-     * PreparedStatement, with further handling delegated to the provided
-     * program.
-     */
-    def execWith[B](fa: PreparedStatementIO[B]): ConnectionIO[B] =
-      HC.prepareStatement(sql)(write.set(elems) *> fa)
 
     /** Concatenate this fragment with another, yielding a larger fragment. */
     def ++(fb: Fragment): Fragment =

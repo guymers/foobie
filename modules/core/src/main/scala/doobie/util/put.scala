@@ -9,7 +9,7 @@ import cats.data.NonEmptyList
 import cats.free.ContravariantCoyoneda
 import doobie.enumerated.JdbcType
 import doobie.util.meta.Meta
-import org.tpolecat.typename.TypeName
+import doobie.util.typename.TypeName
 
 import java.sql.PreparedStatement
 import java.sql.ResultSet

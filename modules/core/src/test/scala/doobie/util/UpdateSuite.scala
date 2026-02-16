@@ -71,16 +71,6 @@ object UpdateSuite extends H2DatabaseSpec {
         }
         conn.transact
       },
-      test("many returning with generated keys") {
-        val conn = for {
-          _ <- fr"CREATE LOCAL TEMPORARY TABLE IF NOT EXISTS test_update_many_w (v INT) NOT PERSISTENT".update.run
-          result <- Update[Int]("INSERT INTO test_update_many_w VALUES (?)")
-            .updateManyWithGeneratedKeys[Int]("v")((1 to 10).toList).compile.toList
-        } yield {
-          assertTrue(result == (1 to 10).toList)
-        }
-        conn.transact
-      },
     ),
   )
 

@@ -4,8 +4,8 @@
 
 package doobie
 
-import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
+import cats.effect.kernel.Sync
 import doobie.util.transactor.Strategy
 import doobie.util.transactor.Transactor
 import org.h2.jdbcx.JdbcConnectionPool
@@ -21,6 +21,6 @@ package object h2 {
   def inMemory[M[_]](
     database: String,
     strategy: Strategy = Strategy.default,
-  )(implicit M: Async[M]): Resource[M, Transactor[M]] = H2Helper.inMemory(database, strategy)
+  )(implicit M: Sync[M]): Resource[M, Transactor[M]] = H2Helper.inMemory(database, strategy)
 
 }

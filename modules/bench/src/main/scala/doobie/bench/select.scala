@@ -41,15 +41,6 @@ class select {
     }
   }
 
-  // Reading via .stream, which adds a fair amount of overhead
-  private def doobieBenchP(n: Int) =
-    sql"select a.name, b.name, c.name from country a, country b, country c limit $n"
-      .query[(String, String, String)]
-      .stream
-      .compile.toList
-      .map(_.length)
-
-  // Reading via .list, which uses a lower-level collector
   private def doobieBench(n: Int) =
     sql"select a.name, b.name, c.name from country a, country b, country c limit $n"
       .query[(String, String, String)]
@@ -63,10 +54,6 @@ class select {
   @Benchmark
   @OperationsPerInvocation(1000)
   def list_accum_1000(state: PostgresConnectionState): Int = state.transact(doobieBench(1000))
-
-  @Benchmark
-  @OperationsPerInvocation(1000)
-  def stream_accum_1000(state: PostgresConnectionState): Int = state.transact(doobieBenchP(1000))
 
 }
 object select {

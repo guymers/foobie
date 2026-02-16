@@ -7,7 +7,6 @@ package doobie.h2
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.syntax.show.*
-import doobie.free.KleisliInterpreter
 import doobie.util.transactor.Strategy
 import doobie.util.transactor.Transactor
 import org.h2.jdbcx.JdbcConnectionPool
@@ -34,14 +33,14 @@ object H2Helper {
     }
 
     val conn = Resource.fromAutoCloseable(M.blocking { driver.connect(url, props) })
-    shutdownDatabase(conn).map(_ => createTransactor(conn, strategy))
+    shutdownDatabase(conn).map(_ => Transactor.catsEffect((), conn, strategy))
   }
 
   def inMemoryPooled[M[_]](
     database: String,
     maxConnections: Int = 10,
     strategy: Strategy = Strategy.default,
-  )(implicit M: Sync[M]): Resource[M, Transactor[M]] = {
+  )(implicit M: Sync[M]): Resource[M, Transactor.Aux[M, JdbcConnectionPool]] = {
 
     def createPool = {
       val pool = JdbcConnectionPool.create(jdbcUrl(database), "sa", "")
@@ -53,7 +52,7 @@ object H2Helper {
       pool <- Resource.make(M.delay(createPool)) { pool => M.delay(pool.dispose()) }
       conn = Resource.fromAutoCloseable(M.blocking { pool.getConnection })
       _ <- shutdownDatabase(conn)
-    } yield createTransactor(conn, strategy)
+    } yield Transactor.catsEffect(pool, conn, strategy)
   }
 
   private def jdbcUrl(database: String) = show"jdbc:h2:mem:$database"
@@ -61,10 +60,6 @@ object H2Helper {
   private def shutdownDatabase[M[_]](conn: Resource[M, Connection]) = {
     // keep a connection open, when all connections are closed the database will be shutdown
     conn
-  }
-
-  private def createTransactor[M[_]](conn: Resource[M, Connection], strategy: Strategy)(implicit M: Sync[M]) = {
-    Transactor[M, Unit]((), _ => conn, KleisliInterpreter[M].ConnectionInterpreter, strategy)
   }
 
 }

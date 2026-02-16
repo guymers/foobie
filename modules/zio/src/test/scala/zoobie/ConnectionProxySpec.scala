@@ -1,8 +1,8 @@
 package zoobie
 
+import doobie.stub.StubConnection
 import zio.test.ZIOSpecDefault
 import zio.test.assertTrue
-import zoobie.stub.StubConnection
 
 @SuppressWarnings(Array("org.wartremover.warts.Null"))
 object ConnectionProxySpec extends ZIOSpecDefault {

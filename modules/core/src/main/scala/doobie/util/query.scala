@@ -4,22 +4,14 @@
 
 package doobie.util
 
-import cats.Alternative
 import cats.Contravariant
 import cats.Functor
 import cats.arrow.Profunctor
 import cats.data.NonEmptyList
-import cats.syntax.apply.*
-import doobie.HC
-import doobie.HPS
-import doobie.HRS
 import doobie.free.connection.ConnectionIO
-import doobie.free.preparedstatement.PreparedStatementIO
-import doobie.free.resultset.ResultSetIO
 import doobie.util.analysis.Analysis
 import doobie.util.fragment.Fragment
 import doobie.util.pos.Pos
-import fs2.Stream
 
 import scala.collection.Factory
 
@@ -62,7 +54,7 @@ object query {
      * @group Diagnostics
      */
     def analysis: ConnectionIO[Analysis] =
-      HC.prepareQueryAnalysis[A, B](sql)
+      ConnectionIO.prepareQueryAnalysis[A, B](sql)
 
     /**
      * Program to construct an analysis of this query's SQL statement and result
@@ -70,34 +62,10 @@ object query {
      * @group Diagnostics
      */
     def outputAnalysis: ConnectionIO[Analysis] =
-      HC.prepareQueryAnalysis0[B](sql)
+      ConnectionIO.prepareQueryAnalysis0[B](sql)
 
-    /**
-     * Program to construct an inspection of the query. Given arguments `a`,
-     * calls `f` with the SQL representation of the query and a statement with
-     * all arguments set. Returns the result of the `ConnectionIO` program
-     * constructed.
-     *
-     * @group Diagnostics
-     */
-    def inspect[R](a: A)(f: (String, PreparedStatementIO[Unit]) => ConnectionIO[R]): ConnectionIO[R] =
-      f(sql, HPS.set(a))
-
-    /**
-     * Apply the argument `a` to construct a `Stream` with the given chunking
-     * factor, with effect type [[ConnectionIO]] yielding elements of type `B`.
-     * @group Results
-     */
-    def streamWithChunkSize(a: A, chunkSize: Int): Stream[ConnectionIO, B] =
-      HC.stream[B](sql, HPS.set(a), chunkSize)
-
-    /**
-     * Apply the argument `a` to construct a `Stream` with `DefaultChunkSize`,
-     * with effect type [[ConnectionIO]] yielding elements of type `B`.
-     * @group Results
-     */
-    def stream(a: A): Stream[ConnectionIO, B] =
-      streamWithChunkSize(a, DefaultChunkSize)
+    def iterator[C](a: A)(f: Iterator[B] => C): ConnectionIO[C] =
+      ConnectionIO.query.iterator(sql, a, f)(read, write)
 
     /**
      * Apply the argument `a` to construct a program in [[ConnectionIO]]
@@ -105,7 +73,7 @@ object query {
      * @group Results
      */
     def to[F[_]](a: A)(implicit f: Factory[B, F[B]]): ConnectionIO[F[B]] =
-      withPrepareStatement(a, HRS.build[F, B])
+      ConnectionIO.query.collect(sql, a)(read, write, f)
 
     /**
      * Apply the argument `a` to construct a program in [[ConnectionIO]]
@@ -115,16 +83,7 @@ object query {
      * @group Results
      */
     def toMap[K, V](a: A)(implicit ev: B =:= (K, V), f: Factory[(K, V), Map[K, V]]): ConnectionIO[Map[K, V]] =
-      withPrepareStatement(a, HRS.buildPair[Map, K, V](f, read.map(ev)))
-
-    /**
-     * Apply the argument `a` to construct a program in [[ConnectionIO]]
-     * yielding an `F[B]` accumulated via `MonadPlus` append. This method is
-     * more general but less efficient than `to`.
-     * @group Results
-     */
-    def accumulate[F[_]: Alternative](a: A): ConnectionIO[F[B]] =
-      withPrepareStatement(a, HRS.accumulate[F, B])
+      ConnectionIO.query.collectPair(sql, a)(read.map(ev(_)), write, f)
 
     /**
      * Apply the argument `a` to construct a program in [[ConnectionIO]]
@@ -133,7 +92,7 @@ object query {
      * @group Results
      */
     def unique(a: A): ConnectionIO[B] =
-      withPrepareStatement(a, HRS.getUnique[B])
+      ConnectionIO.query.unique(sql, a)(read, write)
 
     /**
      * Apply the argument `a` to construct a program in [[ConnectionIO]]
@@ -142,7 +101,7 @@ object query {
      * @group Results
      */
     def option(a: A): ConnectionIO[Option[B]] =
-      withPrepareStatement(a, HRS.getOption[B])
+      ConnectionIO.query.option(sql, a)(read, write)
 
     /**
      * Apply the argument `a` to construct a program in [[ConnectionIO]]
@@ -151,10 +110,7 @@ object query {
      * @group Results
      */
     def nel(a: A): ConnectionIO[NonEmptyList[B]] =
-      withPrepareStatement(a, HRS.nel[B])
-
-    private def withPrepareStatement[T](a: A, k: ResultSetIO[T]): ConnectionIO[T] =
-      HC.prepareStatement(sql)(HPS.set(a) *> HPS.executeQuery(k))
+      ConnectionIO.query.nel(sql, a)(read, write)
 
     /** @group Transformations */
     def map[C](f: B => C): Query[A, C] =
@@ -186,15 +142,12 @@ object query {
         def toFragment = outer.toFragment(a)
         def analysis = outer.analysis
         def outputAnalysis = outer.outputAnalysis
-        def streamWithChunkSize(n: Int) = outer.streamWithChunkSize(a, n)
-        def accumulate[F[_]: Alternative] = outer.accumulate[F](a)
         def to[F[_]](implicit f: Factory[B, F[B]]) = outer.to[F](a)
         def toMap[K, V](implicit ev: B =:= (K, V), f: Factory[(K, V), Map[K, V]]) = outer.toMap(a)
         def unique = outer.unique(a)
         def option = outer.option(a)
         def nel = outer.nel(a)
         def map[C](f: B => C): Query0[C] = outer.map(f).toQuery0(a)
-        def inspect[R](f: (String, PreparedStatementIO[Unit]) => ConnectionIO[R]) = outer.inspect(a)(f)
       }
 
   }
@@ -267,35 +220,11 @@ object query {
     def toFragment: Fragment
 
     /**
-     * Program to construct an inspection of the query. Calls `f` with the SQL
-     * representation of the query and a statement with all statement arguments
-     * set. Returns the result of the `ConnectionIO` program constructed.
-     *
-     * @group Diagnostics
-     */
-    def inspect[R](f: (String, PreparedStatementIO[Unit]) => ConnectionIO[R]): ConnectionIO[R]
-
-    /**
      * Program to construct an analysis of this query's SQL statement and result
      * set column types.
      * @group Diagnostics
      */
     def outputAnalysis: ConnectionIO[Analysis]
-
-    /**
-     * `Stream` with default chunk factor, with effect type [[ConnectionIO]]
-     * yielding elements of type `B`.
-     * @group Results
-     */
-    def stream: Stream[ConnectionIO, B] =
-      streamWithChunkSize(DefaultChunkSize)
-
-    /**
-     * `Stream` with given chunk factor, with effect type [[ConnectionIO]]
-     * yielding elements of type `B`.
-     * @group Results
-     */
-    def streamWithChunkSize(n: Int): Stream[ConnectionIO, B]
 
     /**
      * Program in [[ConnectionIO]] yielding an `F[B]` accumulated via the
@@ -313,14 +242,6 @@ object query {
      * @group Results
      */
     def toMap[K, V](implicit ev: B =:= (K, V), f: Factory[(K, V), Map[K, V]]): ConnectionIO[Map[K, V]]
-
-    /**
-     * Program in [[ConnectionIO]] yielding an `F[B]` accumulated via
-     * `MonadPlus` append. This method is more general but less efficient than
-     * `to`.
-     * @group Results
-     */
-    def accumulate[F[_]: Alternative]: ConnectionIO[F[B]]
 
     /**
      * Program in [[ConnectionIO]] yielding a unique `B` and raising an

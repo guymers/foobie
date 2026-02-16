@@ -7,7 +7,7 @@ package doobie.util
 import cats.Show
 import cats.syntax.show.*
 import doobie.enumerated.JdbcType
-import org.tpolecat.typename.*
+import doobie.util.typename.*
 
 /**
  * Module defining the type of exceptions representing unmet expectations. These

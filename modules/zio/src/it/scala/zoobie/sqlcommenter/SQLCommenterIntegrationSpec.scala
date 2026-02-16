@@ -1,5 +1,6 @@
 package zoobie.sqlcommenter
 
+import doobie.postgres.PostgresDatabaseSpec
 import doobie.syntax.string.*
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
@@ -8,20 +9,15 @@ import io.opentelemetry.api.trace.SpanContext
 import io.opentelemetry.api.trace.StatusCode
 import io.opentelemetry.api.trace.TraceFlags
 import io.opentelemetry.api.trace.TraceState
-import zio.Chunk
 import zio.ZIO
-import zio.durationInt
-import zio.test.TestAspect
-import zio.test.ZIOSpecDefault
 import zio.test.assertCompletes
-import zoobie.ConnectionPoolConfig
+import zoobie.ConnectionPool
 import zoobie.Transactor
-import zoobie.postgres.PostgreSQLConnectionConfig
-import zoobie.postgres.pool
 
+import java.sql.Connection
 import java.util.concurrent.TimeUnit
 
-object SQLCommenterIntegrationSpec extends ZIOSpecDefault {
+object SQLCommenterIntegrationSpec extends PostgresDatabaseSpec {
 
   override val spec = test("SQLCommenterIntegrationSpec") {
     val spanContext = new SpanContext {
@@ -45,34 +41,12 @@ object SQLCommenterIntegrationSpec extends ZIOSpecDefault {
     }
 
     for {
-      p <- pool(connectionConfig, config)
-      interpreter = TraceInterpreter.create(Transactor.kleisliInterpreter, ZIO.succeed(Some(span)))
-      transactor = Transactor(p.get, interpreter.ConnectionInterpreter, Transactor.strategies.transactional)
+      p <- ZIO.service[ConnectionPool]
+      interpreter = (c: Connection) => TraceInterpreter.create(Transactor.interpreter(c), ZIO.succeed(Some(span)))
+      transactor = Transactor(p.get, interpreter, Transactor.strategies.transactional)
       _ <- transactor.run(fr"SELECT 1".query[Int].unique)
     } yield {
       assertCompletes
     }
   }
-
-  override val aspects = super.aspects ++ Chunk(
-    TestAspect.timed,
-    TestAspect.timeout(90.seconds),
-    TestAspect.withLiveClock,
-  )
-
-  private lazy val connectionConfig = PostgreSQLConnectionConfig(
-    host = "localhost",
-    database = "world",
-    username = "postgres",
-    password = "password",
-    applicationName = "doobie",
-  )
-
-  private lazy val config = ConnectionPoolConfig(
-    name = "zoobie-postgres-it",
-    size = 5,
-    queueSize = 1_000,
-    maxConnectionLifetime = 30.seconds,
-    validationTimeout = 2.seconds,
-  )
 }

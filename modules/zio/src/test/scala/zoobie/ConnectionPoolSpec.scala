@@ -1,5 +1,6 @@
 package zoobie
 
+import doobie.stub.StubConnection
 import zio.Chunk
 import zio.Exit
 import zio.Promise
@@ -12,7 +13,6 @@ import zio.test.TestAspect
 import zio.test.TestClock
 import zio.test.ZIOSpecDefault
 import zio.test.assertTrue
-import zoobie.stub.StubConnection
 
 import java.sql.SQLTransientConnectionException
 

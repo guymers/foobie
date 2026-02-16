@@ -10,6 +10,8 @@ import cats.syntax.applicative.*
 import cats.syntax.semigroup.*
 import doobie.H2DatabaseSpec
 import doobie.free.connection.ConnectionIO
+import doobie.free.connection.ConnectionIO.MonadErrorConnectionIO
+import doobie.free.connection.ConnectionIO.MonoidConnectionIO
 import zio.test.assertCompletes
 import zio.test.assertTrue
 

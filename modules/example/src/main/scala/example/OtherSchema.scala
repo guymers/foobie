@@ -7,11 +7,14 @@ package example
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.effect.IOApp
+import cats.effect.kernel.Resource
 import doobie.enumerated.JdbcType
 import doobie.syntax.string.*
 import doobie.util.meta.Meta
 import doobie.util.transactor.Transactor
 import org.postgresql.util.*
+
+import java.sql.DriverManager
 
 /**
  * The normal string mapping doesn't work for enums defined in another schema.
@@ -55,25 +58,24 @@ object OtherSchema extends IOApp.Simple {
   def run: IO[Unit] = {
 
     // Some setup
-    val xa = Transactor.fromDriverManager[IO](
-      "org.postgresql.Driver",
-      "jdbc:postgresql:world",
-      "postgres",
-      "password",
-    )
-    val y = xa.yolo
-    import y.*
+    val xa = {
+      val conn = Resource.fromAutoCloseable(IO.blocking {
+        DriverManager.getConnection("jdbc:postgresql:world", "postgres", "password")
+      })
+      Transactor.catsEffect((), conn)
+    }
 
     // Check as column value only
     val q1 = sql"SELECT 'INITIAL'::returns_data.return_status".query[ReturnStatus.Value]
-    val p1 = q1.check *> q1.unique.quick
 
     // Check as parameter too
     val q2 = sql"SELECT ${ReturnStatus.IN_PROGRESS}::returns_data.return_status".query[ReturnStatus.Value]
-    val p2 = q2.check *> q2.unique.quick
 
-    (p1 *> p2)
-
+    val conn = for {
+      _ <- q1.unique
+      _ <- q2.unique
+    } yield ()
+    xa.run(conn)
   }
 
 }

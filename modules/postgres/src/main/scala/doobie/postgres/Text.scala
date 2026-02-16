@@ -159,6 +159,11 @@ object Text extends TextInstances0 with TextPlatform {
     case (None, sb) => val _ = sb.append(Text.NULL)
   }
 
+  def foldToString[F[_]: Foldable, A](fa: F[A])(implicit ev: Text[A]): String =
+    fa.foldLeft(new StringBuilder) { (b, a) =>
+      ev.unsafeEncode(a, b)
+      b.append("\n")
+    }.toString
 }
 
 trait TextInstances0 extends TextInstances1 { this: Text.type =>
