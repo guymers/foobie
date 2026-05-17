@@ -13,7 +13,7 @@ sealed abstract class DatabaseError(
 ) extends RuntimeException(msg, cause.orNull)
 object DatabaseError {
 
-  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+  @SuppressWarnings(Array("org.wartremover.warts.PartialFunctionApply", "org.wartremover.warts.Throw"))
   def apply(t: Throwable): DatabaseError = t match {
     case e: DatabaseError => e
     case t if Connection.partial.isDefinedAt(t) => Connection.partial(t)
@@ -33,7 +33,7 @@ object DatabaseError {
       queueSize: Int,
     ) extends DatabaseError(s"Maximum queue size of ${queueSize.toString} reached", None) with Connection
 
-    @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+    @SuppressWarnings(Array("org.wartremover.warts.PartialFunctionApply", "org.wartremover.warts.Throw"))
     def apply(t: Throwable): DatabaseError.Connection = t match {
       case t if partial.isDefinedAt(t) => partial(t)
       case t if NonFatal(t) => Unhandled(t)

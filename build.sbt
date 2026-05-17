@@ -2,26 +2,26 @@
 import FreeGen2.*
 
 val catsVersion = "2.13.0"
-val catsEffectVersion = "3.6.3"
-val circeVersion = "0.14.14"
-val fs2Version = "3.12.0"
-val h2Version = "2.3.232"
-val hikariVersion = "7.0.1"
+val catsEffectVersion = "3.7.0"
+val circeVersion = "0.14.15"
+val fs2Version = "3.13.0"
+val h2Version = "2.4.240"
+val hikariVersion = "7.0.2"
 val magnoliaVersion = "1.1.10"
-val munitVersion = "1.1.1"
-val mysqlVersion = "9.4.0"
-val openTelemetryVersion = "1.53.0"
+val munitVersion = "1.3.0"
+val mysqlVersion = "9.7.0"
+val openTelemetryVersion = "1.62.0"
 val postgisVersion = "2025.1.1"
-val postgresVersion = "42.7.7"
-val scalatestVersion = "3.2.19"
+val postgresVersion = "42.7.11"
+val scalatestVersion = "3.2.20"
 val shapelessVersion = "2.3.12"
-val slf4jVersion = "2.0.17"
+val slf4jVersion = "2.0.18"
 val weaverVersion = "0.8.4"
 val zioInteropCats = "23.1.0.5"
 val zioVersion = "2.1.19"
 
-val Scala213 = "2.13.16"
-val Scala3 = "3.3.6"
+val Scala213 = "2.13.18"
+val Scala3 = "3.3.7"
 
 inThisBuild(Seq(
   organization := "io.github.guymers",
@@ -51,6 +51,7 @@ lazy val commonSettings = Seq(
       "-language:existentials",
       "-language:higherKinds",
       "-Xsource:3",
+      "-Xsource-features:eta-expand-always",
     )
     case Some((3, _)) => Seq(
       "-explain",
@@ -95,7 +96,7 @@ lazy val commonSettings = Seq(
   ),
 
   libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-    case Some((2, _)) => Seq(compilerPlugin("org.typelevel" % "kind-projector" % "0.13.3" cross CrossVersion.full))
+    case Some((2, _)) => Seq(compilerPlugin("org.typelevel" % "kind-projector" % "0.13.4" cross CrossVersion.full))
     case _ => Seq.empty
   }),
 
@@ -225,7 +226,7 @@ lazy val core = module("core")
       "org.typelevel" %% "cats-core" % catsVersion,
       "org.typelevel" %% "cats-effect-kernel" % catsEffectVersion,
       "co.fs2" %% "fs2-core" % fs2Version,
-      "org.tpolecat" %% "typename" % "1.1.0",
+      "org.tpolecat" %% "typename" % "1.1.2",
 
       "com.h2database" % "h2" % h2Version % Test,
       "dev.zio" %% "zio-interop-cats" % zioInteropCats % Test,
