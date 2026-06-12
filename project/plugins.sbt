@@ -1,14 +1,14 @@
-addSbtPlugin("com.github.sbt" % "sbt-ghpages" % "0.8.0")
+addSbtPlugin("com.github.sbt" % "sbt-ghpages" % "0.9.0")
 addSbtPlugin("com.github.sbt" % "sbt-site-paradox" % "1.7.0")
-addSbtPlugin("org.scalameta" % "sbt-mdoc" % "2.7.2")
+addSbtPlugin("org.scalameta" % "sbt-mdoc" % "2.9.0")
 
-addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.4.7")
+addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.4.8")
 
-addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.5")
-addSbtPlugin("org.wartremover" % "sbt-wartremover" % "3.4.0")
+addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.6.1")
+addSbtPlugin("org.wartremover" % "sbt-wartremover" % "3.5.8")
 
-addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.11.1")
-addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "1.1.4")
+addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.11.2")
+addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "1.1.5")
 
 //addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.6.4")
 //addSbtPlugin("com.github.cb372" % "sbt-explicit-dependencies" % "0.3.1")
