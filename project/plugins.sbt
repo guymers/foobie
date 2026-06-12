@@ -5,7 +5,7 @@ addSbtPlugin("org.scalameta" % "sbt-mdoc" % "2.9.0")
 addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.4.8")
 
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.6.1")
-addSbtPlugin("org.wartremover" % "sbt-wartremover" % "3.5.7")
+addSbtPlugin("org.wartremover" % "sbt-wartremover" % "3.5.8")
 
 addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.11.2")
 addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "1.1.5")
