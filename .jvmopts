@@ -1,0 +1,2 @@
+# avoid stack overflow while compiling project/FreeGen2.scala
+-Xss2m
