@@ -101,6 +101,26 @@ object query {
 
     /**
      * Apply the argument `a` to construct a program in [[ConnectionIO]]
+     * yielding an `Iterator[F[B]]` whose elements contain up to `chunkSize`
+     * rows. The iterator must be consumed while the connection that created it
+     * remains open.
+     * @group Results
+     */
+    def iteratorWithChunkSize[F[_]](a: A, chunkSize: Int)(implicit f: Factory[B, F[B]]): ConnectionIO[Iterator[F[B]]] =
+      HC.iterator[F, B](sql, HPS.set(a), chunkSize)
+
+    /**
+     * Apply the argument `a` to construct a program in [[ConnectionIO]]
+     * yielding an `Iterator[F[B]]` whose elements contain up to
+     * `DefaultChunkSize` rows. The iterator must be consumed while the
+     * connection that created it remains open.
+     * @group Results
+     */
+    def iterator[F[_]](a: A)(implicit f: Factory[B, F[B]]): ConnectionIO[Iterator[F[B]]] =
+      iteratorWithChunkSize[F](a, DefaultChunkSize)
+
+    /**
+     * Apply the argument `a` to construct a program in [[ConnectionIO]]
      * yielding an `F[B]`. This is the fastest way to accumulate a collection.
      * @group Results
      */
@@ -187,6 +207,7 @@ object query {
         def analysis = outer.analysis
         def outputAnalysis = outer.outputAnalysis
         def streamWithChunkSize(n: Int) = outer.streamWithChunkSize(a, n)
+        def iteratorWithChunkSize[F[_]](n: Int)(implicit f: Factory[B, F[B]]) = outer.iteratorWithChunkSize[F](a, n)
         def accumulate[F[_]: Alternative] = outer.accumulate[F](a)
         def to[F[_]](implicit f: Factory[B, F[B]]) = outer.to[F](a)
         def toMap[K, V](implicit ev: B =:= (K, V), f: Factory[(K, V), Map[K, V]]) = outer.toMap(a)
@@ -296,6 +317,23 @@ object query {
      * @group Results
      */
     def streamWithChunkSize(n: Int): Stream[ConnectionIO, B]
+
+    /**
+     * Program in [[ConnectionIO]] yielding an `Iterator[F[B]]` whose elements
+     * contain up to `DefaultChunkSize` rows. The iterator must be consumed
+     * while the connection that created it remains open.
+     * @group Results
+     */
+    def iterator[F[_]](implicit f: Factory[B, F[B]]): ConnectionIO[Iterator[F[B]]] =
+      iteratorWithChunkSize[F](DefaultChunkSize)
+
+    /**
+     * Program in [[ConnectionIO]] yielding an `Iterator[F[B]]` whose elements
+     * contain up to `chunkSize` rows. The iterator must be consumed while the
+     * connection that created it remains open.
+     * @group Results
+     */
+    def iteratorWithChunkSize[F[_]](chunkSize: Int)(implicit f: Factory[B, F[B]]): ConnectionIO[Iterator[F[B]]]
 
     /**
      * Program in [[ConnectionIO]] yielding an `F[B]` accumulated via the
