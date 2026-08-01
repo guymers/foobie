@@ -10,19 +10,21 @@ object FreeGen2 {
   lazy val freeGen2Dir = settingKey[File]("directory where free algebras go")
   lazy val freeGen2Package = settingKey[String]("package where free algebras go")
   lazy val freeGen2Renames = settingKey[Map[Class[?], String]]("map of imports that must be renamed")
-  lazy val freeGen2 = taskKey[Seq[File]]("generate free algebras")
+  @transient lazy val freeGen2 = taskKey[List[File]]("generate free algebras")
 
   lazy val freeGen2Settings = Seq(
     freeGen2Classes := Nil,
     freeGen2Dir := (Compile / sourceManaged).value,
     freeGen2Package := "doobie.free",
     freeGen2Renames := Map(classOf[java.sql.Array] -> "SqlArray"),
-    freeGen2 := new FreeGen2(
-      freeGen2Classes.value,
-      freeGen2Package.value,
-      freeGen2Renames.value,
-      state.value.log,
-    ).gen(freeGen2Dir.value),
+    freeGen2 := {
+      new FreeGen2(
+        freeGen2Classes.value,
+        freeGen2Package.value,
+        freeGen2Renames.value,
+        streams.value.log,
+      ).gen(freeGen2Dir.value)
+    },
   )
 
 }
@@ -405,7 +407,7 @@ class FreeGen2(managed: List[Class[?]], pkg: String, renames: Map[Class[?], Stri
      |sealed trait Embedded[A]
      |
      |object Embedded {
-     |  ${managed.map(ClassTag(_)).map(embed(_)).mkString("\n  ")}
+     |  ${managed.map(c => embed(using ClassTag(c))).mkString("\n  ")}
      |}
      |
      |// Typeclass for embeddable pairs (J, F)
@@ -476,7 +478,7 @@ class FreeGen2(managed: List[Class[?]], pkg: String, renames: Map[Class[?], Stri
       |import cats.free.Free
       |import scala.concurrent.duration.FiniteDuration
       |
-      |${managed.map(ClassTag(_)).flatMap(imports(_)).distinct.sorted.mkString("\n")}
+      |${managed.flatMap(c => imports(using ClassTag(c))).distinct.sorted.mkString("\n")}
       |
       |${managed.map(_.getSimpleName).map(c => s"import ${pkg}.${c.toLowerCase}.{ ${c}IO, ${c}Op }").mkString("\n")}
       |
@@ -532,16 +534,16 @@ class FreeGen2(managed: List[Class[?]], pkg: String, renames: Map[Class[?], Stri
       |  }
       |
       |  // Interpreters
-      |${managed.map(ClassTag(_)).map(interp(_)).mkString("\n")}
+      |${managed.map(c => interp(using ClassTag(c))).mkString("\n")}
       |
       |}
       |""".trim.stripMargin
 
-  def gen(base: File): Seq[File] = {
+  def gen(base: File): List[File] = {
     log.info("Generating free algebras into " + base)
     val fs = managed.map { c =>
       base.mkdirs
-      val mod = module(ClassTag(c))
+      val mod = module(using ClassTag(c))
       val file = printToFile(base, s"${c.getSimpleName.toLowerCase}.scala", mod)
       log.info(s"${c.getName} -> ${file.getName}")
       file

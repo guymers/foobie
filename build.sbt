@@ -3,16 +3,16 @@ import FreeGen2.*
 
 val catsVersion = "2.13.0"
 val catsEffectVersion = "3.7.0"
-val circeVersion = "0.14.15"
+val circeVersion = "0.14.16"
 val fs2Version = "3.13.0"
 val h2Version = "2.4.240"
-val hikariVersion = "7.0.2"
+val hikariVersion = "7.1.0"
 val magnoliaVersion = "1.1.10"
 val munitVersion = "1.3.3"
 val mysqlVersion = "9.7.0"
 val openTelemetryVersion = "1.63.0"
 val postgisVersion = "2025.1.1"
-val postgresVersion = "42.7.11"
+val postgresVersion = "42.7.12"
 val scalatestVersion = "3.2.20"
 val shapelessVersion = "2.3.12"
 val slf4jVersion = "2.0.18"
@@ -21,17 +21,15 @@ val zioInteropCats = "23.1.0.5"
 val zioVersion = "2.1.19"
 
 val Scala213 = "2.13.18"
-val Scala3 = "3.3.7"
+val Scala3 = "3.3.8"
 
-inThisBuild(Seq(
-  organization := "io.github.guymers",
-  homepage := Some(url("https://github.com/guymers/foobie")),
-  licenses := Seq(License.MIT),
-  developers := List(
-    Developer("guymers", "Sam Guymer", "@guymers", url("https://github.com/guymers")),
-  ),
-  scmInfo := Some(ScmInfo(url("https://github.com/guymers/foobie"), "git@github.com:guymers/foobie.git")),
-))
+organization := "io.github.guymers"
+homepage := Some(uri("https://github.com/guymers/foobie"))
+licenses := Seq(License.MIT)
+developers := List(
+  Developer("guymers", "Sam Guymer", "@guymers", uri("https://github.com/guymers")),
+)
+ThisBuild / scmInfo := Some(ScmInfo(uri("https://github.com/guymers/foobie"), "git@github.com:guymers/foobie.git"))
 
 lazy val commonSettings = Seq(
   scalaVersion := Scala213,
@@ -42,7 +40,7 @@ lazy val commonSettings = Seq(
     "-deprecation",
     "-encoding", "UTF-8",
     "-feature",
-    "-release", "11",
+    "-release", "17",
     "-unchecked",
   ),
   scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
@@ -96,7 +94,7 @@ lazy val commonSettings = Seq(
   ),
 
   libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-    case Some((2, _)) => Seq(compilerPlugin("org.typelevel" % "kind-projector" % "0.13.4" cross CrossVersion.full))
+    case Some((2, _)) => Seq(compilerPlugin(("org.typelevel" % "kind-projector" % "0.13.4").cross(CrossVersion.full)))
     case _ => Seq.empty
   }),
 
@@ -166,7 +164,7 @@ lazy val foobie = project.in(file("."))
   )
   .aggregate(
     modules, integrationTests,
-    example, bench, docs,
+    example, bench,
   )
 
 lazy val modules = project.in(file("project/.root"))
@@ -418,52 +416,7 @@ lazy val bench = project.in(file("modules/bench"))
   .enablePlugins(JmhPlugin)
   .dependsOn(core, postgres)
 
-lazy val docs = project.in(file("modules/docs"))
-  .dependsOn(core, postgres, postgis, h2, hikari, munit, scalatest, weaver)
-  .settings(commonSettings)
-  .settings(noPublishSettings)
-  .settings(Compile / compile / wartremoverErrors := Nil)
-  .enablePlugins(GhpagesPlugin)
-  .enablePlugins(ParadoxPlugin)
-  .enablePlugins(ParadoxSitePlugin)
-  .enablePlugins(MdocPlugin)
-  .settings(
-    scalacOptions := (CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, _)) => Seq("-Xsource:3", "-Wconf:cat=scala3-migration:silent")
-      case Some((3, _)) => Seq("-Ykind-projector")
-      case _ => Seq.empty
-    }),
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core" % circeVersion,
-      "io.circe" %% "circe-generic" % circeVersion,
-      "io.circe" %% "circe-parser" % circeVersion,
-    ),
-    Test / fork := true,
-
-    version := version.value.takeWhile(_ != '+'), // strip off the +3-f22dca22+20191110-1520-SNAPSHOT business
-
-    git.remoteRepo := "git@github.com:guymers/foobie.git",
-    ghpagesNoJekyll := true,
-    paradoxTheme := Some(builtinParadoxTheme("generic")),
-    paradoxProperties ++= Map(
-      "scala-versions" -> {
-        val crossVersions = (core / crossScalaVersions).value.flatMap(CrossVersion.partialVersion)
-        val scala2Versions = crossVersions.filter(_._1 == 2).map(_._2).mkString("2.", "/", "") // 2.12/13
-        val scala3 = crossVersions.find(_._1 == 3).map(_ => "3") // 3
-        List(Some(scala2Versions), scala3).flatten.filter(_.nonEmpty).mkString(" and ") // 2.12/13 and 3
-      },
-      "org"                      -> organization.value,
-      "scala.binary.version"     -> CrossVersion.binaryScalaVersion(scalaVersion.value),
-      "version"                  -> version.value,
-      "catsVersion"              -> catsVersion,
-      "fs2Version"               -> fs2Version,
-      "shapelessVersion"         -> shapelessVersion,
-      "h2Version"                -> h2Version,
-      "postgresVersion"          -> postgresVersion,
-      "scalaVersion"             -> scalaVersion.value,
-    ),
-
-    mdocIn := baseDirectory.value / "src" / "main" / "mdoc",
-    Compile / paradox / sourceDirectory := mdocOut.value,
-    makeSite := makeSite.dependsOn(mdoc.toTask("")).value,
-  )
+Global / excludeLintKeys ++= Set(
+  com.github.sbt.git.SbtGit.GitKeys.gitDescribedVersion,
+  com.github.sbt.git.SbtGit.GitKeys.gitUncommittedChanges,
+)

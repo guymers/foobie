@@ -1,1 +1,2 @@
--mem 2048
+-J-Xss4m
+-J-Xmx2000m

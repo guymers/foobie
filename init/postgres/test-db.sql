@@ -2,8 +2,8 @@
 -- Some stuff specifically for doobie testing
 --
 
-create extension postgis;
-create extension hstore;
+create extension if not exists postgis;
+create extension if not exists hstore;
 create type myenum as enum ('foo', 'bar', 'invalid');
 
 BEGIN;
