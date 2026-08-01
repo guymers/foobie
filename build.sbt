@@ -23,15 +23,13 @@ val zioVersion = "2.1.19"
 val Scala213 = "2.13.18"
 val Scala3 = "3.3.8"
 
-inThisBuild(Seq(
-  organization := "io.github.guymers",
-  homepage := Some(url("https://github.com/guymers/foobie")),
-  licenses := Seq(License.MIT),
-  developers := List(
-    Developer("guymers", "Sam Guymer", "@guymers", url("https://github.com/guymers")),
-  ),
-  scmInfo := Some(ScmInfo(url("https://github.com/guymers/foobie"), "git@github.com:guymers/foobie.git")),
-))
+organization := "io.github.guymers"
+homepage := Some(uri("https://github.com/guymers/foobie"))
+licenses := Seq(License.MIT)
+developers := List(
+  Developer("guymers", "Sam Guymer", "@guymers", uri("https://github.com/guymers")),
+)
+ThisBuild / scmInfo := Some(ScmInfo(uri("https://github.com/guymers/foobie"), "git@github.com:guymers/foobie.git"))
 
 lazy val commonSettings = Seq(
   scalaVersion := Scala213,
