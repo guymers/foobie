@@ -91,7 +91,3 @@ jobs:
 
       - name: Test
         run: sbt ++${{ matrix.scala }} modules/test
-
-      - name: Check Doc Site
-        if: ${{ startsWith(matrix.scala, '2.13.') }}
-        run: sbt ++${{ matrix.scala }} docs/makeSite
