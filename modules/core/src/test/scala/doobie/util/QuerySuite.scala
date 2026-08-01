@@ -4,19 +4,28 @@
 
 package doobie.util
 
+import doobie.FC
 import doobie.H2DatabaseSpec
 import doobie.syntax.string.*
 import doobie.util.query.Query
 import doobie.util.query.Query0
 import zio.test.assertTrue
 
+import java.util.concurrent.atomic.AtomicInteger
+
 object QuerySuite extends H2DatabaseSpec {
 
   private val q = Query[String, Int]("select 123 where ? = 'foo'", None)
   private val pairQuery = Query[String, (String, Int)]("select 'xxx', 123 where ? = 'foo'", None)
+  private val numbers = Query0[Int]("select x::int from system_range(1, 5)", None)
 
   override val spec = suite("Query")(
     suite("Query (non-empty)")(
+      test("iterator") {
+        q.iterator[List]("foo").flatMap(i => FC.delay(i.toList)).transact.map { result =>
+          assertTrue(result == List(List(123)))
+        }
+      },
       test("to") {
         q.to[List]("foo").transact.map { result =>
           assertTrue(result == List(123))
@@ -49,6 +58,11 @@ object QuerySuite extends H2DatabaseSpec {
       },
     ),
     suite("Query (empty)")(
+      test("iterator") {
+        q.iterator[List]("bar").flatMap(i => FC.delay(i.toList)).transact.map { result =>
+          assertTrue(result == Nil)
+        }
+      },
       test("to") {
         q.to[List]("bar").transact.map { result =>
           assertTrue(result == Nil)
@@ -81,6 +95,11 @@ object QuerySuite extends H2DatabaseSpec {
       },
     ),
     suite("Query0 from Query (non-empty)")(
+      test("iterator") {
+        q.toQuery0("foo").iterator[List].flatMap(i => FC.delay(i.toList)).transact.map { result =>
+          assertTrue(result == List(List(123)))
+        }
+      },
       test("to") {
         q.toQuery0("foo").to[List].transact.map { result =>
           assertTrue(result == List(123))
@@ -108,6 +127,11 @@ object QuerySuite extends H2DatabaseSpec {
       },
     ),
     suite("Query0 from Query (empty)")(
+      test("iterator") {
+        q.toQuery0("bar").iterator[List].flatMap(i => FC.delay(i.toList)).transact.map { result =>
+          assertTrue(result == Nil)
+        }
+      },
       test("to") {
         q.toQuery0("bar").to[List].transact.map { result =>
           assertTrue(result == Nil)
@@ -199,6 +223,27 @@ object QuerySuite extends H2DatabaseSpec {
       val qf_ = qf.toFragment.query[(String, Int, Option[Int], Option[Int])]
       qf_.unique.transact.map { result =>
         assertTrue(result == ("foo", 1, None, Some(42)))
+      }
+    },
+    test("iteratorWithChunkSize returns one collection per chunk") {
+      val reads = new AtomicInteger()
+      val program = numbers
+        .map { n =>
+          val _ = reads.incrementAndGet()
+          n
+        }
+        .iteratorWithChunkSize[Vector](2)
+        .flatMap { i =>
+          FC.delay {
+            val firstChunk = i.next()
+            val readsAfterFirst = reads.get()
+            val remainingChunks = i.toList
+            (firstChunk, readsAfterFirst, remainingChunks)
+          }
+        }
+
+      program.transact.map { result =>
+        assertTrue(result == (Vector(1, 2), 2, List(Vector(3, 4), Vector(5))))
       }
     },
   )

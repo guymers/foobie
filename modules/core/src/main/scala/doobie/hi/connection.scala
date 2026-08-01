@@ -7,6 +7,7 @@ package doobie.hi
 import cats.Foldable
 import cats.data.Ior
 import cats.effect.kernel.syntax.monadCancel.*
+import cats.syntax.applicativeError.*
 import cats.syntax.apply.*
 import cats.syntax.foldable.*
 import doobie.FC
@@ -48,6 +49,56 @@ import scala.jdk.CollectionConverters.*
  */
 object connection {
 
+  @SuppressWarnings(Array(
+    "org.wartremover.warts.MutableDataStructures",
+    "org.wartremover.warts.Var",
+    "org.wartremover.warts.While",
+  ))
+  private final class ChunkedResultSetIterator[F[_], A](
+    ps: PreparedStatement,
+    rs: ResultSet,
+    chunkSize: Int,
+  )(implicit A: Read[A], factory: Factory[A, F[A]]) extends Iterator[F[A]] {
+
+    private var nextChunk = Option.empty[F[A]]
+    private var exhausted = false
+
+    private def close(): Unit =
+      try rs.close()
+      finally ps.close()
+
+    private def loadChunk(): Unit =
+      if (nextChunk.isEmpty && !exhausted) {
+        val b = factory.newBuilder
+        var n = chunkSize
+        while (n > 0 && rs.next()) {
+          val _ = b += A.unsafeGet(rs, 1)
+          n -= 1
+        }
+        nextChunk = Option.when(n < chunkSize)(b.result())
+        if (n > 0) {
+          exhausted = true
+          close()
+        }
+      }
+
+    override def hasNext = {
+      loadChunk()
+      nextChunk.nonEmpty
+    }
+
+    @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+    override def next() = {
+      loadChunk()
+      nextChunk match {
+        case Some(chunk) =>
+          nextChunk = None
+          chunk
+        case None => throw new NoSuchElementException
+      }
+    }
+  }
+
   /** @group Lifting */
   def delay[A](a: => A): ConnectionIO[A] =
     FC.delay(a)
@@ -85,6 +136,22 @@ object connection {
    */
   def stream[A: Read](sql: String, prep: PreparedStatementIO[Unit], chunkSize: Int): Stream[ConnectionIO, A] =
     liftStream(chunkSize, FC.prepareStatement(sql), prep, FPS.executeQuery)
+
+  /**
+   * Construct a prepared statement from the given `sql`, configure it with the
+   * given `PreparedStatementIO` action, and return results via an `Iterator`.
+   * The iterator must be consumed while the connection that created it remains
+   * open. Rows are read lazily from the result set in groups of `chunkSize`.
+   * @group Prepared Statements
+   */
+  def iterator[F[_], A: Read](sql: String, prep: PreparedStatementIO[Unit], chunkSize: Int)(implicit
+    factory: Factory[A, F[A]],
+  ): ConnectionIO[Iterator[F[A]]] =
+    FC.prepareStatement(sql).flatMap { ps =>
+      FC.embed(ps, FPS.setFetchSize(chunkSize) *> prep *> FPS.executeQuery)
+        .handleErrorWith(e => FC.embed(ps, FPS.close) *> FC.raiseError(e))
+        .map(new ChunkedResultSetIterator[F, A](ps, _, chunkSize))
+    }
 
   /**
    * Construct a prepared update statement with the given return columns (and

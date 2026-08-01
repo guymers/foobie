@@ -71,7 +71,9 @@ sealed abstract class Transactor { self =>
     implicit val monad: Monad[Task] = Transactor.sync
 
     new (ConnectionIO ~> Task) {
-      override def apply[T](io: ConnectionIO[T]) = io.foldMap(interpreter).run(c)
+      override def apply[T](io: ConnectionIO[T]) = ZIO.blocking {
+        io.foldMap(interpreter).run(c)
+      }
     }
   }
 
