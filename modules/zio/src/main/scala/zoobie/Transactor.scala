@@ -71,9 +71,12 @@ sealed abstract class Transactor { self =>
     implicit val monad: Monad[Task] = Transactor.sync
 
     new (ConnectionIO ~> Task) {
-      override def apply[T](io: ConnectionIO[T]) = io.foldMap(interpreter).run(c)
+      override def apply[T](io: ConnectionIO[T]) = onBlockingExecutor(io.foldMap(interpreter).run(c))
     }
   }
+
+  private def onBlockingExecutor[A](effect: Task[A])(implicit trace: Trace): Task[A] =
+    ZIO.blockingExecutor.flatMap(executor => effect.onExecutor(executor))
 
   def withStrategy(s: Strategy): Transactor = new Transactor {
     override val connection = self.connection
@@ -87,7 +90,7 @@ object Transactor {
 
   private val sync: Sync[Task] = zio.interop.catz.asyncInstance[Any]
 
-  val kleisliInterpreter: KleisliInterpreter[Task] = KleisliInterpreter(sync)
+  val kleisliInterpreter: KleisliInterpreter[Task] = KleisliInterpreter.onBlockingThread(sync)
 
   val interpreter: Interpreter[Task] = kleisliInterpreter.ConnectionInterpreter
 

@@ -4,6 +4,7 @@
 
 package doobie.util
 
+import doobie.FC
 import doobie.H2DatabaseSpec
 import doobie.free.connection.ConnectionIO
 import doobie.syntax.string.*
@@ -18,6 +19,12 @@ import zio.test.assertTrue
 object TransactorSuite extends H2DatabaseSpec {
 
   override val spec = suite("Transactor")(
+    test("ConnectionIO remains on one blocking thread") {
+      (for {
+        jdbcThread <- FC.raw(_ => Thread.currentThread())
+        delayThread <- FC.delay(Thread.currentThread())
+      } yield jdbcThread eq delayThread).transact.map(assertTrue(_))
+    },
     test("Connection.close should be called on success") {
       withTracker(fr"select 1".query[Int].unique).map { case (tracker, result) =>
         assertTrue(result == Right(1)) &&

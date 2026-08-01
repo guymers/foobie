@@ -78,6 +78,16 @@ import scala.concurrent.duration.FiniteDuration
 
 object KleisliInterpreter {
   def apply[M[_]](implicit M: Sync[M]): KleisliInterpreter[M] = new KleisliInterpreter[M]
+
+  /**
+   * Interpreter for programs whose complete evaluation is already confined to a
+   * blocking execution context.
+   */
+  def onBlockingThread[M[_]](implicit M: Sync[M]): KleisliInterpreter[M] =
+    new KleisliInterpreter[M] {
+      override def primitive[J, A](f: J => A): Kleisli[M, J, A] =
+        Kleisli(a => M.delay(f(a)))
+    }
 }
 
 // Family of interpreters into Kleisli arrows for some monad M.

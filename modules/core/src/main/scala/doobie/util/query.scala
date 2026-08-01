@@ -207,7 +207,7 @@ object query {
         def analysis = outer.analysis
         def outputAnalysis = outer.outputAnalysis
         def streamWithChunkSize(n: Int) = outer.streamWithChunkSize(a, n)
-        def iteratorWithChunkSize[F[_]](n: Int)(implicit f: Factory[B, F[B]]) = outer.iteratorWithChunkSize[F](a, n)
+        override def iteratorWithChunkSize[F[_]](n: Int)(implicit f: Factory[B, F[B]]) = outer.iteratorWithChunkSize[F](a, n)
         def accumulate[F[_]: Alternative] = outer.accumulate[F](a)
         def to[F[_]](implicit f: Factory[B, F[B]]) = outer.to[F](a)
         def toMap[K, V](implicit ev: B =:= (K, V), f: Factory[(K, V), Map[K, V]]) = outer.toMap(a)
@@ -333,7 +333,14 @@ object query {
      * connection that created it remains open.
      * @group Results
      */
-    def iteratorWithChunkSize[F[_]](chunkSize: Int)(implicit f: Factory[B, F[B]]): ConnectionIO[Iterator[F[B]]]
+    def iteratorWithChunkSize[F[_]](chunkSize: Int)(implicit f: Factory[B, F[B]]): ConnectionIO[Iterator[F[B]]] =
+      // implementation for binary compatability
+      streamWithChunkSize(chunkSize)
+        .chunkN(chunkSize)
+        .map(chunk => f.fromSpecific(chunk.iterator))
+        .compile
+        .toVector
+        .map(_.iterator)
 
     /**
      * Program in [[ConnectionIO]] yielding an `F[B]` accumulated via the

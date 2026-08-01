@@ -4,15 +4,18 @@
 
 package doobie.h2
 
+import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.syntax.show.*
 import doobie.free.KleisliInterpreter
+import doobie.util.ExecutionContexts
 import doobie.util.transactor.Strategy
 import doobie.util.transactor.Transactor
 import org.h2.jdbcx.JdbcConnectionPool
 
 import java.sql.Connection
+import scala.concurrent.ExecutionContext
 
 object H2Helper {
 
@@ -33,8 +36,12 @@ object H2Helper {
       props
     }
 
-    val conn = Resource.fromAutoCloseable(M.blocking { driver.connect(url, props) })
-    shutdownDatabase(conn).map(_ => createTransactor(conn, strategy))
+    for {
+      executionContext <- ExecutionContexts.cachedThreadPool[M]
+      keepAlive = Resource.fromAutoCloseable(M.blocking { driver.connect(url, props) })
+      conn = Resource.fromAutoCloseable(M.blocking { driver.connect(url, props) })
+      _ <- shutdownDatabase(keepAlive)
+    } yield createTransactor(conn, strategy, executionContext)
   }
 
   def inMemoryPooled[M[_]](
@@ -51,9 +58,11 @@ object H2Helper {
 
     for {
       pool <- Resource.make(M.delay(createPool)) { pool => M.delay(pool.dispose()) }
+      executionContext <- ExecutionContexts.fixedThreadPool[M](maxConnections)
+      keepAlive = Resource.fromAutoCloseable(M.blocking { pool.getConnection })
       conn = Resource.fromAutoCloseable(M.blocking { pool.getConnection })
-      _ <- shutdownDatabase(conn)
-    } yield createTransactor(conn, strategy)
+      _ <- shutdownDatabase(keepAlive)
+    } yield createTransactor(conn, strategy, executionContext)
   }
 
   private def jdbcUrl(database: String) = show"jdbc:h2:mem:$database"
@@ -63,8 +72,22 @@ object H2Helper {
     conn
   }
 
-  private def createTransactor[M[_]](conn: Resource[M, Connection], strategy: Strategy)(implicit M: Sync[M]) = {
-    Transactor[M, Unit]((), _ => conn, KleisliInterpreter[M].ConnectionInterpreter, strategy)
-  }
+  private def createTransactor[M[_]](
+    conn: Resource[M, Connection],
+    strategy: Strategy,
+    executionContext: ExecutionContext,
+  )(implicit M: Sync[M]) =
+    M match {
+      case async: Async[M @unchecked] =>
+        Transactor[M, Unit](
+          (),
+          _ => conn,
+          KleisliInterpreter.onBlockingThread[M].ConnectionInterpreter,
+          strategy,
+          async.evalOnK(executionContext),
+        )
+      case _ =>
+        Transactor[M, Unit]((), _ => conn, KleisliInterpreter[M].ConnectionInterpreter, strategy)
+    }
 
 }

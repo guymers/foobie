@@ -141,7 +141,7 @@ object connection {
    * Construct a prepared statement from the given `sql`, configure it with the
    * given `PreparedStatementIO` action, and return results via an `Iterator`.
    * The iterator must be consumed while the connection that created it remains
-   * open. Rows are read from the result set in groups of `chunkSize`.
+   * open. Rows are read lazily from the result set in groups of `chunkSize`.
    * @group Prepared Statements
    */
   def iterator[F[_], A: Read](sql: String, prep: PreparedStatementIO[Unit], chunkSize: Int)(implicit

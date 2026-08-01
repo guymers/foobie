@@ -1,5 +1,6 @@
 package zoobie
 
+import doobie.FC
 import doobie.syntax.string.*
 import zio.ZIO
 import zio.test.ZIOSpecDefault
@@ -9,6 +10,17 @@ import zoobie.stub.StubConnection
 object TransactorSpec extends ZIOSpecDefault {
 
   override val spec = suite("Transactor")(
+    test("runs ConnectionIO on one blocking thread") {
+      for {
+        _ <- ZIO.unit
+        connection = new StubConnection(_ => true)
+        transactor = Transactor(ZIO.succeed(connection), Transactor.interpreter, Transactor.strategies.noop)
+        sameThread <- transactor.run(for {
+          jdbcThread <- FC.raw(_ => Thread.currentThread())
+          delayThread <- FC.delay(Thread.currentThread())
+        } yield jdbcThread eq delayThread)
+      } yield assertTrue(sameThread)
+    },
     suite("transactional")(
       test("commits on success") {
         for {

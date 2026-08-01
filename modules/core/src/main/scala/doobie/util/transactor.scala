@@ -25,6 +25,9 @@ import fs2.Stream
 
 import java.sql.Connection
 import java.sql.DriverManager
+import java.util.concurrent.Executors
+import java.util.concurrent.ThreadFactory
+import java.util.concurrent.atomic.AtomicLong
 import javax.sql.DataSource
 import scala.concurrent.ExecutionContext
 
@@ -121,6 +124,16 @@ object transactor {
     /** A natural transformation for interpreting `ConnectionIO` * */
     def interpret: Interpreter[M]
 
+    /**
+     * A natural transformation that selects the execution context used for a
+     * complete transaction. Custom transactors default to no additional
+     * scheduling.
+     */
+    def schedule: M ~> M =
+      new (M ~> M) {
+        def apply[T](mt: M[T]): M[T] = mt
+      }
+
     /** A `Strategy` for running a program on a connection * */
     def strategy: Strategy
 
@@ -147,7 +160,7 @@ object transactor {
      */
     def rawExec(implicit ev: MonadCancelThrow[M]): Kleisli[M, Connection, *] ~> M =
       new (Kleisli[M, Connection, *] ~> M) {
-        def apply[T](k: Kleisli[M, Connection, T]): M[T] = connect(kernel).use(k.run)
+        def apply[T](k: Kleisli[M, Connection, T]): M[T] = schedule(connect(kernel).use(k.run))
       }
 
     /**
@@ -159,11 +172,11 @@ object transactor {
     def exec(implicit ev: MonadCancelThrow[M]): Kleisli[M, Connection, *] ~> M =
       new (Kleisli[M, Connection, *] ~> M) {
         def apply[T](ka: Kleisli[M, Connection, T]): M[T] =
-          connect(kernel).use { conn =>
+          schedule(connect(kernel).use { conn =>
             strategy.resource.mapK(run(conn)).use { _ =>
               ka.run(conn)
             }
-          }
+          })
       }
 
     /**
@@ -176,9 +189,9 @@ object transactor {
     def rawTrans(implicit ev: MonadCancelThrow[M]): ConnectionIO ~> M =
       new (ConnectionIO ~> M) {
         def apply[T](f: ConnectionIO[T]): M[T] =
-          connect(kernel).use { conn =>
+          schedule(connect(kernel).use { conn =>
             f.foldMap(interpret).run(conn)
-          }
+          })
       }
 
     /**
@@ -191,9 +204,9 @@ object transactor {
     def trans(implicit ev: MonadCancelThrow[M]): ConnectionIO ~> M =
       new (ConnectionIO ~> M) {
         def apply[T](f: ConnectionIO[T]): M[T] =
-          connect(kernel).use { conn =>
+          schedule(connect(kernel).use { conn =>
             strategy.resource.use(_ => f).foldMap(interpret).run(conn)
-          }
+          })
       }
 
     def rawTransP(implicit ev: MonadCancelThrow[M]): Stream[ConnectionIO, *] ~> Stream[M, *] =
@@ -236,13 +249,13 @@ object transactor {
     private def run(c: Connection)(implicit ev: Monad[M]): ConnectionIO ~> M =
       new (ConnectionIO ~> M) {
         def apply[T](f: ConnectionIO[T]) =
-          f.foldMap(interpret).run(c)
+          schedule(f.foldMap(interpret).run(c))
       }
 
     private def runKleisli[B](c: Connection)(implicit ev: Monad[M]): Kleisli[ConnectionIO, B, *] ~> Kleisli[M, B, *] =
       new (Kleisli[ConnectionIO, B, *] ~> Kleisli[M, B, *]) {
         def apply[T](f: Kleisli[ConnectionIO, B, T]) =
-          Kleisli(f.run(_).foldMap(interpret).run(c))
+          Kleisli(b => schedule(f.run(b).foldMap(interpret).run(c)))
       }
 
     @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
@@ -257,6 +270,7 @@ object transactor {
       val connect = connect0
       val interpret = interpret0
       val strategy = strategy0
+      override val schedule = self.schedule
     }
 
     /*
@@ -268,7 +282,7 @@ object transactor {
         connect.andThen(_.mapK(fk)),
         interpret.andThen(
           new (Kleisli[M, Connection, *] ~> Kleisli[M0, Connection, *]) {
-            def apply[T](f: Kleisli[M, Connection, T]) = f.mapK(fk)
+            def apply[T](f: Kleisli[M, Connection, T]) = Kleisli(c => fk(schedule(f.run(c))))
           },
         ),
         strategy,
@@ -276,6 +290,19 @@ object transactor {
   }
 
   object Transactor {
+
+    private val blockingThreadIndex = new AtomicLong()
+
+    @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
+    private val blockingExecutionContext = ExecutionContext.fromExecutor(
+      Executors.newCachedThreadPool(new ThreadFactory {
+        def newThread(runnable: Runnable): Thread = {
+          val thread = new Thread(runnable, s"doobie-blocking-${blockingThreadIndex.incrementAndGet()}")
+          thread.setDaemon(true)
+          thread
+        }
+      }),
+    )
 
     def apply[M[_], A0](
       kernel0: A0,
@@ -288,6 +315,21 @@ object transactor {
       val connect = connect0
       val interpret = interpret0
       val strategy = strategy0
+    }
+
+    def apply[M[_], A0](
+      kernel0: A0,
+      connect0: A0 => Resource[M, Connection],
+      interpret0: Interpreter[M],
+      strategy0: Strategy,
+      schedule0: M ~> M,
+    ): Transactor.Aux[M, A0] = new Transactor[M] {
+      type A = A0
+      val kernel = kernel0
+      val connect = connect0
+      val interpret = interpret0
+      val strategy = strategy0
+      override val schedule = schedule0
     }
 
     type Aux[M[_], A0] = Transactor[M] { type A = A0 }
@@ -338,8 +380,8 @@ object transactor {
           val connect = (dataSource: A) => {
             Resource.fromAutoCloseable(ev.evalOn(ev.delay(dataSource.getConnection()), connectEC))
           }
-          val interp = KleisliInterpreter[M].ConnectionInterpreter
-          Transactor(dataSource, connect, interp, Strategy.default)
+          val interp = KleisliInterpreter.onBlockingThread[M].ConnectionInterpreter
+          Transactor(dataSource, connect, interp, Strategy.default, ev.evalOnK(connectEC))
         }
       }
 
@@ -356,8 +398,18 @@ object transactor {
     class FromConnectionUnapplied[M[_]] {
       def apply(connection: Connection)(implicit sync: Sync[M]): Transactor.Aux[M, Connection] = {
         val connect = (c: Connection) => Resource.pure[M, Connection](c)
-        val interp = KleisliInterpreter[M].ConnectionInterpreter
-        Transactor(connection, connect, interp, Strategy.default)
+        sync match {
+          case async: Async[M @unchecked] =>
+            Transactor(
+              connection,
+              connect,
+              KleisliInterpreter.onBlockingThread[M].ConnectionInterpreter,
+              Strategy.default,
+              async.evalOnK(blockingExecutionContext),
+            )
+          case _ =>
+            Transactor(connection, connect, KleisliInterpreter[M].ConnectionInterpreter, Strategy.default)
+        }
       }
     }
 
@@ -384,12 +436,23 @@ object transactor {
         conn: () => Connection,
         strategy: Strategy,
       )(implicit ev: Sync[M]): Transactor.Aux[M, Unit] =
-        Transactor(
-          (),
-          _ => Resource.fromAutoCloseable(ev.blocking { Class.forName(driver); conn() }),
-          KleisliInterpreter[M].ConnectionInterpreter,
-          strategy,
-        )
+        ev match {
+          case async: Async[M @unchecked] =>
+            Transactor(
+              (),
+              _ => Resource.fromAutoCloseable(async.delay { Class.forName(driver); conn() }),
+              KleisliInterpreter.onBlockingThread[M].ConnectionInterpreter,
+              strategy,
+              async.evalOnK(blockingExecutionContext),
+            )
+          case _ =>
+            Transactor(
+              (),
+              _ => Resource.fromAutoCloseable(ev.blocking { Class.forName(driver); conn() }),
+              KleisliInterpreter[M].ConnectionInterpreter,
+              strategy,
+            )
+        }
 
       /**
        * Construct a new [[Transactor]] that uses the JDBC
