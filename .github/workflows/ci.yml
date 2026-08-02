@@ -12,7 +12,7 @@ jobs:
     name: Test
     services:
       postgres:
-        image: postgis/postgis:13-3.5
+        image: postgis/postgis:14-3.5
         command: >-
           postgres
           -c shared_buffers=250MB
