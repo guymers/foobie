@@ -12,7 +12,7 @@ val munitVersion = "1.3.3"
 val mysqlVersion = "9.7.0"
 val openTelemetryVersion = "1.63.0"
 val postgisVersion = "2025.1.1"
-val postgresVersion = "42.7.12"
+val postgresVersion = "42.7.13"
 val scalatestVersion = "3.2.20"
 val shapelessVersion = "2.3.12"
 val slf4jVersion = "2.0.18"
@@ -415,8 +415,3 @@ lazy val bench = project.in(file("modules/bench"))
   .settings(mimaPreviousArtifacts := Set.empty)
   .enablePlugins(JmhPlugin)
   .dependsOn(core, postgres)
-
-Global / excludeLintKeys ++= Set(
-  com.github.sbt.git.SbtGit.GitKeys.gitDescribedVersion,
-  com.github.sbt.git.SbtGit.GitKeys.gitUncommittedChanges,
-)

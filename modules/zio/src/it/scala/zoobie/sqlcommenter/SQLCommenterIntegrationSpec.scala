@@ -74,5 +74,6 @@ object SQLCommenterIntegrationSpec extends ZIOSpecDefault {
     queueSize = 1_000,
     maxConnectionLifetime = 30.seconds,
     validationTimeout = 2.seconds,
+    alwaysInvalidateOnFailure = false,
   )
 }

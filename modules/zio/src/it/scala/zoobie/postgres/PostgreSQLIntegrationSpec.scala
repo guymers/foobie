@@ -126,6 +126,7 @@ object PostgreSQLIntegrationSpec extends ZIOSpecDefault {
     queueSize = 5_000,
     maxConnectionLifetime = 30.seconds,
     validationTimeout = 2.seconds,
+    alwaysInvalidateOnFailure = false,
   )
 
   case class Results(

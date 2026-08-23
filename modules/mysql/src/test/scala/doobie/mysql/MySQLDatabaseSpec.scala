@@ -54,6 +54,7 @@ object MySQLDatabaseSpec {
     queueSize = 1_000,
     maxConnectionLifetime = 10.minutes,
     validationTimeout = 1.second,
+    alwaysInvalidateOnFailure = false,
   )
 
   val layer: ZLayer[Any, Nothing, Transactor] = ZLayer.scoped[Any] {
