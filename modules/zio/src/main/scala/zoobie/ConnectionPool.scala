@@ -111,6 +111,7 @@ object ConnectionPool {
                   connectionTooOld(c, jitter = Some(0.9))
                 }
 
+              case Exit.Failure(_) if config.alwaysInvalidateOnFailure => invalidate(c)
               case Exit.Failure(_) =>
                 invalidate(c).whenZIO {
                   for {

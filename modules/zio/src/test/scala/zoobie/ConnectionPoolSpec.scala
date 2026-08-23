@@ -24,6 +24,7 @@ object ConnectionPoolSpec extends ZIOSpecDefault {
     queueSize = 3,
     maxConnectionLifetime = 60.seconds,
     validationTimeout = 10.seconds,
+    alwaysInvalidateOnFailure = false,
   )
 
   override val spec = suite("ConnectionPool")(
@@ -172,6 +173,32 @@ object ConnectionPoolSpec extends ZIOSpecDefault {
         assertTrue(createdInitial.forall(_.isClosed)) &&
         assertTrue(validAfterAllExceedMaxLifetime) &&
         assertTrue(createdRefreshed.size == 10)
+      }
+    },
+    test("connections are refreshed after failures") {
+      def run(alwaysInvalidateOnFailure: Boolean) = for {
+        createdRef <- Ref.make(Chunk.empty[StubConnection])
+        create = createdRef.modify { created =>
+          val c = new StubConnection(_ => true)
+          (c, created :+ c)
+        }
+        pool <- ConnectionPool.create(create, config.copy(alwaysInvalidateOnFailure = alwaysInvalidateOnFailure))
+        result <- ZIO.scoped[Any] {
+          pool.get *> ZIO.fail(new RuntimeException("boom"))
+        }.either
+        created <- createdRef.get
+      } yield {
+        (result, created.count(_.isClosed))
+      }
+
+      for {
+        runWithFlag <- run(alwaysInvalidateOnFailure = true)
+        (resultWithFlag, numClosedWithFlag) = runWithFlag
+        runWithoutFlag <- run(alwaysInvalidateOnFailure = false)
+        (resultWithoutFlag, numClosedWithoutFlag) = runWithoutFlag
+      } yield {
+        assertTrue(resultWithFlag.isLeft, numClosedWithFlag == 1) &&
+        assertTrue(resultWithoutFlag.isLeft, numClosedWithoutFlag == 0)
       }
     },
   ) @@ TestAspect.timeout(15.seconds)
