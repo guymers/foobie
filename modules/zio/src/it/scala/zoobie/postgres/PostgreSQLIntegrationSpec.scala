@@ -13,7 +13,6 @@ import zio.metrics.MetricState
 import zio.stream.ZSink
 import zio.stream.ZStream
 import zio.test.TestAspect
-import zio.test.TestRandom
 import zio.test.ZIOSpecDefault
 import zio.test.assertTrue
 import zoobie.ConnectionPoolConfig
@@ -46,15 +45,19 @@ object PostgreSQLIntegrationSpec extends ZIOSpecDefault {
       _ <- fr"SELECT pg_sleep(2)".update.run
     } yield Results.error
 
-    def run(transactor: Transactor) = ZStream.iterate(1)(_ + 1)
-      .takeWhile(_ <= NumOperations)
-      .mapZIOParUnordered(PoolSize * 2) { _ =>
+    val weights: Chunk[Int] = {
+      val random = new scala.util.Random(1234567890L)
+      Chunk.fill(NumOperations)(random.nextInt(Weightings.total))
+    }
+
+    def run(transactor: Transactor) = ZStream.fromChunk(weights)
+      .mapZIOParUnordered(PoolSize * 2) { weight =>
+        val conn =
+          if (weight < Weightings.success) success
+          else if (weight < Weightings.success + Weightings.failure) failure
+          else error
+
         for {
-          conn <- zio.Random.nextIntBounded(Weightings.total).map { i =>
-            if (i < Weightings.success) success
-            else if (i < Weightings.success + Weightings.failure) failure
-            else error
-          }
           result <- transactor.run(conn).either
           results <- result match {
             case Left(e: DatabaseError.Utilization) =>
@@ -73,13 +76,14 @@ object PostgreSQLIntegrationSpec extends ZIOSpecDefault {
       .run(ZSink.foldLeftChunks(Results.monoid.empty) { case (results, chunk) => results |+| chunk.combineAll })
 
     for {
-      _ <- TestRandom.setSeed(1234567890)
       p <- pool(connectionConfig, config)
       transactor = Transactor.fromPoolTransactional(p)
       results <- run(transactor)
       metrics <- ZIO.metrics.map(_.metrics)
     } yield {
-      val metricPairs = metrics.map { p =>
+      // metrics are global to the JVM, ignore the pools of other integration tests
+      val poolMetrics = metrics.filter(p => p.metricKey.tags.exists(tag => tag.key == "pool" && tag.value == config.name))
+      val metricPairs = poolMetrics.map { p =>
         val tags = p.metricKey.tags.toList.sortBy(_.key)
         val key = show"${p.metricKey.name}{${tags.map(l => show"${l.key}=${l.value}").mkString_(",")}}"
         val value = p.metricState match {
@@ -91,11 +95,10 @@ object PostgreSQLIntegrationSpec extends ZIOSpecDefault {
         }
         (key, value)
       }
-      // TODO number of results is not deterministic
       assertTrue(results == Results(
-        success = 450301,
-        failure = 24757,
-        error = 24942,
+        success = weights.count(_ < Weightings.success),
+        failure = weights.count(i => i >= Weightings.success && i < Weightings.success + Weightings.failure),
+        error = weights.count(i => i >= Weightings.success + Weightings.failure),
       )) &&
       assertTrue(metricPairs == Set(
         ("zoobie_connections_waiting{pool=zoobie-postgres-it}", 0.0),

@@ -392,6 +392,7 @@ lazy val `zio-it` = moduleIT("zio")
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+      "com.mysql" % "mysql-connector-j" % mysqlVersion % Test,
     ),
   )
   .dependsOn(zio, postgres)

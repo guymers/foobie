@@ -18,6 +18,12 @@ final case class MySQLConnectionConfig(
     p.setProperty("user", username)
     p.setProperty("password", password)
 
+    // By default, the driver sends every commit() and rollback() to the server. With this set it
+    // uses the transaction state the server reports and skips them when no transaction is open.
+    // ConnectionProxy rolls back every connection returned to the pool with auto-commit off, so
+    // this avoids a round trip on return when that connection has no open transaction.
+    p.setProperty("useLocalTransactionState", "true")
+
     properties.foreachEntry { case (k, v) => p.setProperty(k, v) }
 
     p
