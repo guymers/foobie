@@ -2,26 +2,25 @@
 import FreeGen2.*
 
 val catsVersion = "2.13.0"
-val catsEffectVersion = "3.7.0"
-val circeVersion = "0.14.16"
-val fs2Version = "3.13.0"
-val h2Version = "2.4.240"
+val catsEffectVersion = "3.7.1"
+val circeVersion = "0.14.17"
+val fs2Version = "3.14.0"
+val h2Version = "2.5.252"
 val hikariVersion = "7.1.0"
 val magnoliaVersion = "1.1.10"
-val munitVersion = "1.3.3"
-val mysqlVersion = "9.7.0"
-val openTelemetryVersion = "1.63.0"
+val munitVersion = "1.3.6"
+val mysqlVersion = "26.10.0"
 val postgisVersion = "2025.1.1"
-val postgresVersion = "42.7.13"
+val postgresVersion = "42.7.14"
 val scalatestVersion = "3.2.20"
 val shapelessVersion = "2.3.12"
-val slf4jVersion = "2.0.18"
+val slf4jVersion = "2.0.20"
 val weaverVersion = "0.8.4"
-val zioInteropCats = "23.1.0.5"
-val zioVersion = "2.1.19"
+val zioInteropCats = "23.1.0.15"
+val zioVersion = "2.1.27"
 
 val Scala213 = "2.13.18"
-val Scala3 = "3.3.8"
+val Scala3 = "3.3.9"
 
 organization := "io.github.guymers"
 homepage := Some(uri("https://github.com/guymers/foobie"))
@@ -30,6 +29,9 @@ developers := List(
   Developer("guymers", "Sam Guymer", "@guymers", uri("https://github.com/guymers")),
 )
 ThisBuild / scmInfo := Some(ScmInfo(uri("https://github.com/guymers/foobie"), "git@github.com:guymers/foobie.git"))
+
+// Maven Central requires a javadoc jar, but it does not need to have any content
+Compile / packageDoc / mappings := Seq.empty
 
 lazy val commonSettings = Seq(
   scalaVersion := Scala213,
@@ -377,7 +379,6 @@ lazy val zio = module("zio")
       "com.mysql" % "mysql-connector-j" % mysqlVersion % Optional,
       "org.postgresql" % "postgresql" % postgresVersion % Optional,
       "net.postgis" % "postgis-jdbc" % postgisVersion % Optional,
-      "io.opentelemetry" % "opentelemetry-api" % openTelemetryVersion % Optional,
 
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
@@ -391,7 +392,6 @@ lazy val `zio-it` = moduleIT("zio")
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
-      "io.opentelemetry" % "opentelemetry-api" % openTelemetryVersion % Test,
     ),
   )
   .dependsOn(zio, postgres)
