@@ -343,25 +343,6 @@ object connection {
     FC.setCatalog(catalog)
 
   /** @group Connection Properties */
-  def setClientInfo(key: String, value: String): ConnectionIO[Unit] =
-    FC.setClientInfo(key, value)
-
-  /** @group Connection Properties */
-  def setClientInfo(info: Map[String, String]): ConnectionIO[Unit] =
-    FC.setClientInfo {
-      // Java 11 overloads the `putAll` method with Map[*,*] along with the existing Map[Obj,Obj]
-      val ps = new java.util.Properties
-      info.foreachEntry { case (k, v) =>
-        ps.put(k, v)
-      }
-      ps
-    }
-
-  /** @group Connection Properties */
-  def setHoldability(h: Holdability): ConnectionIO[Unit] =
-    FC.setHoldability(h.toInt)
-
-  /** @group Connection Properties */
   def setReadOnly(readOnly: Boolean): ConnectionIO[Unit] =
     FC.setReadOnly(readOnly)
 
