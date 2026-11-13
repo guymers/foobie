@@ -339,10 +339,6 @@ object connection {
     FC.rollback
 
   /** @group Connection Properties */
-  def setCatalog(catalog: String): ConnectionIO[Unit] =
-    FC.setCatalog(catalog)
-
-  /** @group Connection Properties */
   def setReadOnly(readOnly: Boolean): ConnectionIO[Unit] =
     FC.setReadOnly(readOnly)
 
