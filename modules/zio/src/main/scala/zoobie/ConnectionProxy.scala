@@ -237,7 +237,7 @@ private[zoobie] class ConnectionProxy(connection: Connection, resetTimeoutMillis
   }
 }
 object ConnectionProxy {
-  private val directExecutor: Executor = (r: Runnable) => r.run()
+  private[zoobie] val directExecutor: Executor = (r: Runnable) => r.run()
 
   private sealed trait State
   private object State {
