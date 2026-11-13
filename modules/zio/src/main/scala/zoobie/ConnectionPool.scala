@@ -7,8 +7,6 @@ import zio.Trace
 import zio.ZIO
 import zio.ZLayer
 import zio.ZPool
-import zio.duration2DurationOps
-import zio.durationLong
 import zio.metrics.Metric.GaugeSyntax
 import zio.metrics.MetricLabel
 
@@ -123,14 +121,22 @@ object ConnectionPool {
           } yield c
         }
 
+        // a lifetime too large to represent in nanoseconds never expires
+        private val maxLifetimeNanos =
+          try {
+            config.maxConnectionLifetime.toNanos
+          } catch {
+            case _: ArithmeticException => Long.MaxValue
+          }
+
         private def connectionTooOld(
           wrapper: ConnectionWrapper,
           jitter: Option[Double],
         )(implicit trace: Trace) = for {
           now <- zio.Clock.nanoTime
-          age = (now - wrapper.acquired).nanoseconds
+          age = now - wrapper.acquired
           maxLifetimeJitter <- ZIO.foreach(jitter)(zio.Random.nextDoubleBetween(_, 0.99)).map(_.getOrElse(1.0))
-          maxLifetime = (config.maxConnectionLifetime.toNanos * maxLifetimeJitter).toLong.nanoseconds
+          maxLifetime = (maxLifetimeNanos * maxLifetimeJitter).toLong
         } yield {
           age > maxLifetime
         }
@@ -145,19 +151,13 @@ object ConnectionPool {
     }
 
     def isValid(timeout: Duration)(implicit trace: Trace): ZIO[Any, Throwable, Boolean] = {
-      ZIO.attemptBlocking(connection.isValid(millis(timeout)))
+      ZIO.attemptBlocking(connection.isValid(seconds(timeout)))
     }
 
-    def setNetworkTimeout(timeout: Duration)(implicit trace: Trace): ZIO[Scope, Nothing, Unit] = for {
-      executor <- ZIO.blockingExecutor
-      current = connection.getNetworkTimeout
-      _ <- ZIO.acquireRelease({
-        ZIO.succeed(connection.setNetworkTimeout(executor.asJava, millis(timeout)))
-      })(_ => {
-        ZIO.succeed(connection.setNetworkTimeout(executor.asJava, current))
-      })
-    } yield ()
-
-    private def millis(timeout: Duration) = timeout.toMillis.min(Int.MaxValue).toInt.max(0)
+    // rounded up to whole seconds and capped
+    private def seconds(timeout: Duration): Int = {
+      if (timeout.getSeconds >= Int.MaxValue) Int.MaxValue
+      else timeout.getSeconds.toInt + (if (timeout.getNano > 0) 1 else 0)
+    }
   }
 }
