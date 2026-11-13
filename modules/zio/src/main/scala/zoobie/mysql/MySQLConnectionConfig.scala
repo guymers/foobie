@@ -2,6 +2,11 @@ package zoobie.mysql
 
 import java.util.Properties
 
+/**
+ * @param properties
+ *   additional driver properties, these take precedence over the defaults set
+ *   here
+ */
 final case class MySQLConnectionConfig(
   host: String,
   port: Int = 3306,
