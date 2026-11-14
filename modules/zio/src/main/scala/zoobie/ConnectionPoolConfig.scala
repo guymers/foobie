@@ -4,7 +4,7 @@ import java.time.Duration
 
 /**
  * @param size
- *   number of connections to keep available
+ *   maximum number of connections, each is created when a request needs one
  * @param queueSize
  *   maximum number of requests waiting for a connection before a
  *   [[DatabaseError.Connection.Rejected]] is returned
@@ -27,4 +27,14 @@ final case class ConnectionPoolConfig(
   maxConnectionLifetime: Duration,
   validationTimeout: Duration,
   alwaysInvalidateOnFailure: Boolean,
-)
+) {
+
+  /** Why a pool can not be created from this config, empty if it can. */
+  private[zoobie] def errors: List[String] = List(
+    Option.when(size <= 0)(s"pool size must be positive, was ${size.toString}"),
+    Option.when(queueSize < 0)(s"queue size must not be negative, was ${queueSize.toString}"),
+    Option.when(maxConnectionLifetime.isNegative || maxConnectionLifetime.isZero)(
+      s"max connection lifetime must be positive, was ${maxConnectionLifetime.toString}",
+    ),
+  ).flatten
+}
