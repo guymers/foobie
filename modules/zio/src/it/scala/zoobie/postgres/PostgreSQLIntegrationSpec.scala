@@ -103,6 +103,7 @@ object PostgreSQLIntegrationSpec extends ZIOSpecDefault {
       assertTrue(metricPairs == Set(
         ("zoobie_connections_waiting{pool=zoobie-postgres-it}", 0.0),
         ("zoobie_connections_in_use{pool=zoobie-postgres-it}", 0.0),
+        ("zoobie_connections_creating{pool=zoobie-postgres-it}", 0.0),
         ("zoobie_connections_created{pool=zoobie-postgres-it}", (PoolSize * 2).toDouble),
         ("zoobie_connections_invalidated{pool=zoobie-postgres-it}", PoolSize.toDouble),
       ))

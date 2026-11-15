@@ -31,7 +31,12 @@ object DatabaseError {
 
     final case class Rejected(
       queueSize: Int,
-    ) extends DatabaseError(s"Maximum queue size of ${queueSize.toString} reached", None) with Connection
+    ) extends DatabaseError(
+        s"No connection available, all connections are in use or being created and the queue of ${queueSize.toString} waiting requests is full",
+        None,
+      ) with Connection
+
+    final case class Closed() extends DatabaseError("Connection pool is closed", None) with Connection
 
     @SuppressWarnings(Array("org.wartremover.warts.PartialFunctionApply", "org.wartremover.warts.Throw"))
     def apply(t: Throwable): DatabaseError.Connection = t match {
